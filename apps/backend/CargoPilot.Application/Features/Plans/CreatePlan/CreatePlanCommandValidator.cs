@@ -1,14 +1,11 @@
 ﻿using CargoPilot.Application.Common.Config;
-using CargoPilot.Application.Common.Settings;
-using CargoPilot.Domain.Enums;
 using FluentValidation;
-using Microsoft.Extensions.Options;
 
 namespace CargoPilot.Application.Features.Plans.CreatePlan;
 
 public sealed class CreatePlanCommandValidator : AbstractValidator<CreatePlanCommand>
 {
-    public CreatePlanCommandValidator(IOptions<OptimizationSettings> optimizationSettings)
+    public CreatePlanCommandValidator()
     {
         RuleFor(x => x.PlanName)
             .NotEmpty().WithMessage("Plan adı boş olamaz.")
@@ -68,14 +65,6 @@ public sealed class CreatePlanCommandValidator : AbstractValidator<CreatePlanCom
 
         RuleFor(x => x.Seed)
             .GreaterThanOrEqualTo(0).WithMessage("Tohum negatif olamaz.");
-
-        // Deneysel yollar kapaliyken sessizce Greedy'ye dusurulmez; istemci hangi
-        // yolun kostugunu bilmeli (ALGORITMA-YOL-HARITASI.md F0-4b).
-        RuleFor(x => x)
-            .Must(x => optimizationSettings.Value.EnableExperimentalStrategies
-                       || (x.PlacementStrategy == PlacementStrategy.Greedy
-                           && x.Sequencer is null or SequencerKind.Static))
-            .WithMessage("Deneysel yerleştirme stratejileri bu ortamda kapalıdır.");
 
     }
 }

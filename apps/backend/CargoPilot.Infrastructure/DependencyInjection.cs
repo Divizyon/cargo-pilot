@@ -1,4 +1,4 @@
-using CargoPilot.Application.Abstractions;
+﻿using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Settings;
 using CargoPilot.Application.Features.Auth;
@@ -71,10 +71,6 @@ public static class DependencyInjection {
         // Bolum yoksa varsayilan (ExportEnabled=false) gecerli olur.
         services.AddOptions<ErpExportSettings>()
             .Bind(configuration.GetSection("Erp"));
-
-        // Bolum yoksa varsayilan (EnableExperimentalStrategies=false) gecerli olur.
-        services.AddOptions<OptimizationSettings>()
-            .Bind(configuration.GetSection("Optimization"));
 
         services.AddOptions<MinioSettings>()
             .Bind(configuration.GetSection("Minio"))
