@@ -203,6 +203,9 @@ jobs:
       EMAIL_CHANGE_FRONTEND_CONFIRM_URL: ${{ secrets.EMAIL_CHANGE_FRONTEND_CONFIRM_URL || 'http://localhost:3001/confirm-email-change' }}
 
     steps:
+      - name: Kodu al
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       # SEC-12: Zorunlu kimlik bilgileri build/deploy başlamadan doğrulanır.
       # Eksikse pipeline burada açık bir mesajla durur.
       - name: Zorunlu secret'ları ve yapılandırmayı doğrula
@@ -228,9 +231,6 @@ jobs:
             exit 1
           fi
           echo "Zorunlu secret'lar tanımlı."
-
-      - name: Kodu al
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Docker Buildx kur
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
