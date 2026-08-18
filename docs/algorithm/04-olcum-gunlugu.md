@@ -1794,3 +1794,72 @@ kat yavaş yapardı. BR0 ve BR8-BR15 `--set N` ile ölçülür.
 
 `--set` sentinel'i değişti: "hepsi" artık `0` değil, **bayrağın verilmemesi**. BR0 gerçek bir küme
 olduğu için `0` artık onu seçiyor.
+
+---
+
+## F7-2 · Blok kataloğu — **kapı rahat geçti, ama beklenmedik bir şey söylüyor**
+
+Bugünkü yerleştirici bloğu **tepkisel** üretiyor: önce bir kutu yerleşiyor, sonra `RaiseBlock`
+çevresine aynı ürünün kalanlarını örüyor. Yani blok bir **sonuç**. Blok tabanlı arama için blok bir
+**girdi** olmalı — "bu boşluğa hangi blok" sorusunu sorabilmek için adayların önceden elde olması
+gerekir.
+
+`BlockCatalog` yazıldı: her ürün için, her yönelimde, araca ve eldeki adede sığan bütün
+`nx × ny × nz` dizilimleri. Katalog **sert kurallara uyar** — dikey tekrar sayısı
+istiflenebilirlik, kırılganlık, `MaxStackCount` ve `MaxWeightOnTop` ile sınırlanır. Yasadışı blok
+üretmek arama bütçesini boşa harcamak olurdu ve daha kötüsü, aday yerleştirme anında sessizce
+düşerdi.
+
+Bileşik bloklar (farklı ürünlerin birleşimi) bu adımda **yok**: ölçüldü ve GRASP altında kazancı
+sıfırdı; literatürde de basit→jenerik blok farkı yalnız 0,3 puan. Önce arama şeması kurulur.
+
+11 sözleşme testi yazıldı: araç dışına taşma yok, eldeki adet aşılmıyor, istiflenemez ve kırılgan
+ürün tek katman, `MaxStackCount`/`MaxWeightOnTop` sütunu sınırlıyor, sıra deterministik.
+
+### Kapı: üretim süresi < 50 ms
+
+| Küme | Tip | Blok sayısı | Üretim | Kutu/blok ort | Azami kutu |
+|---|---|---|---|---|---|
+| **BR0** | 1 | 634 | 0,9 ms | **35,2** | **990** |
+| BR1 | 3 | 1385 | 2,0 ms | 18,8 | 70 |
+| BR4 | 10 | 1946 | 2,7 ms | 7,7 | 22 |
+| BR7 | 20 | 1852 | 2,6 ms | 4,7 | 16 |
+| BR8 | 30 | 1809 | 2,6 ms | 3,8 | 10 |
+| BR12 | 70 | 1073 | 1,9 ms | 2,0 | 6 |
+| **BR15** | 100 | 838 | 1,6 ms | **1,5** | 4 |
+
+**Kapı geçti, hem de rahat.** Azami 2,7 ms (eşik 50), azami 1946 blok (üst sınır 10.000, hiç
+dayanılmadı). Üst sınır ve süre endişesi ölçümle kapandı — 2 saniyelik bütçeye göre üretim maliyeti
+binde bir mertebesinde.
+
+### Beklenmedik bulgu: blok ile arama birbirini tamamlıyor
+
+Kutu/blok sütunu heterojenlikle birlikte **çöküyor**: BR0'da bir blok ortalama 35 kutu taşırken
+BR15'te 1,5 kutu taşıyor. Sebep basit — tip başına adet düşüyor (BR0'da 122 birim tek tipte,
+BR15'te tip başına 1-2 birim), blok kuracak malzeme kalmıyor.
+
+Bunu `F7-1`'deki GRASP kazançlarının yanına koyunca tablo netleşiyor:
+
+| Küme | Kutu/blok | GRASP kazancı |
+|---|---|---|
+| BR0 | **35,2** | **+0,13** |
+| BR1 | 18,8 | +4,29 |
+| BR8 | 3,8 | +4,90 |
+| BR15 | **1,5** | +3,31 |
+
+**İki mekanizma ters yönde çalışıyor.** Blok zenginliği aramanın işe yaramadığı yerde (BR0: tek
+tip, sıralanacak şey yok) azami; aramanın en değerli olduğu yerde (BR15) neredeyse yok.
+
+Bunun F7 için iki sonucu var:
+
+1. **BSG'nin "blok" tarafı BR15'te fiilen devre dışı kalacak** — blok tek kutuya dejenere olur ve
+   BSG düz bir "kutu-boşluk" beam search'e döner. Kazanç oradan gelmeyecek.
+2. **Ama asıl kaldıraç zaten blok zenginliği değil, arama şeması.** Fanslau & Bortfeldt'in kendi
+   verisi bunu söylüyordu (basit→jenerik blok farkı 0,3 puan) ve bizim bileşik blok ölçümümüz de
+   aynı yöne çıkmıştı. Bu ölçüm o iddiayı üçüncü bir yoldan doğruluyor.
+
+Yani F7-4 (beam çekirdeği) kapısı, F7-2'nin kendisinden daha belirleyici. Katalog gerekli ama
+yeterli değil — zaten öyle planlanmıştı.
+
+Testler 140/35/228 yeşil, kapı geçti (%82,61 — motor davranışı değişmedi, katalog henüz kimse
+tarafından çağrılmıyor).

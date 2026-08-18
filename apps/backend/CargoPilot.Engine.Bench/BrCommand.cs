@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
+using CargoPilot.Application.Common.Optimization.WallBuilder;
 using CargoPilot.Application.Common.Models;
 
 namespace CargoPilot.Engine.Bench;
@@ -35,6 +36,7 @@ public static class BrCommand
         var support = new List<SupportDiagnostics.Distribution>();
         var maximality = new List<MaximalityDiagnostics.Report>();
         var walls = new List<WallDiagnostics.Report>();
+        var catalog = new List<BlockCatalogDiagnostics.Report>();
 
         foreach (var set in sets)
         {
@@ -72,17 +74,19 @@ public static class BrCommand
                 support.Add(SupportDiagnostics.Analyze(input, result));
                 maximality.Add(MaximalityDiagnostics.Analyze(input, result));
                 walls.Add(WallDiagnostics.Analyze(input, result));
+                catalog.Add(BlockCatalogDiagnostics.Analyze(input, BlockCatalog.DefaultMaxBlocks));
             }
 
             if (options.Verbose)
             {
-                WriteDiagnostics(set, waste, spaces, shape, support, maximality, walls);
+                WriteDiagnostics(set, waste, spaces, shape, support, maximality, walls, catalog);
                 waste.Clear();
                 spaces.Clear();
                 shape.Clear();
                 support.Clear();
                 maximality.Clear();
                 walls.Clear();
+                catalog.Clear();
             }
 
             all.AddRange(fills);
@@ -126,7 +130,8 @@ public static class BrCommand
         List<CorpusDiagnostics.Shape> shape,
         List<SupportDiagnostics.Distribution> support,
         List<MaximalityDiagnostics.Report> maximality,
-        List<WallDiagnostics.Report> walls)
+        List<WallDiagnostics.Report> walls,
+        List<BlockCatalogDiagnostics.Report> catalog)
     {
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"      BR{set} teshis · olu hava %{waste.Average(w => w.DeadAirPercent):F1}" +
@@ -162,6 +167,12 @@ public static class BrCommand
             $"           YUK DERINLIGI %{walls.Average(w => w.LoadDepthPercent):F1} (doluluga yakin = yogun, cok ustunde = yayilmis)"
             + $" · olu hava · bos sutun (kenar seridi) %{walls.Average(w => w.DeadAirInEmptyColumnsPercent):F1}"
             + $" · tavan artigi %{walls.Average(w => w.DeadAirAbovePilePercent):F1}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"           BLOK KATALOGU {catalog.Average(c => c.BlockCount):F0} blok"
+            + $" · uretim {catalog.Average(c => c.BuildMs):F1} ms"
+            + $" · sinira dayanan %{100d * catalog.Count(c => c.HitCap) / catalog.Count:F0}"
+            + $" · kutu/blok ort {catalog.Average(c => c.MeanBoxesPerBlock):F1}"
+            + $" · azami {catalog.Max(c => c.MaxBoxesPerBlock)}"));
     }
 
     /// <summary>
