@@ -98,7 +98,6 @@ interface PlanBody {
   vehicleId: string;
   optimizationCriteria: number;
   clusterGroups: boolean;
-  placementStrategy?: number;
   sequencer?: number;
   seed?: number;
   items: Array<{ itemId: string; quantity: number; groupId?: string }>;
@@ -204,7 +203,6 @@ function toOptimizationInput(
     clusterGroups: plan.clusterGroups,
     // Strateji alanlarını taşımamak sessiz bir hataydı: koşu "wallbuilder" diye
     // raporlanırken motor greedy koşuyordu ve iki ölçüm birebir aynı çıkıyordu.
-    strategy: plan.placementStrategy ?? 0,
     sequencer: plan.sequencer ?? 0,
     seed: plan.seed ?? 0,
     // Yükleme başlangıç köşesi kapı listesinden türetilir; tekil `loadingType`

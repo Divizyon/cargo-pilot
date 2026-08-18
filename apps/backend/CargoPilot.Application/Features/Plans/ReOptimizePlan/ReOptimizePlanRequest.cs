@@ -8,7 +8,6 @@ public sealed record ReOptimizePlanRequest(
     LoadingPlanOptimizationCriteria OptimizationCriteria = LoadingPlanOptimizationCriteria.VolumeFirst,
     IReadOnlyList<ReOptimizePlanGroupDefinition>? Groups = null,
     bool ClusterGroups = true,
-    PlacementStrategy PlacementStrategy = PlacementStrategy.WallBuilder,
     SequencerKind? Sequencer = null,
     int Seed = 0);
 

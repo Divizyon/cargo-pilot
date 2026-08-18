@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Placement, PlacementStrategy, SearchStats, SequencerKind } from '@/lib/types/loadingPlan';
+import type { Placement, SearchStats, SequencerKind } from '@/lib/types/loadingPlan';
 import type { Vehicle } from '@/lib/types/vehicle';
 import { DoorFace, DoorType } from '@/lib/types/vehicle';
 import { resolveDoors } from './vehicleMappers';
@@ -97,7 +97,6 @@ export const planDetailResponseSchema = z.object({
       weightBalanceOffsetZ: nullableNumber,
       // Planin hangi yolla uretildigi. Kalicilik F4'te eklenecek; bugun backend
       // her planda null donuyor, sema simdiden aciliyor.
-      placementStrategy: z.number().int().nullable().optional(),
       sequencer: z.number().int().nullable().optional(),
       seed: z.number().int().nullable().optional(),
       searchStats: z
@@ -124,7 +123,6 @@ export interface BackendPlanMetrics {
   centerOfGravityZ: number | null;
   weightBalanceOffsetX: number | null;
   weightBalanceOffsetZ: number | null;
-  placementStrategy: PlacementStrategy | null;
   sequencer: SequencerKind | null;
   seed: number | null;
   searchStats: SearchStats | null;
@@ -225,7 +223,6 @@ export function fromApiPlanDetail(
       centerOfGravityZ: data.centerOfGravityZ ?? null,
       weightBalanceOffsetX: data.weightBalanceOffsetX ?? null,
       weightBalanceOffsetZ: data.weightBalanceOffsetZ ?? null,
-      placementStrategy: (data.placementStrategy ?? null) as PlacementStrategy | null,
       sequencer: (data.sequencer ?? null) as SequencerKind | null,
       seed: data.seed ?? null,
       searchStats: data.searchStats ?? null,

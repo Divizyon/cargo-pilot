@@ -31,13 +31,11 @@ public sealed class CepYerlesimiTests
     private const decimal VehicleHeight = 200m;
     private const decimal VehicleLength = 400m;
 
-    [Theory]
-    [InlineData(PlacementStrategy.Greedy)]
-    [InlineData(PlacementStrategy.WallBuilder)]
-    public void Cebe_YerlesenKirilganKutunun_Ustune_YukBinemez(PlacementStrategy strategy)
+    [Fact]
+    public void Cebe_YerlesenKirilganKutunun_Ustune_YukBinemez()
     {
-        var senaryo = $"{nameof(Cebe_YerlesenKirilganKutunun_Ustune_YukBinemez)}_{strategy}";
-        var input = KopruSenaryosu(strategy, FragilityType.Fragile);
+        const string senaryo = nameof(Cebe_YerlesenKirilganKutunun_Ustune_YukBinemez);
+        var input = KopruSenaryosu(FragilityType.Fragile);
 
         PhysicalInvariants.AssertAll(senaryo, input, EngineScenario.Run(input));
     }
@@ -46,12 +44,10 @@ public sealed class CepYerlesimiTests
     /// Aynı kör nokta istif adedinde de var: cebe yerleşen kutunun
     /// <c>MaxStackCount</c>'u üstündeki yükle hiç karşılaştırılmıyordu.
     /// </summary>
-    [Theory]
-    [InlineData(PlacementStrategy.Greedy)]
-    [InlineData(PlacementStrategy.WallBuilder)]
-    public void Cebe_YerlesenIstiflenemezKutunun_Ustune_YukBinemez(PlacementStrategy strategy)
+    [Fact]
+    public void Cebe_YerlesenIstiflenemezKutunun_Ustune_YukBinemez()
     {
-        var input = KopruSenaryosu(strategy, FragilityType.NonFragile, pocketStackable: false);
+        var input = KopruSenaryosu(FragilityType.NonFragile, pocketStackable: false);
         var result = EngineScenario.Run(input);
 
         var pocket = result.Placements.Where(p => p.ItemId == EngineScenario.ItemId(2)).ToList();
@@ -69,7 +65,6 @@ public sealed class CepYerlesimiTests
 
 
     private static OptimizationInput KopruSenaryosu(
-        PlacementStrategy strategy,
         FragilityType pocketFragility,
         bool pocketStackable = true)
         => EngineScenario.Input(
@@ -96,6 +91,5 @@ public sealed class CepYerlesimiTests
             vehicleWidth: VehicleWidth,
             vehicleHeight: VehicleHeight,
             vehicleLength: VehicleLength,
-            vehicleMaxWeight: 1_000m,
-            strategy: strategy);
+            vehicleMaxWeight: 1_000m);
 }

@@ -1,24 +1,14 @@
-import { PlacementStrategy, SequencerKind } from '@/lib/types/loadingPlan';
+import { SequencerKind } from '@/lib/types/loadingPlan';
 
 /**
- * Strateji ve sıralayıcı etiketleri.
+ * Sıralayıcı etiketleri.
  *
- * Kriterden ayrı dosyada duruyorlar çünkü ayrı bir eksenler: kriter "neyi
- * optimize et", strateji "hangi yerleştirici koşsun", sıralayıcı "kutu sırasını
- * kim üretsin" sorusunu yanıtlar. Üçünü tek listeye toplamak, üç kriterin
- * yanına dördüncü bir "kriter" gibi WallBuilder eklemek olurdu — rulebook
- * DR-01 bunu açıkça reddediyor.
+ * Kriterden ayrı dosyada duruyor çünkü ayrı bir eksen: kriter "neyi optimize
+ * et", sıralayıcı "kutu sırasını kim üretsin" sorusunu yanıtlar.
+ *
+ * Yerleştirici ekseni kaldırıldı (`DR-39`): greedy silindi ve tek yerleştirici
+ * kaldı, dolayısıyla seçilecek bir şey yok.
  */
-export const STRATEGY_ORDER = [
-  PlacementStrategy.Greedy,
-  PlacementStrategy.WallBuilder,
-] as const;
-
-export const STRATEGY_LABEL: Record<PlacementStrategy, string> = {
-  [PlacementStrategy.Greedy]: 'Greedy',
-  [PlacementStrategy.WallBuilder]: 'Wall-Builder',
-};
-
 export const SEQUENCER_ORDER = [
   SequencerKind.Static,
   SequencerKind.Gwca,
@@ -32,10 +22,6 @@ export const SEQUENCER_LABEL: Record<SequencerKind, string> = {
   [SequencerKind.Ga]: 'Genetik algoritma',
   [SequencerKind.Grasp]: 'GRASP',
 };
-
-export function isPlacementStrategy(value: number): value is PlacementStrategy {
-  return (STRATEGY_ORDER as readonly number[]).includes(value);
-}
 
 export function isSequencerKind(value: number): value is SequencerKind {
   return (SEQUENCER_ORDER as readonly number[]).includes(value);

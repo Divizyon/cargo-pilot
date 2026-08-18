@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { OptimizationCriteria, PlacementStrategy, SequencerKind } from '@/lib/types/loadingPlan';
+import { OptimizationCriteria, SequencerKind } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
 import { CHECK_IDS } from '../verification/types';
@@ -18,12 +18,7 @@ import { CHECK_IDS } from '../verification/types';
  */
 
 /** Şema sürümü. Satır zenginleştiğinde artar; eski kayıtlar okunurken düşer. */
-export const SUITE_RUN_VERSION = 3;
-
-const strategySchema = z.union([
-  z.literal(PlacementStrategy.Greedy),
-  z.literal(PlacementStrategy.WallBuilder),
-]);
+export const SUITE_RUN_VERSION = 4;
 
 const sequencerSchema = z.union([
   z.literal(SequencerKind.Static),
@@ -139,7 +134,6 @@ export const suiteRunSchema = z.object({
    * bir motordur; aynı seride kıyaslanamaz (bkz. `isComparable`). Aksi hâlde
    * Wall-Builder'ın ilk koşusu greedy referansına karşı sahte regresyon üretirdi.
    */
-  strategy: strategySchema,
   sequencer: sequencerSchema,
   /** Arama tohumu; Static sıralayıcıda kullanılmaz ve 0 kalır. */
   searchSeed: z.number().int().nonnegative(),
@@ -331,7 +325,6 @@ export function isComparable(a: SuiteRun, b: SuiteRun): boolean {
     a.catalogSignature === b.catalogSignature &&
     a.generatorVersion === b.generatorVersion &&
     a.fixtureCatalogVersion === b.fixtureCatalogVersion &&
-    a.strategy === b.strategy &&
     a.sequencer === b.sequencer &&
     a.searchSeed === b.searchSeed
   );

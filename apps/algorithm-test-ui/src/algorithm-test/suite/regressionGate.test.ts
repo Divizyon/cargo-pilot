@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OptimizationCriteria, PlacementStrategy, SequencerKind } from '@/lib/types/loadingPlan';
+import { OptimizationCriteria, SequencerKind } from '@/lib/types/loadingPlan';
 import { SUITE_RUN_VERSION, type SuiteRun, type SuiteScenarioResult } from '../utils/suiteStorage';
 import type { EffectivenessResult } from './criteriaEffectiveness';
 import { evaluateGate, type GateViolationId } from './regressionGate';
@@ -41,7 +41,6 @@ function run(results: SuiteScenarioResult[], overrides: Partial<SuiteRun> = {}):
     completedAt: '2026-08-15T12:00:00.000Z',
     catalogSignature: 'sig',
     generatorVersion: 2,
-    strategy: PlacementStrategy.Greedy,
     sequencer: SequencerKind.Static,
     searchSeed: 0,
     fixtureCatalogVersion: null,

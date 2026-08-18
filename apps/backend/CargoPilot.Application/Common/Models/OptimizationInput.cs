@@ -19,10 +19,6 @@ namespace CargoPilot.Application.Common.Models;
 /// Verilmezse <see cref="LoadingType"/>'dan turetilir; motor <see cref="FillsFromMaxX"/>
 /// okur.
 /// </param>
-/// <param name="Strategy">
-/// Yerlestirici secimi. Varsayilan <see cref="PlacementStrategy.WallBuilder"/>
-/// (ALGORITMA-RULEBOOK.md DR-39); greedy kaldirildi.
-/// </param>
 /// <param name="Sequencer">
 /// Kutu sirasini ureten katman. Varsayilan <see cref="SequencerKind.Static"/> ve
 /// bu BILINCLIDIR: motoru dogrudan cagiran her yol (golden snapshot'lar,
@@ -58,7 +54,6 @@ public sealed record OptimizationInput(
     bool ClusterGroups = true,
     OptimizationModules? Modules = null,
     bool? FillFromMaxX = null,
-    PlacementStrategy Strategy = PlacementStrategy.WallBuilder,
     SequencerKind Sequencer = SequencerKind.Static,
     int Seed = 0,
     SearchBudget? SearchBudget = null,

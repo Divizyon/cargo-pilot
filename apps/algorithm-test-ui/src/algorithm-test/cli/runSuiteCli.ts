@@ -189,7 +189,6 @@ async function runOneSeed(
     concurrency: options.concurrency,
     engineVersion: options.engineVersion,
     fixtureCatalogVersion: source.fixtureCatalogVersion,
-    strategy: options.strategy,
     onScenarioFailure: (failure) => {
       if (!options.dumpFailuresDir) return;
 
@@ -229,7 +228,6 @@ async function runOneSeed(
       concurrency: options.concurrency,
       engineVersion: options.engineVersion,
       fixtureCatalogVersion: source.fixtureCatalogVersion,
-      strategy: options.strategy,
     });
 
     if (again.status !== 'ok') {

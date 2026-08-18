@@ -1,6 +1,5 @@
 import type { OptimizationCriteria } from '@/lib/types/loadingPlan';
 import { isOptimizationCriteria } from '../criteria';
-import { PlacementStrategy } from '@/lib/types/loadingPlan';
 
 /**
  * Komut satırı sözleşmesi: bayraklar, varsayılanlar ve çıkış kodları.
@@ -66,7 +65,6 @@ export interface CliOptions {
    */
   dumpFailuresDir: string | null;
   /** Hangi yerleştirici koşsun. Deneysel yol backend'de bayrakla açık olmalı. */
-  strategy: PlacementStrategy;
 }
 
 export const USAGE = `
@@ -179,24 +177,7 @@ export function parseCliOptions(argv: readonly string[], env: CliEnv): CliOption
     benchUrl: readFlag(argv, 'bench-url') ?? DEFAULTS.benchUrl,
     repeat: readPositive(argv, 'repeat', DEFAULTS.repeat),
     dumpFailuresDir: readFlag(argv, 'dump-failures') ?? null,
-    strategy: readStrategy(argv),
   };
-}
-
-function readStrategy(argv: readonly string[]): PlacementStrategy {
-  const raw = readFlag(argv, 'strategy');
-  if (raw === undefined) return PlacementStrategy.Greedy;
-
-  switch (raw.toLowerCase()) {
-    case 'greedy':
-      return PlacementStrategy.Greedy;
-    case 'wall':
-    case 'wallbuilder':
-    case 'wall-builder':
-      return PlacementStrategy.WallBuilder;
-    default:
-      throw new CliUsageError(`--strategy 'greedy' ya da 'wallbuilder' olmalı (verilen: ${raw})`);
-  }
 }
 
 /**

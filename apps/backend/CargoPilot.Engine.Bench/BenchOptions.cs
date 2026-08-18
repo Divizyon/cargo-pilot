@@ -16,7 +16,6 @@ public sealed record BenchOptions(
     int Port,
     string? DumpDirectory,
     bool Verbose,
-    PlacementStrategy Strategy,
     int DurationMinutes,
     string? ReportPath,
     SequencerKind Sequencer,
@@ -48,7 +47,6 @@ public sealed record BenchOptions(
         var port = 5099;
         string? dump = null;
         var verbose = false;
-        var strategy = PlacementStrategy.WallBuilder;
         var durationMinutes = 5;
         string? reportPath = null;
         var sequencer = SequencerKind.Static;
@@ -97,9 +95,6 @@ public sealed record BenchOptions(
                 case "--verbose":
                     verbose = true;
                     break;
-                case "--strategy":
-                    strategy = ParseStrategy(value, arg);
-                    break;
                 case "--duration-min":
                     durationMinutes = ParseInt(value, arg);
                     break;
@@ -145,7 +140,7 @@ public sealed record BenchOptions(
         }
 
         return new BenchOptions(
-            seedFrom, seedTo, count, repeat, Math.Max(1, concurrency), port, dump, verbose, strategy,
+            seedFrom, seedTo, count, repeat, Math.Max(1, concurrency), port, dump, verbose,
             Math.Max(1, durationMinutes), reportPath,
             sequencer, Math.Max(1, searchMs), Math.Max(2, population), Math.Max(1, iterations),
             Math.Max(0, maxScenarios),
@@ -176,7 +171,6 @@ public sealed record BenchOptions(
               --port N         serve kipinde dinlenecek port (varsayilan 5099)
               --dump DIZIN     Uretilen girdileri JSON olarak yaz
               --verbose        Senaryo bazinda satir bas
-              --strategy S     greedy | wallbuilder (varsayilan greedy)
               --duration-min N soak kipinde kosu suresi, dakika (varsayilan 5)
               --report DOSYA   soak kipinde JSON rapor yolu
               --sequencer S    static | gwca | ga | grasp (varsayilan static)
@@ -219,14 +213,6 @@ public sealed record BenchOptions(
             "ga" => SequencerKind.Ga,
             "grasp" => SequencerKind.Grasp,
             _ => throw new ArgumentException($"{flag} static | gwca | ga | grasp bekliyor.", nameof(flag)),
-        };
-
-    private static PlacementStrategy ParseStrategy(string? value, string flag)
-        => value?.ToLowerInvariant() switch
-        {
-            "greedy" => PlacementStrategy.Greedy,
-            "wallbuilder" or "wall-builder" or "wall" => PlacementStrategy.WallBuilder,
-            _ => throw new ArgumentException($"{flag} 'greedy' ya da 'wallbuilder' bekliyor.", nameof(flag)),
         };
 
     private static decimal ParseDecimal(string? value, string flag)

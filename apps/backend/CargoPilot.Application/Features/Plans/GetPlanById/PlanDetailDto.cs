@@ -33,7 +33,6 @@ public sealed record PlanDetailDto(
     // Planin hangi yerlestirici/sequencer ve tohumla uretildigi. Determinizm
     // sozlesmesi (ALGORITMA-RULEBOOK.md R-C02) bu ucu olmadan kullanilamaz:
     // plani yeniden uretmek isteyen kisinin elinde yalnizca sonuc kalirdi.
-    PlacementStrategy? PlacementStrategy = null,
     SequencerKind? Sequencer = null,
     int? Seed = null,
     SearchStatsDto? SearchStats = null);

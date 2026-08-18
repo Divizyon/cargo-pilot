@@ -56,9 +56,6 @@ public sealed class CreatePlanCommandValidator : AbstractValidator<CreatePlanCom
                 .WithMessage("Boşaltma sırası değerleri benzersiz olmalıdır.");
         });
 
-        RuleFor(x => x.PlacementStrategy)
-            .IsInEnum().WithMessage("Yerleştirme stratejisi geçerli bir değer olmalıdır.");
-
         RuleFor(x => x.Sequencer)
             .Must(x => !x.HasValue || Enum.IsDefined(x.Value))
             .WithMessage("Sıralayıcı geçerli bir değer olmalıdır.");

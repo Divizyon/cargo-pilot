@@ -23,7 +23,7 @@ public static class BrCommand
         var sets = options.BrSet > 0 ? [options.BrSet] : new[] { 1, 2, 3, 4, 5, 6, 7 };
 
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"BR · strateji {options.Strategy} · sequencer {options.Sequencer} · yonelim {mode}"));
+            $"BR · sequencer {options.Sequencer} · yonelim {mode}"));
         Console.WriteLine(mode == BrCorpus.OrientationMode.Strict
             ? "belirsiz yonelim kisitli okundu: sonuc BR'nin ALT siniri"
             : "belirsiz yonelim serbest okundu: sonuc BR'nin UST siniri");
@@ -51,7 +51,6 @@ public static class BrCommand
                 var instance = instances[i];
                 var input = instance.Input with
                 {
-                    Strategy = options.Strategy,
                     Sequencer = options.Sequencer,
                     SearchBudget = new SearchBudget(options.Iterations, options.Population, options.SearchMs, options.Stall),
                     SupportThreshold = options.SupportThreshold,
@@ -97,7 +96,7 @@ public static class BrCommand
             $"BR1-BR7 ortalamasi: %{Mean(all):F2}  ({all.Count} ornek)"));
 
         var report = new BrBaseline.Report(
-            options.Strategy.ToString(),
+            "WallBuilder",
             options.Sequencer.ToString(),
             mode.ToString(),
             Math.Round(Mean(all), 2),

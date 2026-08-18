@@ -3,7 +3,7 @@ import type { Item } from '@/lib/types/item';
 import type { OptimizationCriteria, Placement } from '@/lib/types/loadingPlan';
 import type { Vehicle } from '@/lib/types/vehicle';
 import { CRITERIA_ORDER } from '../criteria';
-import { PlacementStrategy, SequencerKind } from '@/lib/types/loadingPlan';
+import { SequencerKind } from '@/lib/types/loadingPlan';
 import { runDigest, scenarioDigest } from './determinismDigest';
 import { buildCatalogCoverage, toCoverageCounts } from '../utils/catalogCoverage';
 import { GENERATOR_VERSION, generateSuite, type SuiteScenario } from '../utils/suiteGenerator';
@@ -77,8 +77,6 @@ export interface RunSuiteOptions {
   criteriaList?: readonly OptimizationCriteria[];
   /** Motorun hangi sürümüne karşı koşulduğu; rapora yazılır. */
   engineVersion?: string | null;
-  /** Hangi yerleştirici koşsun. Varsayılan bugünkü greedy motor. */
-  strategy?: PlacementStrategy;
   /** Kutu sırasını kim üretsin. Varsayılan bugünkü kriter tabanlı sıralama. */
   sequencer?: SequencerKind;
   /** Arama tohumu; Static sıralayıcıda kullanılmaz. */
@@ -122,7 +120,6 @@ export type RunSuiteOutcome =
 
 /** Koşunun tamamı için sabit motor seçimi; her senaryoya aynen geçer. */
 interface EngineSelection {
-  readonly strategy: PlacementStrategy;
   readonly sequencer: SequencerKind;
   readonly searchSeed: number;
 }
@@ -143,7 +140,6 @@ function buildPlanBody(
     vehicleId: scenario.vehicleId,
     optimizationCriteria: criteria,
     clusterGroups: scenario.clusterGroups,
-    placementStrategy: engine.strategy,
     sequencer: engine.sequencer,
     seed: engine.searchSeed,
     planName: `Toplu Test #${scenario.index} K${criteria}`,
@@ -345,7 +341,6 @@ export async function runSuite(options: RunSuiteOptions): Promise<RunSuiteOutcom
     concurrency = DEFAULT_CONCURRENCY,
     criteriaList = CRITERIA_ORDER,
     engineVersion = null,
-    strategy = PlacementStrategy.Greedy,
     sequencer = SequencerKind.Static,
     searchSeed = 0,
     fixtureCatalogVersion = null,
@@ -355,7 +350,7 @@ export async function runSuite(options: RunSuiteOptions): Promise<RunSuiteOutcom
     clock = systemClock,
   } = options;
 
-  const engine: EngineSelection = { strategy, sequencer, searchSeed };
+  const engine: EngineSelection = { sequencer, searchSeed };
 
   const scenarios = generateSuite(seed, count, vehicles, items);
   if (scenarios.length === 0) return { status: 'empty-catalog' };
@@ -409,7 +404,6 @@ export async function runSuite(options: RunSuiteOptions): Promise<RunSuiteOutcom
       completedAt: clock.nowIso(),
       catalogSignature: catalogSignature(vehicles, items),
       generatorVersion: GENERATOR_VERSION,
-      strategy,
       sequencer,
       searchSeed,
       fixtureCatalogVersion,

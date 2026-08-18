@@ -341,7 +341,6 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             warningDtos,
             inputItemDtos,
             groupDtos,
-            plan.PlacementStrategy,
             plan.Sequencer,
             plan.Seed,
             ToSearchStatsDto(plan));

@@ -35,10 +35,7 @@ public sealed class DuvarOrucuDegismezleriTests
     [MemberData(nameof(Senaryolar))]
     public void DuvarOrucu_UretilenPlan_FizikselDegismezleriKorur(string senaryo)
     {
-        var input = InvariantScenarioSource.Load(senaryo) with
-        {
-            Strategy = PlacementStrategy.WallBuilder,
-        };
+        var input = InvariantScenarioSource.Load(senaryo);
 
         PhysicalInvariants.AssertAll(senaryo, input, EngineScenario.Run(input));
     }
@@ -54,7 +51,6 @@ public sealed class DuvarOrucuDegismezleriTests
     {
         var input = InvariantScenarioSource.Load(senaryo) with
         {
-            Strategy = PlacementStrategy.WallBuilder,
             Sequencer = SequencerKind.Grasp,
             SearchBudget = TestBudget,
         };
@@ -74,8 +70,7 @@ public sealed class DuvarOrucuDegismezleriTests
 
         var input = EngineScenario.Input(
             [EngineScenario.Item(0, width: 50m, height: 40m, length: 50m, weight: 1m, quantity: 120)],
-            LoadingPlanOptimizationCriteria.VolumeFirst,
-            strategy: PlacementStrategy.WallBuilder);
+            LoadingPlanOptimizationCriteria.VolumeFirst);
 
         var result = EngineScenario.Run(input);
 
@@ -109,7 +104,6 @@ public sealed class DuvarOrucuDegismezleriTests
                 EngineScenario.Item(2, 80m, 30m, 55m, weight: 4m, quantity: 11),
             ],
             LoadingPlanOptimizationCriteria.VolumeFirst,
-            strategy: PlacementStrategy.WallBuilder,
             sequencer: sequencer,
             seed: 7) with
         {

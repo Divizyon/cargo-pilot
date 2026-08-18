@@ -71,7 +71,6 @@ internal static class EngineScenario
         LoadingType loadingType = LoadingType.Rear,
         bool clusterGroups = true,
         bool fillFromMaxX = false,
-        PlacementStrategy strategy = PlacementStrategy.WallBuilder,
         SequencerKind sequencer = SequencerKind.Static,
         int seed = 0)
         => new(
@@ -85,7 +84,6 @@ internal static class EngineScenario
             clusterGroups,
             Modules: null,
             FillFromMaxX: fillFromMaxX,
-            Strategy: strategy,
             Sequencer: sequencer,
             Seed: seed);
 

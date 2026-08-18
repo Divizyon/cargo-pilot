@@ -9,18 +9,15 @@ namespace CargoPilot.Application.Common.Optimization;
 internal static class SequencerSelection
 {
     /// <summary>
-    /// Belirtilmeyen sequencer'i cozer. Duvar orucu icin varsayilan GRASP'tir
-    /// (`DR-13`): 700 ornekli BR1-BR7 olcumu GWCA'nin her eksende kaybettigini
-    /// gosterdi ve arama katmani doluluğu %79,86'dan %85,32'ye cikariyor —
-    /// istemcinin bunu ayrica istemesi gerekmemeli.
+    /// Belirtilmeyen sequencer GRASP'a cozulur (`DR-13`, `DR-24`): 700 ornekli
+    /// BR1-BR7 olcumu arama katmaninin dolulugu %80,09'dan %86,23'e cikardigini
+    /// gosterdi ve istemcinin bunu ayrica istemesi gerekmemeli.
     ///
-    /// Greedy icin cevap <see cref="SequencerKind.Static"/> kalir; greedy zaten
-    /// sequencer okumaz ve bugunku 17 golden snapshot aynen korunur (`DR-01`).
+    /// Cozum YALNIZ burada, yani komut isleyicilerinde yapilir. Motoru dogrudan
+    /// cagiran yollar (golden snapshot'lar, degismez testleri, doluluk kapisi)
+    /// <c>OptimizationInput.Sequencer</c> varsayilanini alir ve o Static'tir:
+    /// saf hesap, makineden bagimsiz, bayt kararli. GRASP'in butcesi duvar saati
+    /// oldugu icin bu ayrim korunmak zorunda.
     /// </summary>
-    internal static SequencerKind Resolve(PlacementStrategy strategy, SequencerKind? requested)
-    {
-        if (requested.HasValue) return requested.Value;
-
-        return strategy == PlacementStrategy.WallBuilder ? SequencerKind.Grasp : SequencerKind.Static;
-    }
+    internal static SequencerKind Resolve(SequencerKind? requested) => requested ?? SequencerKind.Grasp;
 }

@@ -33,11 +33,11 @@ public static class SoakCommand
 
         var deadline = TimeSpan.FromMinutes(options.DurationMinutes);
         var clock = Stopwatch.StartNew();
-        var stats = new SoakStats($"{options.Strategy}+{options.Sequencer}");
+        var stats = new SoakStats($"WallBuilder+{options.Sequencer}");
         var lastReport = TimeSpan.Zero;
 
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"soak · strateji {options.Strategy} · sequencer {options.Sequencer} · sure {options.DurationMinutes} dk"));
+            $"soak · sequencer {options.Sequencer} · sure {options.DurationMinutes} dk"));
         Console.WriteLine("ulasilabilir doluluk her senaryoda %100 (konteyner bolunerek uretiliyor)");
         Console.WriteLine();
 
@@ -59,7 +59,6 @@ public static class SoakCommand
 
                 var input = scenario.Input with
                 {
-                    Strategy = options.Strategy,
                     Sequencer = options.Sequencer,
                     SearchBudget = new SearchBudget(options.Iterations, options.Population, options.SearchMs, options.Stall),
                     SupportThreshold = options.SupportThreshold,

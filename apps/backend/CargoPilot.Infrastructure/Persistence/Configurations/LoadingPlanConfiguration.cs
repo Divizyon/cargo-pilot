@@ -82,13 +82,9 @@ internal sealed class LoadingPlanConfiguration : IEntityTypeConfiguration<Loadin
 
         builder.Property(plan => plan.CompanyId);
 
-        // Kosu kimligi. Varsayilanlar bugunku uretim yolunu temsil eder, boylece
-        // gecis oncesi kayitlar "greedy, statik, tohum 0" olarak okunur — ki
-        // gercekte oyleydiler.
-        builder.Property(plan => plan.PlacementStrategy)
-            .IsRequired()
-            .HasDefaultValue(PlacementStrategy.Greedy);
-
+        // Kosu kimligi. Sequencer varsayilani Static kalir cunku gecis oncesi
+        // kayitlar gercekten statik siralamayla uretildi; onlari GRASP diye
+        // isaretlemek yalan olurdu.
         builder.Property(plan => plan.Sequencer)
             .IsRequired()
             .HasDefaultValue(SequencerKind.Static);

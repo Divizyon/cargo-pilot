@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { OptimizationCriteria, PlacementStrategy, SequencerKind } from '@/lib/types/loadingPlan';
+import { OptimizationCriteria, SequencerKind } from '@/lib/types/loadingPlan';
 import {
   SUITE_RUN_VERSION,
   aggregateResults,
@@ -44,7 +44,6 @@ function suite(overrides: Partial<SuiteRun> = {}): SuiteRun {
     completedAt: '2026-08-15T10:00:00.000Z',
     catalogSignature: 'sig-a',
     generatorVersion: 2,
-    strategy: PlacementStrategy.Greedy,
     sequencer: SequencerKind.Static,
     searchSeed: 0,
     fixtureCatalogVersion: null,

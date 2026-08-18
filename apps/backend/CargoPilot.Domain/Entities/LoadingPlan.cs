@@ -26,10 +26,12 @@ public sealed class LoadingPlan : BaseEntity {
 
     // ── Kosu kimligi ─────────────────────────────────────────────────────────
     // Determinizm sozlesmesi (ALGORITMA-RULEBOOK.md R-C02) "ayni tohum + ayni
-    // girdi bit birebir ayni plani uretir" der. Bu soz, planin HANGI yerlestirici
+    // girdi bit birebir ayni plani uretir" der. Bu soz, planin HANGI sequencer
     // ve HANGI tohumla uretildigi kayitli degilse kullanilamaz: bir plani yeniden
     // uretmek isteyen kisinin elinde yalnizca sonuc kalirdi.
-    public PlacementStrategy PlacementStrategy { get; private set; }
+    //
+    // Yerlestirici alani kaldirildi (`DR-39`): tek yerlestirici kaldigi icin
+    // kaydetmenin bilgi degeri yok.
     public SequencerKind Sequencer { get; private set; }
     public int Seed { get; private set; }
 
@@ -65,7 +67,6 @@ public sealed class LoadingPlan : BaseEntity {
     /// edildiginde de yeni kosunun degerleriyle degisir.
     /// </summary>
     public void RecordOptimizationRun(
-        PlacementStrategy placementStrategy,
         SequencerKind sequencer,
         int seed,
         int? searchIterations = null,
@@ -73,7 +74,6 @@ public sealed class LoadingPlan : BaseEntity {
         bool? searchImproved = null,
         long? searchDurationMs = null)
     {
-        PlacementStrategy = placementStrategy;
         Sequencer = sequencer;
         Seed = seed;
         SearchIterations = searchIterations;

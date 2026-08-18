@@ -27,7 +27,7 @@ public static class BenchCommand
 
         var seeds = options.Seeds.ToList();
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture, 
-            $"strateji {options.Strategy} · tohum {options.SeedFrom}..{options.SeedTo} · senaryo/tohum {options.Count} · tekrar {options.Repeat} · es zaman {options.Concurrency}"));
+            $"sequencer {options.Sequencer} · tohum {options.SeedFrom}..{options.SeedTo} · senaryo/tohum {options.Count} · tekrar {options.Repeat} · es zaman {options.Concurrency}"));
 
         var digestsPerPass = new List<string>(options.Repeat);
         var durations = new List<double>();
@@ -39,7 +39,6 @@ public static class BenchCommand
             {
                 Input = s.Input with
                 {
-                    Strategy = options.Strategy,
                     Sequencer = options.Sequencer,
                     SearchBudget = new SearchBudget(options.Iterations, options.Population, options.SearchMs, options.Stall),
                 },

@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Optimization;
+﻿using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Application.Features.Plans.CreatePlan;
 using CargoPilot.Domain.Enums;
 
@@ -28,20 +28,19 @@ public sealed class SequencerSecimiTests
             OptimizationCriteria: LoadingPlanOptimizationCriteria.VolumeFirst,
             Groups: null,
             ClusterGroups: true,
-            PlacementStrategy: PlacementStrategy.WallBuilder,
             Sequencer: sequencer,
             Seed: seed);
 
     /// <summary>
-    /// Sequencer belirtilmediğinde duvar örücü GRASP koşar (`DR-24`): arama
-    /// doluluğu %79,86'dan %86,23'e çıkarıyor ve istemcinin bunu ayrıca istemesi
+    /// Sequencer belirtilmediğinde GRASP koşar (`DR-24`): arama doluluğu
+    /// %80,09'dan %86,23'e çıkarıyor ve istemcinin bunu ayrıca istemesi
     /// gerekmemeli.
     /// </summary>
     [Fact]
-    public void SequencerBelirtilmezse_DuvarOrucu_GraspKosar()
+    public void SequencerBelirtilmezse_GraspKosar()
         => Assert.Equal(
             SequencerKind.Grasp,
-            SequencerSelection.Resolve(PlacementStrategy.WallBuilder, requested: null));
+            SequencerSelection.Resolve(requested: null));
 
     /// <summary>Açıkça istenen sequencer her zaman kazanır.</summary>
     [Theory]
@@ -49,7 +48,7 @@ public sealed class SequencerSecimiTests
     [InlineData(SequencerKind.Ga)]
     [InlineData(SequencerKind.Gwca)]
     public void SequencerBelirtilirse_Cozum_OnuDegistirmez(SequencerKind requested)
-        => Assert.Equal(requested, SequencerSelection.Resolve(PlacementStrategy.WallBuilder, requested));
+        => Assert.Equal(requested, SequencerSelection.Resolve(requested));
 
     /// <summary>Belirtilmemiş sequencer geçerli bir istektir; çözüm onu doldurur.</summary>
     [Fact]
