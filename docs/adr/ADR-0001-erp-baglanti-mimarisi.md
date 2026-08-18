@@ -1,4 +1,4 @@
-# ADR — ERP Bağlantı Mimarisi
+# ADR-0001 — ERP Bağlantı Mimarisi
 
 - **Durum:** Kabul edildi
 - **Tarih:** 2026-08-11

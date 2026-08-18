@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { FilterTabs } from '@/components/shared/FilterTabs';
 import {
@@ -13,6 +13,7 @@ import {
   Loader2,
   RefreshCw,
   RotateCcw,
+  Settings2,
   SlidersHorizontal,
   Upload,
   XCircle,
@@ -68,7 +69,7 @@ import { useDebounce } from '@/lib/hooks/useDebounce';
 import { ITEM_CATEGORY } from '@/lib/api/itemMappers';
 import { ProductTypeCell } from '@/components/shared/ProductTypeCell';
 import type { ProductType } from '@/features/data-management/products/schemas/productSchema';
-import { BulkImportDialog, type EditableRow } from './BulkImportDialog';
+import { useErpTransferStore } from '@/lib/store/useErpTransferStore';
 import { ErpSyncRequirementsDialog } from './ErpSyncRequirementsDialog';
 import { ErpSyncDialog } from '@/features/platform/erp/components/ErpSyncDialog';
 import { collectMissingSyncRequirements } from '@/features/data-management/imports/utils/erpSyncRequirements';
@@ -150,16 +151,34 @@ const BELOW_TABLE_H = 80;
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
-const SKELETON_COLS = 10;
+/**
+ * İskelet kolonları gerçek tablonun genişlikleriyle birebir eşleşir. Sabit sayıda
+ * genişliksiz kolon çizilirken `table-fixed` kolonları eşit dağıtıyor, veri gelince
+ * yerleşim zıplıyordu. Son kolon yalnızca Reddedilenler sekmesinde çizilir.
+ */
+const SKELETON_COLUMNS = [
+  { head: 'w-10', bar: 'w-4' },
+  { head: 'w-52', bar: 'w-36' },
+  { head: 'w-28', bar: 'w-16' },
+  { head: 'w-24', bar: 'w-14' },
+  { head: 'w-32', bar: 'w-20' },
+  { head: 'w-24', bar: 'w-12' },
+  { head: 'w-24', bar: 'w-12' },
+  { head: 'w-24', bar: 'w-12' },
+  { head: 'w-24', bar: 'w-12' },
+  { head: 'w-40', bar: 'w-24' },
+] as const;
 
-function ERPItemsTableSkeleton() {
+function ERPItemsTableSkeleton({ columnCount }: { columnCount: number }) {
+  const columns = SKELETON_COLUMNS.slice(0, columnCount);
+
   return (
     <Table className="min-w-[1100px] table-fixed">
       <TableHeader>
         <TableRow className="h-9 bg-muted/40 hover:bg-muted/40">
-          {Array.from({ length: SKELETON_COLS }).map((_, i) => (
-            <TableHead key={i}>
-              <Skeleton className="h-3 w-16" />
+          {columns.map((column, i) => (
+            <TableHead key={i} className={cn('py-0 px-3', column.head)}>
+              <Skeleton className={cn('h-3', column.bar)} />
             </TableHead>
           ))}
         </TableRow>
@@ -167,9 +186,9 @@ function ERPItemsTableSkeleton() {
       <TableBody>
         {Array.from({ length: 6 }).map((_, i) => (
           <TableRow key={i} className="h-12 hover:bg-transparent">
-            {Array.from({ length: SKELETON_COLS }).map((_, j) => (
+            {columns.map((column, j) => (
               <TableCell key={j} className="py-0 px-3">
-                <Skeleton className="h-4 w-full" />
+                <Skeleton className={cn('h-3', column.bar)} />
               </TableCell>
             ))}
           </TableRow>
@@ -182,6 +201,8 @@ function ERPItemsTableSkeleton() {
 // ─── ERPItemsTable ─────────────────────────────────────────────────────────────
 
 export function ERPItemsTable() {
+  const navigate = useNavigate();
+  const startTransfer = useErpTransferStore((s) => s.start);
   const { data: connection } = useERPConnection();
   const { data: erpSettings } = useERPSettings();
   const integrationId = connection?.id;
@@ -198,14 +219,10 @@ export function ERPItemsTable() {
   );
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [importOpen, setImportOpen] = useState(false);
-  const [importRows, setImportRows] = useState<EditableRow[]>([]);
-  const [importDraftIds, setImportDraftIds] = useState<Record<string, string>>({});
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [typeFilters, setTypeFilters] = useState<Set<TypeFilterKey>>(new Set());
   const [statusFilter, setStatusFilter] = useState<number>(DRAFT_PENDING);
   const [selectAllMode, setSelectAllMode] = useState(false);
-  const [importMode, setImportMode] = useState<'import' | 'update'>('import');
   const [requirementsOpen, setRequirementsOpen] = useState(false);
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false);
@@ -383,6 +400,10 @@ export function ERPItemsTable() {
     if (integrationId) triggerSync({ integrationId });
   }
 
+  /**
+   * Aktarım artık kendi rotasında açılıyor; seçim bu bileşenle birlikte söküldüğü için
+   * satırlar store'a yazılıp taşınır.
+   */
   function handleOpenImport() {
     // Seçim açık sayfayla sınırlı değildir; satırlar tüm bilinen kayıtlardan çözülür,
     // aksi halde yalnızca o an ekranda duran kadarı aktarım ekranına giderdi.
@@ -394,10 +415,8 @@ export function ERPItemsTable() {
     rows.forEach((row, i) => {
       draftIds[row._id] = selected[i].id;
     });
-    setImportRows(rows);
-    setImportDraftIds(draftIds);
-    setImportMode(isUpdateTab ? 'update' : 'import');
-    setImportOpen(true);
+    startTransfer({ rows, draftItemIds: draftIds, mode: isUpdateTab ? 'update' : 'import' });
+    navigate('/erp/aktar');
   }
 
   // Toplu ret teyitsiz calismaz; kullanici kac kaydin ne olacagini gorur.
@@ -466,9 +485,9 @@ export function ERPItemsTable() {
           </Button>
 
           {showFilterPanel && (
-            <div className="absolute left-0 top-full z-20 mt-1 min-w-[180px] rounded-xl border border-border bg-background shadow-lg">
+            <div className="absolute left-0 top-full z-20 mt-1 min-w-[200px] rounded-xl border border-border bg-background shadow-lg">
               <div className="p-3">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                   Tip
                 </p>
                 <div className="space-y-2">
@@ -521,8 +540,16 @@ export function ERPItemsTable() {
           )}
         </div>
 
+        {/* ERP Ayarları */}
+        <Button asChild variant="outline" size="sm" className="shrink-0 gap-1.5 text-xs">
+          <Link to={ERP_SETTINGS_ROUTE.connection}>
+            <Settings2 className="h-3.5 w-3.5" />
+            {ERP_TERM.settings}
+          </Link>
+        </Button>
+
+        {/* ERP ile Senkronize Et — ürün/araç ekranlarındaki gibi birincil aksiyon en sonda */}
         <Button
-          variant="outline"
           size="sm"
           className="shrink-0 gap-1.5 text-xs"
           onClick={handleSync}
@@ -547,7 +574,7 @@ export function ERPItemsTable() {
       {/* Table */}
       <div
         ref={tableCardRef}
-        className="overflow-x-auto overflow-hidden rounded-2xl border border-border bg-background"
+        className="overflow-x-auto scrollbar-hide rounded-2xl border border-border bg-background"
       >
         {isDraftError ? (
           <QueryErrorState
@@ -558,7 +585,7 @@ export function ERPItemsTable() {
             className="m-4 w-auto"
           />
         ) : showSkeleton ? (
-          <ERPItemsTableSkeleton />
+          <ERPItemsTableSkeleton columnCount={columnCount} />
         ) : (
           <Table className="min-w-[1100px] table-fixed">
             <TableHeader>
@@ -572,32 +599,32 @@ export function ERPItemsTable() {
                     />
                   )}
                 </TableHead>
-                <TableHead className="w-52 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
+                <TableHead className="w-52 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Ürün
                 </TableHead>
-                <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
+                <TableHead className="w-28 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Tip
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   SKU
                 </TableHead>
-                <TableHead className="w-32 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
+                <TableHead className="w-32 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Barkod
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   {DIMENSION_LABEL.width}
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   {DIMENSION_LABEL.height}
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   {DIMENSION_LABEL.length}
                 </TableHead>
-                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
+                <TableHead className="w-24 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                   Ağırlık
                 </TableHead>
                 {isRejectedTab && (
-                  <TableHead className="w-40 whitespace-nowrap py-0 px-3 text-[11px] font-semibold uppercase tracking-wide">
+                  <TableHead className="w-40 whitespace-nowrap py-0 px-3 text-[10px] font-semibold uppercase tracking-widest">
                     İşlem
                   </TableHead>
                 )}
@@ -896,21 +923,10 @@ export function ERPItemsTable() {
         />
       )}
 
-      {/* Transfer modal */}
-      <BulkImportDialog
-        key={importOpen ? importRows.map((r) => r._id).join(',') : 'closed'}
-        open={importOpen}
-        onOpenChange={(open) => {
-          setImportOpen(open);
-          if (!open) {
-            setSelectAllMode(false);
-            setSelectedIds(new Set());
-          }
-        }}
-        initialRows={importRows}
-        draftItemIds={importDraftIds}
-        mode={importMode}
-      />
+      {/*
+        Aktarım ekranı artık burada değil, /erp/aktar rotasında. Gezinme bu bileşeni
+        söktüğü için seçimi ayrıca temizlemek gerekmiyor.
+      */}
     </div>
   );
 }

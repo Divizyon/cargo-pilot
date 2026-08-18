@@ -1,6 +1,6 @@
 # DevOps Backlog
 
-**Son güncelleme:** 2026-08-16 · **Durum:** Aktif · **Oluşturulma:** 2026-05-10 · **Sorumlu:** DevOps Chapter Lead
+**Son güncelleme:** 2026-08-18 · **Durum:** Aktif · **Oluşturulma:** 2026-05-10 · **Sorumlu:** DevOps Chapter Lead
 
 Bu doküman DevOps ekibinin açık ve tamamlanmış iyileştirme maddelerini önceliklendirilmiş şekilde takip eder.
 
@@ -41,10 +41,10 @@ kayıt orada, plan burada; ikisi arasında tekrar bırakılmaz.
 | 15 | Yedekleme veri kaybı kümesi — D-03 (MinIO yedeği), D-04 (off-site), D-20 (bildirim) | 🔴 Kritik | ⚠️ Açık |
 | 16 | Kaynak limitleri — D-38 (limit yok), D-39 (`MSSQL_MEMORY_LIMIT_MB`) | 🔴 Kritik | ⚠️ Açık |
 | 17 | Prod öncesi zorunlular — D-47 (prod nginx conf), D-50 (port/path uyumsuzluğu) | 🟠 Yüksek | ⚠️ Açık |
-| 18 | Rollback güvenliği — D-24 (migration geri alınmıyor), D-25, D-27, D-29 (tatbikat) | 🟠 Yüksek | ⚠️ Açık |
+| 18 | Rollback güvenliği — D-24, D-25, D-27 ✅ (#1012, #1017); kalan **D-29 (tatbikat)** | 🟠 Yüksek | ⚠️ Açık |
 
-Kategori 6, 2026-08-03 taramasının **45 açık** D-bulgusunu D-kodlarıyla birlikte listeler;
-yukarıdaki matris yalnızca kritik kümeleri özetler.
+Kategori 6, 2026-08-03 taramasının **35 açık** D-bulgusunu D-kodlarıyla birlikte listeler
+(51'den 16'sı kapandı); yukarıdaki matris yalnızca kritik kümeleri özetler.
 
 ---
 
@@ -115,7 +115,10 @@ Sunucuda production ortamı hiç kurulmamış. `.env.prod` yok, compose hiç ça
 **Çözüm:** `.env.prod.example` → `.env.prod` oluşturulmalı, değerler doldurulmalı, prod compose ayağa kaldırılmalı.
 
 **Ön koşul:** Kategori 6.8 — D-38, D-39, D-47, D-50 bu maddeden önce kapatılmalı.
-Ayrıca `.env.prod` yokluğu D-21'deki gece cron hatalarının da kaynağıdır.
+
+`.env.prod` yokluğunun yan etkisi olan gece cron hataları (D-21) **#1012 ile ayrıca kapatıldı**:
+`setup-backup-cron.sh` prod cron'larını yalnız `.env.prod` varsa kuruyor. Yani bu madde artık
+alarm yorgunluğu üretmiyor; kurulum gerçekleştiğinde cron'lar kendiliğinden devreye girer.
 
 ---
 
@@ -340,17 +343,22 @@ izlenebilirlik için **D-kodları korunarak** buraya taşındı (triyaj tarihi: 
 Her satırın kanıtı `dosya:satır` düzeyinde yeniden doğrulandı — kapananlar aşağıda değil,
 kaynak dokümanda `✅` ile işaretlidir.
 
-**Triyaj sonucu:** 51 bulgudan **6'sı kapandı** (D-01, D-05, D-07, D-10, D-11, D-16),
+**Triyaj sonucu (2026-08-16):** 51 bulgudan **6'sı kapandı** (D-01, D-05, D-07, D-10, D-11, D-16),
 **45'i açık** (6'sı kısmen kapandı, kalan kapsamıyla listede duruyor).
+
+**Güncel durum (2026-08-18):** Triyajdan sonra **10 bulgu daha kapandı** — Dalga 1
+(D-18, D-21, D-22, D-23, D-25 · #1012) ve Dalga 2 (D-14 · #1016; D-24, D-26, D-27, D-28 · #1017).
+Kapanan satırlar aşağıdaki tablolardan çıkarıldı ve [Tamamlananlar](#tamamlananlar-tarih-sırası)
+bölümüne taşındı. **Kalan: 35 açık bulgu** — 6 kritik, 13 yüksek, 11 orta, 5 düşük.
+Kapananların hiçbiri kritik değildi; altı kritiğin dördü sunucuya SSH erişimi olmadan kapanmıyor.
 
 ### 6.1 Güvenlik
 
 | Kod | Bulgu | Bugünkü kanıt (2026-08-16) | Öncelik |
 |---|---|---|---|
-| D-02 | Servis portları internete açık — **kısmen kapandı** (#991) | Kalan: `infra/compose/docker-compose.monitoring.test.yml:89` Grafana `3002:3000`, `infra/compose/docker-compose.test.yml:127` ERP MSSQL `1435:1433` | 🔴 Kritik |
-| D-14 | `rollback.yml`'de shell injection | `.github/workflows/rollback.yml:40,62,74` — `${{ github.event.inputs.target_ref }}` doğrudan shell gövdesinde; sunucuda root olarak koşar | 🟠 Yüksek |
-| D-15 | Workflow'da hardcoded fallback parolalar | `.github/workflows/test-deploy.yml:172,176,179,181,183` — `gh secret list`'te `TEST_MSSQL_SA_PASSWORD`/`TEST_MINIO_*`/`SEED_*` yok → fallback'ler her koşuda fiilen kullanılıyor | 🟠 Yüksek |
-| D-17 | MSSQL container'ı root çalışıyor | `docker-compose.test.yml:90,118,147`, `docker-compose.prod.yml:92` — `user: root`. Prod'a geçmeden düzeltilmeli | 🟢 Düşük |
+| D-02 | Servis portları internete açık — **kısmen kapandı (#991), sonra kısmen yeniden açıldı** | Kalan: `docker-compose.monitoring.test.yml:89` Grafana `3002:3000`; `docker-compose.test.yml:127` ERP MSSQL `1435:1433` — bu ikincisi **#938 ile geldi** ve loopback'e bağlanmamış tek port (diğer 5'i `127.0.0.1:` önekli). `profiles: ["e2e"]` arkasında ama `--profile e2e` verilirse dışarı açılır | 🔴 Kritik |
+| D-15 | Workflow'da hardcoded fallback parolalar | `.github/workflows/test-deploy.yml:172,176,179,181,183` — `gh secret list`'te `TEST_MSSQL_SA_PASSWORD`/`TEST_MINIO_*`/`SEED_*` yok (2026-08-18: repoda tanımlı 6 secret var, bunlar arasında değil) → fallback'ler her koşuda fiilen kullanılıyor | 🟠 Yüksek |
+| D-17 | MSSQL container'ı root çalışıyor — **kapsam büyüdü** | `docker-compose.test.yml:90,118,147`, `docker-compose.prod.yml:92` — `user: root`. Sayı 2'den **4'e** çıktı: `:118` (`erp-mssql`) ve `:147` (`erp-mssql-init`) #938 ile eklendi. Prod'a geçmeden düzeltilmeli | 🟢 Düşük |
 
 ### 6.2 Yedekleme ve veri kaybı
 
@@ -358,23 +366,14 @@ kaynak dokümanda `✅` ile işaretlidir.
 |---|---|---|---|
 | D-03 | MinIO verisi hiç yedeklenmiyor | `infra/scripts/*.sh` içinde `minio` geçmiyor; yedeklenen tek şey MSSQL. DB restore edilse bile görsel/PDF referansları kırık gelir | 🔴 Kritik |
 | D-04 | Yedeklerin off-site kopyası yok | `restic`/`rclone`/`s3 sync` repoda hiç geçmiyor; yedekler DB ile aynı diskte, retention 7 gün → fiili RPO = ∞ | 🔴 Kritik |
-| D-18 | ERP `DIVIZYON` veritabanı yedek kapsamı dışında | `infra/scripts/backup-db.sh:21,25` tek DB adı (`CargoPilot`/`CargoPilotTest`); `DIVIZYON` aynı container'da ama yedeklenmiyor | 🟠 Yüksek |
 | D-19 | Yedek doğrulaması yüzeysel — **kısmen kapandı** (#994) | `WITH CHECKSUM` eklendi (`backup-db.sh:61`, `verify-backup.sh:98`). Kalan: gerçek restore tatbikatı yok, yalnızca **en son** yedek kontrol ediliyor | 🟠 Yüksek |
 | D-20 | Yedek başarısızlığında hiçbir bildirim yok | Script'lerde `node_exporter`/textfile metriği yok, Prometheus'ta yedek alert kuralı yok, `MAILTO` yok → 42 günlük olay sessizce tekrar edebilir. **Ön koşul:** D-41 | 🔴 Kritik |
-| D-21 | Prod cron'ları her gece hata basıyor | `infra/scripts/setup-backup-cron.sh:41-55` prod için 3 cron kuruyor; `.env.prod` sunucuda yok (madde 2.1 / known-issues #2) → alarm yorgunluğu | 🟠 Yüksek |
-| D-22 | Ölü hata blokları — parola okunamazsa sessiz çıkış | `backup-db.sh:36`, `restore-db.sh:41`, `verify-backup.sh:42` — `set -euo pipefail` altında grep boş dönerse atama satırında ölünür, alttaki `if` bloğuna hiç gelinmez. Düzeltme: `$(grep … \|\| true)` | 🟡 Orta |
-| D-23 | Yedek dosya izinleri sıkı değil | `backup-db.sh:48` `mkdir -p` varsayılan umask ile; `.bak` tüm müşteri verisini içeriyor. Düzeltme: dizin `700`, dosya `600` | 🟡 Orta |
 
 ### 6.3 Rollback ve deploy güvenliği
 
 | Kod | Bulgu | Bugünkü kanıt | Öncelik |
 |---|---|---|---|
-| D-24 | DB migration'ları geri alınmıyor ve hiçbir yerde yazmıyor | `DbInitializer.cs` `MigrateAsync()` yalnız ileri yönlü; `infra/scripts/rollback.sh` içinde "migration" kelimesi hiç geçmiyor, rollback runbook'u yok | 🟠 Yüksek |
-| D-25 | Yedeksiz rollback devam ediyor | `infra/scripts/rollback.sh:53-55` — `backup-db.sh … \|\| { echo "[WARN] Yedek alınamadı, devam ediliyor..."; }` | 🟠 Yüksek |
-| D-26 | Deploy'da `down` + `up` → her seferinde 2-3 dk kesinti | `.github/workflows/test-deploy.yml:465` `down --remove-orphans` mssql ve minio'yu da kapatıyor. `up -d --no-build --remove-orphans` yeterli → kesinti ~10-20 sn | 🟠 Yüksek |
-| D-27 | Health check başarısızsa otomatik geri alma yok | `test-deploy.yml:476-483` — health başarısızsa job kırmızı olur, sunucu bozuk image ile çalışmaya devam eder | 🟠 Yüksek |
-| D-28 | `docker image prune` health check'ten önce çalışıyor | `test-deploy.yml:474` prune, `476`'daki health check'ten önce → hızlı geri dönüş için GHCR'dan tekrar pull gerekir | 🟡 Orta |
-| D-29 | Rollback hiç denenmedi | `rollback.yml` bugüne kadar hiç çalıştırılmadı; D-24 + D-25 + `pull`'un `down`'dan sonra gelmesi (`rollback.sh:65` → `:80`) birlikte ilk gerçek olayda ortamı bozar. **Planlı tatbikat gerekli** | 🟠 Yüksek |
+| D-29 | Rollback hiç denenmedi | `rollback.yml` bugüne kadar hiç çalıştırılmadı (2026-08-18 doğrulaması: `gh run list --workflow=rollback.yml` boş). Ön koşulları D-24/D-25 ile kapandı — runbook yazıldı, yedeksiz devam engellendi — yani **tatbikatın önünde artık teknik engel yok**. Kalan: planlı tatbikat, `target_ref=v0.15.0` ile denenebilir | 🟠 Yüksek |
 
 ### 6.4 CI/CD süresi
 
@@ -383,7 +382,7 @@ kaynak dokümanda `✅` ile işaretlidir.
 | D-06 | Default branch'te GHA cache hiç yazılmıyor | Default branch `main`; hiçbir workflow `main` push'unda build etmiyor (`ci.yml:6-20`, `test-deploy.yml:13`) → `cache-from` iş branch'lerinde soğuk başlar. Düzeltme: nightly veya `main` push'unda seed job | 🟡 Orta |
 | D-09 | `ci.yml`'daki `docker-build` job'u — **kısmen kapandı** (#992) | Artık yalnızca `dev` PR'ında koşuyor (`ci.yml:204`); iş branch'i push'undaki kopya build kaldırıldı. Kalan soru: `dev` kapısındaki build'in değeri | 🟢 Düşük |
 | D-12 | Gereksiz seri `needs:` zinciri | `ci.yml:196` — `docker-build`, `needs: [frontend-ci, backend-ci]`; docker build bu job'ların çıktısına bağımlı değil | 🟢 Düşük |
-| D-13 | Küçük CI kalemleri | (a) `test-deploy.yml:327,340` hâlâ `build-push-action` **v5.4.0**, diğer 6 kullanım v7.3.0 — sürüm ayrışması; (b) `setup-dotnet`'te NuGet cache yok (`ci.yml:168`, `test-deploy.yml:48`); (c) `migration-check` + `backend-ci` aynı solution'ı Release'de iki kez derliyor; (d) frontend scope'ları hâlâ `mode=max` (`ci.yml:240`, `test-deploy.yml:145`) | 🟡 Orta |
+| D-13 | Küçük CI kalemleri | (a) `test-deploy.yml:327,340` hâlâ `build-push-action` **v5.4.0**, diğer 6 kullanım v7.3.0 — sürüm ayrışması. **PR #1032 (Dependabot) bunu ve 6 action'ı daha hizalıyor; ADR-0008'in öngördüğü devralma**; (b) `setup-dotnet`'te NuGet cache yok (`ci.yml:168`, `test-deploy.yml:48`); (c) `migration-check` + `backend-ci` aynı solution'ı Release'de iki kez derliyor; (d) frontend scope'ları hâlâ `mode=max` (`ci.yml:240`, `test-deploy.yml:145`) | 🟡 Orta |
 
 ### 6.5 Docker image ve build
 
@@ -429,7 +428,7 @@ kaynak dokümanda `✅` ile işaretlidir.
 | — | `server-requirements.md:43` | "MSSQL × 2 ≈ 4 GB" varsayımı D-39 ile çelişiyor | ⚠️ Açık |
 | — | `secret-management.md:107-114` | `TEST_GHCR_*`'ı aktif secret olarak listeliyor — secret'lar silindi (D-07) | ⚠️ Açık |
 | — | `server-access.md` | `SSH_HOST`/`SSH_PRIVATE_KEY` diyor; gerçek adlar `TEST_SSH_*` | ⚠️ Açık |
-| D-24 | — | Rollback runbook'u yok | ⚠️ Açık |
+| D-24 | [`rollback-runbook.md`](rollback-runbook.md) | Rollback runbook'u yok | ✅ Yazıldı (#1017) |
 
 ### 6.8 Prod sunucusu kurulmadan önce zorunlu
 
@@ -455,3 +454,13 @@ Madde 2.1 (Production Stack Deploy) bu dördüne bağımlıdır.
 | 2026-05-10 | `docker-compose.prod.yml` GHCR image | #488 |
 | 2026-05-10 | GHA cache cleanup | #489/#492 |
 | 2026-05-10 | `dev` branch hizalandı | #493 |
+| 2026-08-16 | **D-18** ERP `DIVIZYON` yedek kapsamına alındı — `backup-db.sh:41` `DATABASES` dizisi | #1012 |
+| 2026-08-16 | **D-21** Prod cron'ları yalnız ortam hazırsa kuruluyor — `setup-backup-cron.sh:49` `ortam_hazir()` | #1012 |
+| 2026-08-16 | **D-22** Parola okunamazsa sessiz çıkış kalktı — üç script'te `$(grep … \|\| true)` | #1012 |
+| 2026-08-16 | **D-23** Yedek izinleri sıkılaştırıldı — `umask 077`, dizin `700`, dosya `600` | #1012 |
+| 2026-08-16 | **D-25** Yedeksiz rollback artık duruyor; `--skip-backup` bilinçli kaçış yolu | #1012 |
+| 2026-08-16 | **D-14** `rollback.yml` girdileri `env:` üzerinden geçiyor, shell injection kapandı | #1016 |
+| 2026-08-17 | **D-24** Rollback runbook'u yazıldı — migration matrisi ve tatbikat senaryoları | #1017 |
+| 2026-08-17 | **D-26** Deploy `down`'sız tek `up` — kesinti 2-3 dk'dan **2,8 sn**'ye | #1017 |
+| 2026-08-17 | **D-27** Health başarısızsa otomatik geri alma — `PREV_IMAGE_REF` çıpası, ADR-0009 | #1017 |
+| 2026-08-17 | **D-28** `docker image prune` health OK'ten sonraya alındı | #1017 |

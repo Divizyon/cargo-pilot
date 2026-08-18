@@ -452,31 +452,87 @@ jobs:
             echo "==> Bayat GHCR kimlik bilgisi temizleniyor..."
             docker logout ghcr.io >/dev/null 2>&1 || true
 
+            # Geri alma çıpası: hâlihazırda çalışan backend konteynerinin image
+            # referansından mevcut tag türetilir (ör. ghcr.io/...:test-abc1234 -> test-abc1234).
+            # Konteyner yoksa (ilk deploy) boş kalır ve geri alma denenmez.
+            PREV_IMAGE_REF="$(docker inspect --format '{{.Config.Image}}' cargo-pilot-backend-test 2>/dev/null || true)"
+            PREV_IMAGE_TAG="${PREV_IMAGE_REF##*:}"
+
+            # Çıpa doğrulaması: `.Config.Image` digest biçiminde
+            # (ghcr.io/...@sha256:abc...) veya tag'siz dönebilir. Bu durumlarda
+            # `##*:` geçerli bir tag değil, sha hex'i ya da tüm referans üretir.
+            # Geri alma böyle bir değerle denenirse `up` var olmayan bir image
+            # arar ve ortam bugünküne göre DAHA KÖTÜ duruma düşer. Şüpheliyse
+            # çıpa boşaltılır: geri alma atlanır, davranış mevcut hâle eşitlenir.
+            case "$PREV_IMAGE_REF" in
+              *@*)      PREV_IMAGE_TAG="" ;;   # digest referansı, tag yok
+              *:*)      : ;;                   # ref:tag — beklenen biçim
+              *)        PREV_IMAGE_TAG="" ;;   # hiç ':' yok, tag belirtilmemiş
+            esac
+            case "$PREV_IMAGE_TAG" in
+              ""|*/*|*" "*) PREV_IMAGE_TAG="" ;;  # boş, yol parçası ya da boşluk içeriyor
+            esac
+
+            if [ -z "$PREV_IMAGE_TAG" ]; then
+              echo "==> Geri alma çıpası: <yok> (ref='${PREV_IMAGE_REF:-<bos>}' — geri alma atlanacak)"
+            else
+              echo "==> Geri alma çıpası: PREV_IMAGE_TAG=${PREV_IMAGE_TAG}"
+            fi
+
             echo "==> Image'lar GHCR'dan çekiliyor (tag: ${IMAGE_TAG})..."
             IMAGE_TAG="${IMAGE_TAG}" docker compose \
               -f infra/compose/docker-compose.test.yml \
               --env-file infra/env/.env.test \
               pull backend frontend
 
-            echo "==> Eski stack temizleniyor..."
-            docker compose \
-              -f infra/compose/docker-compose.test.yml \
-              --env-file infra/env/.env.test \
-              down --remove-orphans 2>/dev/null || true
-
-            echo "==> Stack ayağa kaldırılıyor (tag: ${IMAGE_TAG})..."
+            # Tüm stack'i `down` etmek mssql ve minio'yu da kapatıyordu; deploy edilen
+            # yalnız backend/frontend olduğu hâlde her deploy 2-3 dk kesinti üretiyordu.
+            # `up -d` yalnız image digest'i veya servis tanımı değişen konteynerleri
+            # yeniden yaratır: backend + frontend yeni tag'e geçer, mssql/minio/ağ/volume
+            # dokunulmadan ayakta kalır. `--remove-orphans` semantiği korunuyor —
+            # compose dosyasından çıkarılmış servislerin artık konteynerleri yine silinir.
+            echo "==> Stack güncelleniyor (tag: ${IMAGE_TAG})..."
             IMAGE_TAG="${IMAGE_TAG}" docker compose \
               -f infra/compose/docker-compose.test.yml \
               --env-file infra/env/.env.test \
-              up -d --no-build
-
-            echo "==> Kullanılmayan eski image'lar temizleniyor..."
-            docker image prune -f
+              up -d --no-build --remove-orphans
 
             echo "==> Backend health (loopback) bekleniyor..."
+            HEALTH_OK=0
             for i in $(seq 1 20); do
-              curl -sf http://127.0.0.1:8081/health >/dev/null && break
-              if [ "$i" = "20" ]; then echo "Backend loopback health basarisiz"; exit 1; fi
+              if curl -sf http://127.0.0.1:8081/health >/dev/null; then HEALTH_OK=1; break; fi
               sleep 5
             done
+
+            # Health düşerse bir önceki image tag'ine tek seferlik geri dönülür.
+            # Geri alma sonucundan bağımsız olarak job kırmızı bırakılır (exit 1):
+            # başarılı bir geri alma "deploy başarılı" anlamına gelmez.
+            # Geri almanın kendisi için ikinci bir geri alma denenmez -> döngü yok.
+            if [ "${HEALTH_OK}" != "1" ]; then
+              echo "Backend loopback health basarisiz (tag: ${IMAGE_TAG})."
+              if [ -n "${PREV_IMAGE_TAG}" ] && [ "${PREV_IMAGE_TAG}" != "${IMAGE_TAG}" ]; then
+                echo "==> Otomatik geri alma: ${PREV_IMAGE_TAG}"
+                IMAGE_TAG="${PREV_IMAGE_TAG}" docker compose \
+                  -f infra/compose/docker-compose.test.yml \
+                  --env-file infra/env/.env.test \
+                  up -d --no-build --remove-orphans || echo "Geri alma komutu hata verdi."
+                for i in $(seq 1 12); do
+                  if curl -sf http://127.0.0.1:8081/health >/dev/null; then
+                    echo "Geri alma tamamlandi, backend ${PREV_IMAGE_TAG} ile saglikli."
+                    break
+                  fi
+                  sleep 5
+                done
+              else
+                echo "Geri donulecek onceki image yok; stack oldugu gibi birakildi."
+              fi
+              echo "Deploy basarisiz."
+              exit 1
+            fi
             echo "Backend loopback health OK."
+
+            # Prune yalnız health doğrulandıktan SONRA çalışır: aksi hâlde bir önceki
+            # sürümün image'ı (aynı tag yeniden push edildiyse dangling'e düşer)
+            # silinir ve geri dönüş için GHCR'dan tekrar pull gerekir.
+            echo "==> Kullanılmayan eski image'lar temizleniyor..."
+            docker image prune -f

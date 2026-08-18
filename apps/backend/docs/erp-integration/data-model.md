@@ -1,7 +1,8 @@
 # ERP Entegrasyon — Veri Modeli
 
 > Bu doküman kodun bugünkü halini anlatır. Bağlantı mimarisi kararları için
-> [adr-baglanti-mimarisi.md](./adr-baglanti-mimarisi.md) dosyasına bakın.
+> [ADR-0001 — ERP Bağlantı Mimarisi](../../../../docs/adr/ADR-0001-erp-baglanti-mimarisi.md)
+> dosyasına bakın.
 
 ## Integration
 | Alan | Tip | Not |

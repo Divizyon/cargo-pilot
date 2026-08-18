@@ -17,6 +17,11 @@ on:
         required: false
         type: string
         default: ''
+      skip_backup:
+        description: 'DB yedeği alınamazsa yine de devam et (VERİ KAYBI RİSKİ)'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -35,50 +40,80 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      # Kullanıcı girdileri shell gövdesine `${{ }}` ile enterpole edilmez; `env:`
+      # üzerinden değişken olarak geçilir ve shell içinde tırnaklanmış okunur.
       - name: Hedef ref'i doğrula
+        env:
+          TARGET_ENV: ${{ github.event.inputs.environment }}
+          TARGET_REF: ${{ github.event.inputs.target_ref }}
         run: |
-          TARGET="${{ github.event.inputs.target_ref }}"
-          ENV="${{ github.event.inputs.environment }}"
-          echo "Ortam  : ${ENV}"
-          echo "Hedef  : ${TARGET:-'(önceki tag)'}"
+          echo "Ortam  : ${TARGET_ENV}"
+          echo "Hedef  : ${TARGET_REF:-'(önceki tag)'}"
 
-          if [[ -n "${TARGET}" ]]; then
-            if ! git rev-parse --verify "${TARGET}" > /dev/null 2>&1; then
-              echo "::error::Geçersiz ref: ${TARGET}"
+          if [[ -n "${TARGET_REF}" ]]; then
+            if ! git rev-parse --verify "${TARGET_REF}" > /dev/null 2>&1; then
+              echo "::error::Geçersiz ref: ${TARGET_REF}"
               exit 1
             fi
-            echo "Doğrulanan ref: $(git rev-parse --short ${TARGET})"
+            echo "Doğrulanan ref: $(git rev-parse --short "${TARGET_REF}")"
           fi
 
       - name: Test sunucusuna rollback yap
         if: github.event.inputs.environment == 'test'
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          TARGET_REF: ${{ github.event.inputs.target_ref }}
+          SKIP_BACKUP: ${{ github.event.inputs.skip_backup }}
         with:
           host: ${{ secrets.TEST_SSH_HOST }}
           username: root
           key: ${{ secrets.TEST_SSH_PRIVATE_KEY }}
+          # ssh-action, `envs` ile listelenen değişkenleri uzak kabuğa tırnaklayıp
+          # kaçışlayarak aktarır; değerler script metnine gömülmez.
+          envs: TARGET_REF,SKIP_BACKUP
           script: |
             set -e
-            TARGET="${{ github.event.inputs.target_ref }}"
-            /opt/cargo-pilot/infra/scripts/rollback.sh test "${TARGET}"
+            # rollback.sh yedek alınamazsa varsayılan olarak durur; bayrak yalnız
+            # operatör bunu UI'da bilinçli olarak işaretlediğinde geçilir.
+            if [ "${SKIP_BACKUP}" = "true" ]; then
+              /opt/cargo-pilot/infra/scripts/rollback.sh test "${TARGET_REF}" --skip-backup
+            else
+              /opt/cargo-pilot/infra/scripts/rollback.sh test "${TARGET_REF}"
+            fi
 
       - name: Prod sunucusuna rollback yap
         if: github.event.inputs.environment == 'prod'
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          TARGET_REF: ${{ github.event.inputs.target_ref }}
+          SKIP_BACKUP: ${{ github.event.inputs.skip_backup }}
         with:
           host: ${{ secrets.PROD_SSH_HOST }}
           username: root
           key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          # ssh-action, `envs` ile listelenen değişkenleri uzak kabuğa tırnaklayıp
+          # kaçışlayarak aktarır; değerler script metnine gömülmez.
+          envs: TARGET_REF,SKIP_BACKUP
           script: |
             set -e
-            TARGET="${{ github.event.inputs.target_ref }}"
-            /opt/cargo-pilot/infra/scripts/rollback.sh prod "${TARGET}"
+            # rollback.sh yedek alınamazsa varsayılan olarak durur; bayrak yalnız
+            # operatör bunu UI'da bilinçli olarak işaretlediğinde geçilir.
+            if [ "${SKIP_BACKUP}" = "true" ]; then
+              /opt/cargo-pilot/infra/scripts/rollback.sh prod "${TARGET_REF}" --skip-backup
+            else
+              /opt/cargo-pilot/infra/scripts/rollback.sh prod "${TARGET_REF}"
+            fi
 
       - name: Rollback özeti
         if: always()
+        env:
+          TARGET_ENV: ${{ github.event.inputs.environment }}
+          TARGET_REF: ${{ github.event.inputs.target_ref }}
+          SKIP_BACKUP: ${{ github.event.inputs.skip_backup }}
         run: |
           echo "## Rollback Özeti" >> $GITHUB_STEP_SUMMARY
-          echo "- **Ortam**: ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Hedef**: ${{ github.event.inputs.target_ref || '(önceki tag)' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Tetikleyen**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Ortam**: ${TARGET_ENV}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Hedef**: ${TARGET_REF:-(önceki tag)}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Yedek atlandı**: ${SKIP_BACKUP}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tetikleyen**: ${GITHUB_ACTOR}" >> $GITHUB_STEP_SUMMARY
           echo "- **Zaman**: $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
