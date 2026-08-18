@@ -25,7 +25,7 @@ var useInMemory = builder.Configuration.GetValue<bool>("UseInMemoryDatabase");
 builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration, useInMemoryRepository: useInMemory)
-    .AddPresentation(builder.Configuration, useInMemoryRepository: useInMemory);
+    .AddPresentation(builder.Configuration, builder.Environment, useInMemoryRepository: useInMemory);
 
 var app = builder.Build();
 
