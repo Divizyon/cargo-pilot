@@ -12,6 +12,7 @@ Tasarım arşivi — güncel implementasyonun birebir dokümantasyonu değildir.
   *(2026-08-15 ikinci ölçüm: standardın eksen ve terim kısmı PR #997/#1004 ile **koda uygulandı** — `depth` boyut terimi olarak kaldırıldı, referans kapı `z = length`, LIFO bölge haritası ters çevrildi. Bir önceki turun "standart henüz uygulanmamıştır" notu bu yüzden geçersizdi. Uygulanmayan tek kısım kapı modelinin arayüz tarafıdır: `doors` listesi backend'de var, form ve sahne hâlâ tekil `LoadingType` okuyor — bkz. `COORDINATE_STANDARD.md` §10. Bu dosyanın kendisi tarihsel arşivdir; yalnız bu yönlendirme satırı güncellendi.)*
 - MediatR atıfları hâlâ geçerlidir — güncel mimari: `apps/backend/docs/architecture.md`.
 - `Packing/` klasörü ve `PackingEngine` sınıfı `test` branch'inde bulunmamaktadır.
+- **Güncel yol:** motor bugün `apps/backend/CargoPilot.Application/Common/Optimization/OptimizationEngine.cs` altındadır (yukarıdaki `Infrastructure/Services/` yolu 2026-08 itibarıyla tarihsel kayıttır).
 
 Algoritma çalışması yapılırken kavramsal referans olarak kullanılabilir; kod kaynağı olarak değil.
 {% endhint %}
