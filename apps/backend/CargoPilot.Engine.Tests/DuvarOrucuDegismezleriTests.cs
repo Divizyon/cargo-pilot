@@ -59,6 +59,27 @@ public sealed class DuvarOrucuDegismezleriTests
     }
 
     /// <summary>
+    /// İleri bakışlı ışın araması da aynı kurallara uyar (`F7-4`). Arama planı
+    /// parça parça kurar ve yarım kalmış bir durumdan devam eder; devam etme
+    /// yolu ana döngüden farklı olsaydı sert kapılar orada delinebilirdi.
+    ///
+    /// Özellikle **adet korunumu** kritiktir: `DR-49`'da yarım durumdan devam
+    /// eden bir deneme bir kutuyu iki kez yerleştirmişti.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Senaryolar))]
+    public void DuvarOrucu_IsinAramasiyla_FizikselDegismezleriKorur(string senaryo)
+    {
+        var input = InvariantScenarioSource.Load(senaryo) with
+        {
+            Sequencer = SequencerKind.Beam,
+            SearchBudget = TestBudget,
+        };
+
+        PhysicalInvariants.AssertAll(senaryo, input, EngineScenario.Run(input));
+    }
+
+    /// <summary>
     /// Raporlanan duvar dilimleri bir sözleşmedir: `z` ekseninde artan sırada
     /// gelirler, çakışmazlar ve her birinin derinliği pozitiftir. Teşhis tarafı
     /// (`WallDiagnostics`) kutuları bu bantlara dağıtırken bunu varsayıyor;

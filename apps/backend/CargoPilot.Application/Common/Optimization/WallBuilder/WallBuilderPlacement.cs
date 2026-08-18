@@ -71,7 +71,8 @@ internal static class WallBuilderPlacement
         IReadOnlyList<SequencedItem> instances,
         DecoderKeys decoder,
         PlacementState? start,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int stopAfterPlacements = int.MaxValue)
     {
         var modules = OptimizationModules.Resolve(input);
 
@@ -126,6 +127,20 @@ internal static class WallBuilderPlacement
         for (var index = 0; index < instances.Count; index++)
         {
             if (consumed[index]) continue;
+
+            // Ileri bakisli arama durumu PARCA PARCA ilerletir: belirli sayida
+            // yerlestirmeden sonra durur, dali degerlendirir, sonra devam eder.
+            if (placements.Count >= stopAfterPlacements)
+            {
+                // Yarim kalan kosuda "yerlesemedi" kayitlari GECICIDIR: devam
+                // eden kosu ayni kutulari bastan degerlendirecek ve durum
+                // degistigi icin bir kismi artik yerlesebilecek. Temizlenmezse
+                // ayni kutu iki kez "yerlesemedi" sayilir ve adet korunumu
+                // bozulur — DR-49'da bir kez yasandi.
+                unplaced.Clear();
+                failedSincePlacement.Clear();
+                break;
+            }
 
             var sequenced = instances[index];
             var item = sequenced.Item;
@@ -296,6 +311,15 @@ internal static class WallBuilderPlacement
             }
 
             placements.Add(best);
+
+            // Yerlesen birim TUKETILMIS sayilir. Tek yonlu ilerleyen bir
+            // dongude bu gereksizdi — indeks bir daha ziyaret edilmiyordu — ve
+            // yazilmamis bir varsayim olarak duruyordu. Ileri bakisli arama
+            // yarim bir durumdan DEVAM ettigi icin varsayim cokuyor: dongu
+            // bastan basliyor ve zaten yerlesmis kutulari yeniden yerlestiriyor.
+            // Olculdu: 500 kutuluk senaryoda 518 kutu yerlesti (docs/algorithm/02-kararlar.md DR-49).
+            consumed[index] = true;
+
             totalWeight += best.Weight;
             ledger.Place(best.X, best.Y, best.Z, best.Width, best.Height, best.Length, minSide);
 

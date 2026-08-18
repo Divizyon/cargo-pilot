@@ -10,5 +10,8 @@ public enum SequencerKind
     Static = 0,
     Gwca = 1,
     Ga = 2,
-    Grasp = 3
+    Grasp = 3,
+
+    /// <summary>Ileri bakisli isin aramasi (F7-4); plani parca parca kurar.</summary>
+    Beam = 4
 }

@@ -26,6 +26,7 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             SequencerKind.Gwca => Search.GwcaSequencer.Run(input, cancellationToken),
             SequencerKind.Ga => Search.GaSequencer.Run(input, cancellationToken),
             SequencerKind.Grasp => Search.GraspSequencer.Run(input, cancellationToken),
+            SequencerKind.Beam => Search.BeamSequencer.Run(input, cancellationToken),
             _ => WallBuilder.WallBuilderPlacement.Run(input, cancellationToken),
         };
     }

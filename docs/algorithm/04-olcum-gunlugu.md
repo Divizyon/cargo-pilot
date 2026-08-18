@@ -2007,3 +2007,81 @@ Yani F7-4'ün değeri blokta veya sırada değil, **ileri bakışta**: "bu karar
 Bu da durum kopyalamalı gerçek bir beam gerektiriyor — `SpaceLedger` + yerleşim listesi + tüketim
 durumunun ucuz klonlanabilmesi. Kestirme yok; iki kestirme (duvar sırası, blok şekli) ölçümle
 elendi.
+
+---
+
+## F7-4 · İleri bakışlı ışın araması kuruldu — **çalışıyor, ama GRASP'ı geçmiyor**
+
+Üç kestirme ölçümle elenmişti (`DR-49` duvar sırası, `DR-51` blok zenginliği, günlükteki "bloğu
+x/z'de büyütmek ±0"). Geriye tek şey kalmıştı: **ileri bakış** — "bu kararı verirsem sonu ne olur".
+O da durum kopyalamalı gerçek bir arama gerektiriyordu.
+
+### Kurulan
+
+- `SpaceLedger.Clone()` — sığ kopya yeter, `FreeSpace` bir `readonly record struct`.
+- `PlacementState` — yerleştirmenin yarım kalmış hâli tek yerde: yerleşimler, defter, duvarlar,
+  tüketilmiş birimler, ağırlık, hedef derinlik.
+- `WallBuilderPlacement.Run(..., start, ..., stopAfterPlacements)` — verilen durumdan **devam eder**
+  ve belirli sayıda yerleştirmeden sonra **durur**.
+- `BeamSequencer` — planı parça parça kurar; her parçada altı yerleştirici ayarı denenir, her
+  deneme sonuna kadar açgözlülükle tamamlanır (**yalnızca ölçüm için**, sonuç atılır), en iyi
+  ışın genişliği kadar yarım plan tutulur.
+
+Ayrım **davranışı değiştirmedi**: durum ayıklaması sonrası BR1-BR7 %83,40, 17 snapshot kaymadı.
+
+### `DR-49`'un uyarısı aynen gerçekleşti
+
+Beam ilk koşuda değişmez testlerini kırdı: *"adet korunumu bozuldu: yerleşen 518, istenen 500."*
+
+Sebep tam olarak `DR-49`'da yazılan şey: `consumed[]` yalnızca blok inşasının yuttuğu birimleri
+işaretliyordu; ana döngüde yerleşenler işaretlenmiyordu çünkü döngü tek yönde ilerliyor ve indeksi
+bir daha ziyaret etmiyordu. **Yarım durumdan devam eden arama bu yazılmamış varsayımı çökertti.**
+
+Düzeltildi (`consumed[index] = true`) ve statik yol bit birebir aynı kaldı — tek yönlü döngüde
+işaretleme zaten bir fark yaratmıyor. 173 motor testi yeşil; beam artık sekiz sert kapıyı ve adet
+korunumunu koruyor.
+
+### Ölçüm — ışın/parça taraması (BR1-BR7, 12 örnek)
+
+| Işın × parça | Doluluk |
+|---|---|
+| 3 × 16 kutu | %86,60 |
+| 8 × 16 | %86,83 |
+| 3 × 5 | %87,06 |
+| 8 × 5 | %87,26 |
+| 16 × 5 | %87,36 |
+| **8 × 2** | **%87,48** |
+| 8 × 1 | %87,66 *(bütçe bağlayıcı)* |
+
+Tekdüze iyileşiyor: ince parça ve geniş ışın daha iyi. En iyi **%87,66**.
+
+### Eşit bütçede GRASP ile karşılaştırma (8 örnek/küme)
+
+| Bütçe | Beam | GRASP |
+|---|---|---|
+| 100 ms | %86,64 | **%86,70** |
+| 250 ms | %86,81 | **%87,38** |
+| 500 ms | %87,13 | **%87,93** |
+| 2000 ms | %87,66 | **%88,48** |
+
+**GRASP her bütçede önde.** Beam rekabetçi ama kazanmıyor; fark bütçe büyüdükçe açılıyor
+(0,06 → 0,82 puan). F7-4 kapısı (static ≥ %89) çok uzakta.
+
+### Neden — ve eksik olan ne
+
+Bu **kısmi** bir BSG. İskelet doğru: ileri bakış, durum kopyalama, ışın seçimi, determinizm. Ama
+dallanma uzayı yanlış:
+
+- Kurduğum beam **yerleştirici ayarları** üzerinde dallanıyor (altı varyant: duvar derinliği ×
+  cep sırası). Bu, GRASP'ın tek küresel decoder geninden daha ince — parça başına ayrı ayar
+  seçebiliyor — ama hâlâ **çok kaba** bir uzay.
+- BSG'nin dallandığı şey **(blok, boşluk) çifti**. Kaynağın da söylediği bu:
+  *"hangi boşluğa hangi blok"*. `BlockCatalog` yazıldı (`DR-51`) ama beam'e **hiç bağlanmadı**.
+- Değerlendirme tam açgözlü tamamlama; pahalı, dolayısıyla dal sayısını sınırlıyor.
+
+Yani sonuç F7-4'ün reddi değil, **yarısının** yapıldığının kaydı: altyapı (kopyalanabilir durum,
+devam edebilen yerleştirici, ışın döngüsü) çalışıyor ve doğrulandı; asıl kaldıraç olan blok-boşluk
+aksiyon uzayı bağlanmadı.
+
+**GRASP üretim varsayılanı olarak kalıyor.** `SequencerKind.Beam` ölçüm için açık; kimse
+otomatik olarak almıyor.

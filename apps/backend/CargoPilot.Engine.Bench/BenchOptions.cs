@@ -230,6 +230,7 @@ public sealed record BenchOptions(
         => value?.ToLowerInvariant() switch
         {
             "static" => SequencerKind.Static,
+            "beam" => SequencerKind.Beam,
             "gwca" => SequencerKind.Gwca,
             "ga" => SequencerKind.Ga,
             "grasp" => SequencerKind.Grasp,
