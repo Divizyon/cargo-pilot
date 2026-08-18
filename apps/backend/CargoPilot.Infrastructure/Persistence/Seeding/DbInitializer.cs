@@ -12,6 +12,7 @@ public sealed class DbInitializer {
     private const string DefaultAdminEmail = "admin@cargopilot.com";
     private const string EnableAdminSeedKey = "Seed:EnableAdminSeed";
     private const string DefaultAdminPasswordKey = "Seed:DefaultAdminPassword";
+    private const string AdminMustChangePasswordKey = "Seed:AdminMustChangePassword";
 
     private readonly AppDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
@@ -50,7 +51,18 @@ public sealed class DbInitializer {
             return;
         }
 
-        await SeedAdminUserAsync(company, mustChangePassword: !isDevelopment, cancellationToken);
+        // Seed açıkça istenmiş ama DB'de hiç şirket yok (taze test/CI yığını):
+        // admin şirketsiz kalırsa tüm şirket kapsamlı uçlar Auth.NoCompany ile
+        // kilitlenir. Yalnızca bu koşulda varsayılan şirket açılır; sahte ERP
+        // entegrasyonu Development dışında yine seed'lenmez.
+        company ??= await CreateDefaultCompanyAsync(cancellationToken);
+
+        // İlk girişte parola değişimi üretim varsayılanıdır; otomasyon ortamları
+        // (CI e2e yığını) Seed:AdminMustChangePassword=false ile kapatabilir.
+        var mustChangePassword = !isDevelopment
+            && _configuration.GetValue(AdminMustChangePasswordKey, defaultValue: true);
+
+        await SeedAdminUserAsync(company, mustChangePassword, cancellationToken);
     }
 
     private Task<Company?> GetOldestCompanyAsync(CancellationToken cancellationToken) =>
@@ -58,19 +70,21 @@ public sealed class DbInitializer {
             .OrderBy(c => c.CreatedAtUtc)
             .FirstOrDefaultAsync(cancellationToken);
 
+    private async Task<Company> CreateDefaultCompanyAsync(CancellationToken cancellationToken) {
+        var company = new Company(
+            id: Guid.NewGuid(),
+            name: DefaultCompanyName,
+            subscriptionType: SubscriptionType.Free,
+            maxUserCount: 5);
+
+        await _context.Companies.AddAsync(company, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+        return company;
+    }
+
     private async Task<Company> SeedDevelopmentDataAsync(CancellationToken cancellationToken) {
-        var company = await GetOldestCompanyAsync(cancellationToken);
-
-        if (company is null) {
-            company = new Company(
-                id: Guid.NewGuid(),
-                name: DefaultCompanyName,
-                subscriptionType: SubscriptionType.Free,
-                maxUserCount: 5);
-
-            await _context.Companies.AddAsync(company, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
-        }
+        var company = await GetOldestCompanyAsync(cancellationToken)
+            ?? await CreateDefaultCompanyAsync(cancellationToken);
 
         var integrationExists = await _context.Integrations
             .AnyAsync(i => i.CompanyId == company.Id, cancellationToken);
