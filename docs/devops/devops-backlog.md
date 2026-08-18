@@ -42,6 +42,7 @@ kayıt orada, plan burada; ikisi arasında tekrar bırakılmaz.
 | 16 | Kaynak limitleri — D-38 (limit yok), D-39 (`MSSQL_MEMORY_LIMIT_MB`) | 🔴 Kritik | ⚠️ Açık |
 | 17 | Prod öncesi zorunlular — D-47 (prod nginx conf), D-50 (port/path uyumsuzluğu) | 🟠 Yüksek | ⚠️ Açık |
 | 18 | Rollback güvenliği — D-24, D-25, D-27 ✅ (#1012, #1017); kalan **D-29 (tatbikat)** | 🟠 Yüksek | ⚠️ Açık |
+| 19 | .NET 8 → .NET 10 LTS geçişi — D-32b, EOL **2026-11-10** | 🔴 Kritik (tarihe bağlı) | ⚠️ Açık — planlama |
 
 Kategori 6, 2026-08-03 taramasının **35 açık** D-bulgusunu D-kodlarıyla birlikte listeler
 (51'den 16'sı kapandı); yukarıdaki matris yalnızca kritik kümeleri özetler.
@@ -434,6 +435,74 @@ Kapananların hiçbiri kritik değildi; altı kritiğin dördü sunucuya SSH eri
 
 **D-38, D-39, D-47, D-50** — bunlar olmadan prod stack kalkarsa ya port çakışır ya OOM olur.
 Madde 2.1 (Production Stack Deploy) bu dördüne bağımlıdır.
+
+---
+
+### 6.9 .NET 8 → .NET 10 LTS geçişi (D-32b)
+
+{% hint style="danger" %}
+**⚠️ Açık — yalnız planlama, geçiş kendisi başka bir görevdedir**
+{% endhint %}
+
+**Bağlam:** D-32'nin stratejik kısmı. .NET 8'in Microsoft desteği **2026-11-10**'da bitiyor;
+bu maddenin yazıldığı tarih (2026-08-18) itibarıyla **~12 hafta** kaldı. .NET 10, Kasım 2025'te
+çıkan bir sonraki LTS'dir (STS olan .NET 9 atlanıyor). F4-03 kapsamında yalnızca bu backlog
+maddesi yazıldı; geçişin kendisi **yapılmadı** (F4-03 kapsam dışı).
+
+**Kapsam (bugünkü kod tabanına göre doğrulandı):**
+
+- 7 `.csproj` dosyası `net8.0` hedefliyor → `net10.0`'a çekilmeli: `CargoPilot.Domain`,
+  `CargoPilot.Application`, `CargoPilot.Infrastructure`, `CargoPilot.WebAPI`,
+  `CargoPilot.Engine.Tests`, `CargoPilot.Infrastructure.Tests`,
+  `tests/CargoPilot.Application.Tests`.
+- `Microsoft.AspNetCore.*` / `Microsoft.EntityFrameworkCore.*` NuGet paketleri (2 proje —
+  muhtemelen `WebAPI` ve `Infrastructure`) 8.x → 10.x major sürüme çekilmeli; ikisi de
+  runtime ile aynı major olmak zorunda.
+- CI: `.github/workflows/ci.yml:170` ve `.github/workflows/test-deploy.yml:50` —
+  `dotnet-version: '8.0.x'` → `'10.0.x'`.
+- `apps/backend/Directory.Build.props` — `LangVersion: latest` zaten ileri sürüme otomatik
+  uyar, ama `TreatWarningsAsErrors` + SonarAnalyzer 10.32 altında yeni SDK'nın getirdiği
+  analyzer kuralları derlemeyi kırabilir (bu dosya F4-04'ün alanı, değişiklik oraya düşer).
+  Backend'de artık aktif olarak kullanılan `EnforceCodeStyleInBuild` bu geçişte ayrıca
+  gözden geçirilmeli.
+- `sync-base-images.yml` (bu PR'da `imagetools create`'e geçirildi, D-33) — `dotnet/sdk:10.0`
+  ve `dotnet/aspnet:10.0` için yeni bir senkron adımı eklenmeli; `apps/backend/Dockerfile`
+  `${DOTNET_SDK_IMAGE}`/`${DOTNET_ASPNET_IMAGE}` build-arg'larını `:10.0` etiketine çekmeli
+  (Dockerfile F4-02'nin alanı).
+- Regresyon: Domain/Application/Infrastructure/WebAPI test projelerinin tamamı yeşile
+  çekilmeli; EF Core major sürüm atlaması migration davranışında (ör. query translation,
+  konvansiyon değişiklikleri) sessiz farklara yol açabilir.
+
+**Riskler:**
+
+- EF Core 8→10 major atlaması, mevcut migration'larda veya LINQ sorgu çevirisinde davranış
+  farkına yol açabilir — mutlaka staging'de gerçek veriyle regresyon gerektirir.
+- ASP.NET Core middleware/minimal API pipeline'ında breaking change olasılığı (her majörde
+  olağan) — auth/CORS/rate-limit gibi hassas orta katmanlar önceliklendirilmeli.
+- Yeni SDK'nın analyzer/SonarAnalyzer seti `TreatWarningsAsErrors` altında derlemeyi
+  kırabilir; bu geçiş F4-04 (`Directory.Build.props`) ile koordine edilmeli.
+- `sync-base-images.yml` → yeni `:10.0` mirror'ı olmadan `apps/backend/Dockerfile` build
+  edilemez; sıralama önemli (önce base image sync, sonra Dockerfile build-arg güncellemesi).
+- Rollback: ADR-0009 (health-check sonrası otomatik geri alma) bu geçişte de geçerli olmalı;
+  major runtime atlaması sonrası ilk deploy için rollback provası (D-29 ile aynı disiplin)
+  önerilir.
+- Downtime riski düşük (aynı deploy pipeline'ı kullanılıyor) ama regresyon riski yüksek —
+  major sürüm atlaması, tek tek patch güncellemesi değil.
+
+**Efor tahmini (tümü tahmin, gerçek efor keşif sonrası netleşir):**
+
+| Adım | Tahmini efor |
+|---|---|
+| NuGet/SDK sürüm bump + derleme hatalarının giderilmesi | ~1–2 gün (tahmin) |
+| Test suite'in (7 proje) yeşile çekilmesi + EF Core regresyon kontrolü | ~1 gün (tahmin) |
+| CI + `sync-base-images.yml` + Dockerfile build-arg zinciri güncellemesi | ~0.5–1 gün (tahmin) |
+| Staging QA + rollback provası | ~1 gün (tahmin) |
+| **Toplam** | **~3.5–5 iş günü (tahmin)** |
+
+**Zamanlama önerisi:** EOL'e (2026-11-10) ~12 hafta var. Planlama ve bağımlılık taraması
+(NuGet paket uyumluluğu, breaking change listesi) şimdi başlamalı; hedef, EOL'den en az
+2-3 hafta önce (Ekim sonu) production'da .NET 10 üzerinde olmak — böylece beklenmedik bir
+regresyon çıkarsa müdahale için tampon süre kalır.
 
 ---
 
