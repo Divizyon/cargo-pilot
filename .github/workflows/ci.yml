@@ -29,6 +29,25 @@ on:
 permissions:
   contents: read
 
+# Aynı branch'e hızlı ardışık push'lar tam CI'ı baştan koşuyordu (ölçüm:
+# feat/algoritma-arama-katmani'nda 8 koşum, ikisi saniyeler arayla).
+#
+# `cancel-in-progress` BİLEREK yalnız pull_request'te açık:
+# ci.yml korunan dallarda zorunlu check üretiyor (Frontend CI, Backend CI, Terfi
+# Zinciri Kontrolü). İptal edilen koşumun check'i `cancelled` durumunda kalır ve o
+# commit'te merge'i bloke eder. Push koşumları PR'ın head SHA'sıyla aynı commit'e
+# check yazdığı için push tarafında iptal ETMEK bu riski doğurur; PR tarafında ise
+# iptal edilen koşum her zaman ESKİ head SHA'ya aittir, merge kapısı yalnızca
+# güncel head SHA'ya bakar — güvenli.
+#
+# Grup adı: github.ref push'ta refs/heads/<branch>, pull_request'te
+# refs/pull/<n>/merge → PR ve push koşumları ayrı gruplara düşer, birbirini iptal
+# edemez. concurrency bağlamında `github` context'i kullanılabilir (secrets/matrix
+# kullanılamaz), bu yüzden github.event_name ifadesi burada değerlendirilir.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # ─── Terfi zinciri denetimi ──────────────────────────────────────────────────
   # Akış: feat/* → dev → test → main. Sıra atlanırsa dallar ayrışır.
