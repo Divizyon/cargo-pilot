@@ -53,10 +53,18 @@ jobs:
         run: dotnet tool install --global dotnet-ef
 
       - name: NuGet paketlerini yükle
-        run: dotnet restore cargo-pilot.sln
+        run: dotnet restore apps/backend/CargoPilot.WebAPI/CargoPilot.WebAPI.csproj
 
-      - name: Solution build (migration check için)
-        run: dotnet build cargo-pilot.sln --configuration Release --no-restore
+      # D-13(c): Bu job yalnızca design-time model karşılaştırması yapar; test
+      # projelerinin derlenmesine ihtiyacı yok. Eskiden tüm solution (7 proje)
+      # derleniyordu, `backend-ci` de aynı solution'ı Release'de derliyor.
+      # Artık yalnız `dotnet ef`in gerçekten yüklediği graf derleniyor:
+      # WebAPI (startup) → Infrastructure → Application → Domain.
+      # Configuration bilinçli olarak Release kalıyor: yerel ölçümde Debug hiçbir
+      # şey kazandırmıyor (temiz build 5,97 sn Debug / 6,21 sn Release, aynı 1965
+      # uyarı) — maliyet analyzer'larda, optimizasyonda değil. Bkz. D-35 / #1049.
+      - name: Backend build (migration check için)
+        run: dotnet build apps/backend/CargoPilot.WebAPI/CargoPilot.WebAPI.csproj --configuration Release --no-restore
 
       - name: Pending model değişikliği kontrolü
         # AppDbContextFactory design-time'da connection string gerektirir;
