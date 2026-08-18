@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    Yerlestirme motorunun gelistirme dongusu icin barindirici.
+    Uretime GIRMEZ: kimlik dogrulama, veritabani, EF, MediatR, loglama yok.
+    Motor saf bir hesap oldugu icin (girdi ver, cikti al) bu katmanlarin hicbiri
+    olcume katki vermiyor, yalnizca her turu saniyelere cikariyordu.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>CargoPilot.Engine.Bench</RootNamespace>
+    <AssemblyName>CargoPilot.Engine.Bench</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- OR-Library BR1-BR7 kiyas verisi; kosum aninda okunur. -->
+    <None Update="data\*.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CargoPilot.Application\CargoPilot.Application.csproj" />
+  </ItemGroup>
+
+</Project>

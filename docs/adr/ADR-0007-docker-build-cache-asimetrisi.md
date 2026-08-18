@@ -1,6 +1,6 @@
 # ADR-0007 — Docker build cache asimetrisi: backend `mode=min`, frontend `mode=max`
 
-- **Durum:** Kabul edildi
+- **Durum:** Yerini aldı: ADR-0011
 - **Tarih:** 2026-08-15 (K3 panel kararı ve PR #992)
 - **Kapsam:** `.github/workflows/ci.yml`, `.github/workflows/test-deploy.yml`,
   `apps/backend/Dockerfile`, `apps/frontend/Dockerfile`

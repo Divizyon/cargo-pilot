@@ -785,6 +785,28 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("nvarchar(2048)");
 
+                    b.Property<long?>("SearchDurationMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("SearchEvaluations")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("SearchImproved")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("SearchIterations")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Seed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("Sequencer")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("ThumbnailUrl")
                         .HasColumnType("nvarchar(max)");
 
@@ -1730,7 +1752,6 @@ namespace CargoPilot.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CargoPilot.Domain.Entities.VehicleDoor", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAtUtc")

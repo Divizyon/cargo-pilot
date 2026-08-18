@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { OptimizationCriteria } from '@/lib/types/loadingPlan';
+import { OptimizationCriteria, SequencerKind } from '@/lib/types/loadingPlan';
 import type { Item } from '@/lib/types/item';
 import type { Vehicle } from '@/lib/types/vehicle';
 import { CHECK_IDS } from '../verification/types';
@@ -18,7 +18,14 @@ import { CHECK_IDS } from '../verification/types';
  */
 
 /** Şema sürümü. Satır zenginleştiğinde artar; eski kayıtlar okunurken düşer. */
-export const SUITE_RUN_VERSION = 2;
+export const SUITE_RUN_VERSION = 4;
+
+const sequencerSchema = z.union([
+  z.literal(SequencerKind.Static),
+  z.literal(SequencerKind.Gwca),
+  z.literal(SequencerKind.Ga),
+  z.literal(SequencerKind.Grasp),
+]);
 
 const criteriaSchema = z.union([
   z.literal(OptimizationCriteria.Lifo),
@@ -63,6 +70,12 @@ const scenarioResultSchema = z.object({
   unplacedReasons: z.array(unplacedReasonCountSchema),
   /** Uçtan uca istek süresi (ms). Motor süresi DEĞİL; ağ ve kalıcılık dahil. */
   durationMs: z.number().nonnegative(),
+  /**
+   * Senaryonun determinizm izdüşümü (bkz. `suite/determinismDigest.ts`).
+   * Süre ve kimlik taşımaz, yalnız yerleşim ve yerleşemeyenler. Koşulamayan
+   * senaryoda boş kalır.
+   */
+  digest: z.string(),
   /**
    * Senaryo koşulamadıysa sebebi. Eskiden düşen senaryo sessizce listeden
    * siliniyordu; motorun belirli bir girdide patlaması "eksik satır" olarak
@@ -117,12 +130,31 @@ export const suiteRunSchema = z.object({
   /** Senaryo üretim mantığının sürümü; değişirse aynı tohum farklı liste verir. */
   generatorVersion: z.number().int(),
   /**
+   * Koşunun hangi yerleştirici/sıralayıcı ile alındığı. Farklı strateji farklı
+   * bir motordur; aynı seride kıyaslanamaz (bkz. `isComparable`). Aksi hâlde
+   * Wall-Builder'ın ilk koşusu greedy referansına karşı sahte regresyon üretirdi.
+   */
+  sequencer: sequencerSchema,
+  /** Arama tohumu; Static sıralayıcıda kullanılmaz ve 0 kalır. */
+  searchSeed: z.number().int().nonnegative(),
+  /**
+   * Fixture modunda kullanılan sentetik katalog sürümü; canlı katalogla koşulan
+   * seride null. İmzanın parçasıdır (F1).
+   */
+  fixtureCatalogVersion: z.number().int().nullable(),
+  /**
    * Motorun hangi sürümüne karşı koşuldu (commit/etiket). Elle girilir: backend
    * bunu bildiren bir uç sunmuyor ve uydurmak yanlış rapordan kötüdür.
    */
   engineVersion: z.string().nullable(),
   /** Koşu anındaki katalog kapsaması; hangi dalların test EDİLEBİLİR olduğunu söyler. */
   coverage: z.array(coverageCountSchema),
+  /**
+   * Koşunun tamamının determinizm damgası. `--repeat` ve SC-45 yalnız bunu
+   * karşılaştırır; ham rapor eşitliği aranmaz çünkü süre ve zaman damgası her
+   * koşuda zaten farklıdır.
+   */
+  digest: z.string(),
   results: z.array(scenarioResultSchema),
   aggregates: z.array(aggregateSchema),
 });
@@ -279,12 +311,22 @@ export function clearSuites(): void {
   }
 }
 
-/** İki koşu birebir aynı senaryo setini gördü mü. */
+/**
+ * İki koşu birebir aynı senaryo setini VE aynı motoru gördü mü.
+ *
+ * Strateji/sıralayıcı anahtarın parçasıdır: farklı strateji bir gerileme değil,
+ * başka bir motordur. Strateji karşılaştırması göreli kapıya değil, eşleştirilmiş
+ * kıyas protokolüne gider (docs/algorithm/01-kurallar.md KK-03).
+ */
 export function isComparable(a: SuiteRun, b: SuiteRun): boolean {
   return (
+    a.version === b.version &&
     a.seed === b.seed &&
     a.catalogSignature === b.catalogSignature &&
-    a.generatorVersion === b.generatorVersion
+    a.generatorVersion === b.generatorVersion &&
+    a.fixtureCatalogVersion === b.fixtureCatalogVersion &&
+    a.sequencer === b.sequencer &&
+    a.searchSeed === b.searchSeed
   );
 }
 

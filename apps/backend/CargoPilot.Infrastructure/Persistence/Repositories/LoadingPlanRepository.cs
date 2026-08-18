@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Erp;
+﻿using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Vehicles;
@@ -340,8 +340,25 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
             unplacedItemDtos,
             warningDtos,
             inputItemDtos,
-            groupDtos);
+            groupDtos,
+            plan.Sequencer,
+            plan.Seed,
+            ToSearchStatsDto(plan));
     }
+
+    /// <summary>
+    /// Arama kosu istatistigi; statik yolda alanlar bos oldugu icin null doner.
+    /// Tek alanin dolu olup otekilerin bos olmasi mumkun degil, dordu birlikte
+    /// yazilir — bu yuzden tek alan sinaniyor.
+    /// </summary>
+    private static SearchStatsDto? ToSearchStatsDto(LoadingPlan plan)
+        => plan.SearchIterations is null
+            ? null
+            : new SearchStatsDto(
+                plan.SearchIterations.Value,
+                plan.SearchEvaluations ?? 0,
+                plan.SearchImproved ?? false,
+                plan.SearchDurationMs ?? 0);
 
     public async Task<LoadingPlan?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default)
         => await _context.LoadingPlans

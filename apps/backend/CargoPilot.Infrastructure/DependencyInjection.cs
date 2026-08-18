@@ -1,4 +1,4 @@
-using CargoPilot.Application.Abstractions;
+﻿using CargoPilot.Application.Abstractions;
 using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Settings;
 using CargoPilot.Application.Features.Auth;

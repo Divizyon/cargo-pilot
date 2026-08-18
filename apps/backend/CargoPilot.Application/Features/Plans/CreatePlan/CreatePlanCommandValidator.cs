@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Config;
+﻿using CargoPilot.Application.Common.Config;
 using FluentValidation;
 
 namespace CargoPilot.Application.Features.Plans.CreatePlan;
@@ -55,5 +55,13 @@ public sealed class CreatePlanCommandValidator : AbstractValidator<CreatePlanCom
                 .Must(groups => groups.Select(g => g.UnloadingOrder).Distinct().Count() == groups.Count)
                 .WithMessage("Boşaltma sırası değerleri benzersiz olmalıdır.");
         });
+
+        RuleFor(x => x.Sequencer)
+            .Must(x => !x.HasValue || Enum.IsDefined(x.Value))
+            .WithMessage("Sıralayıcı geçerli bir değer olmalıdır.");
+
+        RuleFor(x => x.Seed)
+            .GreaterThanOrEqualTo(0).WithMessage("Tohum negatif olamaz.");
+
     }
 }

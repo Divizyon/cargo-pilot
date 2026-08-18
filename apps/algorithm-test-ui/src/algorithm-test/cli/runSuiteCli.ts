@@ -8,7 +8,8 @@ import type { OptimizationCriteria } from '@/lib/types/loadingPlan';
 import type { Vehicle } from '@/lib/types/vehicle';
 import { CRITERIA_LABEL } from '../criteria';
 import { runSuite } from '../suite/runSuite';
-import { createHttpSuiteClient } from '../suite/suiteClient';
+import { createHttpSuiteClient, type SuiteClient } from '../suite/suiteClient';
+import { createBenchSuiteClient, loadBenchCatalog } from '../suite/benchClient';
 import {
   buildMarkdownSummary,
   buildSuiteReport,
@@ -109,6 +110,48 @@ async function main(): Promise<ExitCode> {
   const options = parseCliOptions(argv, process.env);
   const baseline = loadBaseline(options.baselinePath);
 
+  const source = options.fixtures
+    ? await openFixtureSource(options)
+    : await openLiveSource(options);
+
+  console.log(`Katalog: ${source.vehicles.length} araç, ${source.items.length} ürün`);
+
+  // Çok tohumlu koşuda her tohum ayrı bir rapordur; kapı en kötüsünü döner.
+  let worst: ExitCode = EXIT_CODES.ok;
+
+  for (const seed of options.seeds) {
+    const code = await runOneSeed(seed, options, source, baseline);
+    if (code !== EXIT_CODES.ok) worst = code;
+  }
+
+  return worst;
+}
+
+interface SuiteSource {
+  vehicles: Vehicle[];
+  items: Item[];
+  client: SuiteClient;
+  fixtureCatalogVersion: number | null;
+}
+
+/**
+ * Fixture kipi: kimlik doğrulama, canlı katalog ve plan kalıcılığı yok.
+ * Katalog da bench ucundan gelir — ikinci bir kopya tutmak, biri güncellenip
+ * diğeri unutulduğunda sessizce farklı senaryolar üretirdi.
+ */
+async function openFixtureSource(options: CliOptions): Promise<SuiteSource> {
+  const catalog = await loadBenchCatalog(options.benchUrl);
+  console.log(`Fixture kipi: ${options.benchUrl} (giriş yok, veritabanı yok)`);
+
+  return {
+    vehicles: catalog.vehicles,
+    items: catalog.items,
+    client: createBenchSuiteClient(catalog, options.benchUrl),
+    fixtureCatalogVersion: catalog.version,
+  };
+}
+
+async function openLiveSource(options: CliOptions): Promise<SuiteSource> {
   const http = axios.create({
     baseURL: options.baseUrl,
     timeout: options.timeoutMs,
@@ -117,12 +160,8 @@ async function main(): Promise<ExitCode> {
 
   await login(http, options);
   const { vehicles, items } = await fetchCatalog(http, options.pageSize);
-  console.log(`Katalog: ${vehicles.length} araç, ${items.length} ürün`);
 
-  let lastLoggedPercent = -1;
-  const outcome = await runSuite({
-    seed: options.seed,
-    count: options.count,
+  return {
     vehicles,
     items,
     client: createHttpSuiteClient({
@@ -130,8 +169,38 @@ async function main(): Promise<ExitCode> {
       get: (url) => http.get(url),
       delete: (url) => http.delete(url),
     }),
+    fixtureCatalogVersion: null,
+  };
+}
+
+async function runOneSeed(
+  seed: number,
+  options: CliOptions,
+  source: SuiteSource,
+  baseline: SuiteRun | null,
+): Promise<ExitCode> {
+  let lastLoggedPercent = -1;
+  const outcome = await runSuite({
+    seed,
+    count: options.count,
+    vehicles: source.vehicles,
+    items: source.items,
+    client: source.client,
     concurrency: options.concurrency,
     engineVersion: options.engineVersion,
+    fixtureCatalogVersion: source.fixtureCatalogVersion,
+    onScenarioFailure: (failure) => {
+      if (!options.dumpFailuresDir) return;
+
+      mkdirSync(options.dumpFailuresDir, { recursive: true });
+      const name = `seed${seed}-s${failure.scenarioIndex}-k${failure.criteria}.failure.json`;
+      writeFileSync(
+        path.join(options.dumpFailuresDir, name),
+        JSON.stringify(failure, null, 2),
+        'utf8',
+      );
+      console.log(`  ✗ ihlal yazıldı: ${name} (${failure.failedCheckIds.join(', ')})`);
+    },
     onProgress: ({ completed, total }) => {
       // Her istekte satır basmak CI günlüğünü yüzlerce satırla doldururdu.
       const percent = total > 0 ? Math.floor((completed / total) * 10) * 10 : 0;
@@ -146,6 +215,38 @@ async function main(): Promise<ExitCode> {
     console.error(`Koşu tamamlanamadı: ${outcome.status}`);
     return EXIT_CODES.usageOrConnection;
   }
+
+  // Tekrar koşusu yalnız damgayı karşılaştırır: süre, plan kimliği ve zaman
+  // damgası her turda zaten farklıdır, ham rapor eşitliği hiç yeşil olmazdı.
+  for (let pass = 2; pass <= options.repeat; pass++) {
+    const again = await runSuite({
+      seed,
+      count: options.count,
+      vehicles: source.vehicles,
+      items: source.items,
+      client: source.client,
+      concurrency: options.concurrency,
+      engineVersion: options.engineVersion,
+      fixtureCatalogVersion: source.fixtureCatalogVersion,
+    });
+
+    if (again.status !== 'ok') {
+      console.error(`Tekrar ${pass} tamamlanamadı: ${again.status}`);
+      return EXIT_CODES.usageOrConnection;
+    }
+
+    if (again.run.digest !== outcome.run.digest) {
+      console.error(`✗ Determinizm kırık (tohum ${seed}, tur ${pass})`);
+      console.error(`  tur 1   : ${outcome.run.digest}`);
+      console.error(`  tur ${pass}: ${again.run.digest}`);
+      return EXIT_CODES.gateFailed;
+    }
+  }
+
+  if (options.repeat > 1) {
+    console.log(`✓ Determinizm: ${options.repeat} turun ${options.repeat}'inde aynı damga`);
+  }
+  console.log(`Damga: ${outcome.run.digest}`);
 
   const report = buildSuiteReport({
     run: outcome.run,

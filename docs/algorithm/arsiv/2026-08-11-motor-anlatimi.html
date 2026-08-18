@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cargo Pilot — Yükleme Optimizasyon Algoritması</title>
+<style>
+  :root {
+    --bg: #0f172a; --panel: #1e293b; --panel2: #273449; --line: #334155;
+    --text: #e2e8f0; --muted: #94a3b8; --acc: #38bdf8; --ok: #4ade80;
+    --warn: #fbbf24; --bad: #f87171; --purple: #c084fc;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font: 16px/1.65 'Segoe UI', system-ui, sans-serif; padding: 2rem 1rem 5rem; }
+  main { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 1.9rem; margin-bottom: .3rem; }
+  h2 { font-size: 1.35rem; margin: 2.8rem 0 .8rem; color: var(--acc); border-bottom: 1px solid var(--line); padding-bottom: .4rem; }
+  h3 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; color: var(--purple); }
+  p { margin: .6rem 0; color: var(--text); }
+  .sub { color: var(--muted); margin-bottom: 1.5rem; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1.1rem 1.3rem; margin: 1rem 0; }
+  .grid { display: grid; gap: 1rem; }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  code, .mono { font-family: Consolas, monospace; font-size: .88em; background: var(--panel2); padding: .1em .4em; border-radius: 4px; color: #7dd3fc; }
+  .formula { font-family: Consolas, monospace; background: var(--panel2); border-left: 3px solid var(--acc); padding: .7rem 1rem; border-radius: 6px; margin: .6rem 0; overflow-x: auto; white-space: nowrap; }
+  table { width: 100%; border-collapse: collapse; margin: .8rem 0; font-size: .92rem; }
+  th, td { border: 1px solid var(--line); padding: .5rem .7rem; text-align: left; vertical-align: top; }
+  th { background: var(--panel2); color: var(--acc); }
+  .flow { display: flex; flex-direction: column; gap: 0; align-items: stretch; margin: 1rem 0; }
+  .step { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: .8rem 1.1rem; position: relative; }
+  .step b { color: var(--acc); }
+  .step .n { display: inline-flex; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--acc); color: #082f49; font-weight: 700; align-items: center; justify-content: center; margin-right: .6rem; font-size: .85rem; }
+  .arrow { text-align: center; color: var(--muted); font-size: 1.2rem; padding: .15rem 0; }
+  .tag { display: inline-block; border-radius: 999px; padding: .1em .7em; font-size: .78rem; font-weight: 600; margin-right: .4rem; }
+  .t-ok { background: #14532d; color: var(--ok); } .t-bad { background: #450a0a; color: var(--bad); }
+  .t-warn { background: #451a03; color: var(--warn); } .t-info { background: #082f49; color: var(--acc); }
+  svg text { font-family: 'Segoe UI', sans-serif; }
+  .legend { display: flex; flex-wrap: wrap; gap: 1rem; font-size: .85rem; color: var(--muted); margin-top: .5rem; }
+  .legend span::before { content: '■ '; }
+  .note { border-left: 3px solid var(--warn); background: #1f2937; padding: .6rem 1rem; border-radius: 6px; margin: .8rem 0; font-size: .93rem; }
+  ul { margin: .5rem 0 .5rem 1.4rem; }
+  li { margin: .3rem 0; }
+
+  /* Yol haritası — açılır/kapanır fazlar */
+  details.phase { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; margin: 1rem 0; overflow: hidden; }
+  details.phase > summary { cursor: pointer; list-style: none; padding: 1rem 1.3rem; display: flex; align-items: center; gap: .8rem; user-select: none; }
+  details.phase > summary::-webkit-details-marker { display: none; }
+  details.phase > summary::after { content: '▸'; margin-left: auto; color: var(--muted); transition: transform .2s; }
+  details.phase[open] > summary::after { transform: rotate(90deg); }
+  details.phase > summary:hover { background: var(--panel2); }
+  details.phase > .phase-body { padding: 0 1.3rem 1.2rem; border-top: 1px solid var(--line); }
+  .pno { font-size: .75rem; font-weight: 800; color: #082f49; background: var(--acc); border-radius: 6px; padding: .15em .7em; white-space: nowrap; }
+  .ptitle { font-weight: 700; font-size: 1.02rem; }
+  .pdesc { color: var(--muted); font-size: .82rem; margin-left: auto; margin-right: .8rem; text-align: right; }
+  .feat { border: 1px solid var(--line); border-radius: 10px; padding: .9rem 1.1rem; margin: 1rem 0; background: #182234; }
+  .feat h4 { font-size: .98rem; margin-bottom: .4rem; }
+  .feat h4 .fid { color: var(--acc); }
+  .owner { display: inline-block; font-size: .7rem; font-weight: 700; color: #fff; border-radius: 5px; padding: .12em .6em; margin-left: .5rem; vertical-align: middle; }
+  .o-be1 { background: #2563eb; } .o-be2 { background: #0891b2; } .o-three { background: #7c3aed; }
+  .o-fe { background: #db2777; } .o-joker { background: #d97706; }
+  .beforeafter { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; margin: .7rem 0; }
+  @media (max-width: 700px) { .beforeafter { grid-template-columns: 1fr; } }
+  .ba { border-radius: 8px; padding: .7rem .9rem; font-size: .89rem; }
+  .ba b { display: block; margin-bottom: .3rem; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; }
+  .ba-now { background: #2a1a1a; border: 1px solid #7f1d1d; } .ba-now b { color: var(--bad); }
+  .ba-next { background: #10231a; border: 1px solid #14532d; } .ba-next b { color: var(--ok); }
+  .touch { font-size: .82rem; color: var(--muted); margin-top: .5rem; }
+  .touch code { color: #7dd3fc; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>📦 Yükleme Optimizasyon Algoritması</h1>
+<p class="sub">Cargo Pilot backend — <code>OptimizationEngine.cs</code> nasıl kurgulandı, ne hesaplıyor, neyi neden yapıyor.</p>
+
+<div class="card">
+  <b>Tek cümlelik özet:</b> Bu bir <b>3 boyutlu kutu yerleştirme (3D bin packing)</b> motorudur.
+  Yöntem: <b>Extreme-Point tabanlı açgözlü (greedy) yerleştirme</b> + ağırlık dengesi modunda
+  <b>ikinci geçiş takas (swap) iyileştirmesi</b>. Her kutu için tüm aday noktalar × tüm izinli
+  rotasyonlar denenir, 5 fiziksel kısıttan geçen en düşük maliyetli konum seçilir.
+</div>
+
+<h2>1 · Büyük Resim — İstek Nereden Geçiyor?</h2>
+<div class="flow">
+  <div class="step"><span class="n">1</span><b>CreatePlanCommandHandler</b> — araç + ürünler DB'den çekilir, abonelik kotası kontrol edilir, gruplar çözülür.</div>
+  <div class="arrow">▼</div>
+  <div class="step"><span class="n">2</span><b>ContaminationFilter</b> — birbiriyle taşınamayan ürün grupları (ör. Kimya + Gıda) ayıklanır. Küçük hacimli grup <span class="tag t-bad">Contaminated</span> olarak plana hiç girmez.</div>
+  <div class="arrow">▼</div>
+  <div class="step"><span class="n">3</span><b>OptimizationEngine.Run()</b> — asıl yerleştirme burada. Senkron çalışır, azami <b>500 kutu</b> (<code>OptimizationLimits.MaxTotalBoxCount</code>).</div>
+  <div class="arrow">▼</div>
+  <div class="step"><span class="n">4</span><b>SaveWithResultAsync</b> — plan, yerleşimler ve sığmayanlar DB'ye yazılır; kullanıcıya bildirim gider. Sonuç 3D sahnede çizilir.</div>
+</div>
+
+<h2>2 · Koordinat Sistemi ve Girdiler</h2>
+<div class="grid g2">
+  <div class="card">
+    <h3>Eksenler (santimetre)</h3>
+    <svg viewBox="0 0 300 190" width="100%">
+      <polygon points="40,150 200,150 260,110 100,110" fill="#273449" stroke="#334155"/>
+      <polygon points="40,60 200,60 200,150 40,150" fill="#1e293b" stroke="#475569"/>
+      <polygon points="200,60 260,20 260,110 200,150" fill="#16202f" stroke="#475569"/>
+      <polygon points="40,60 100,20 260,20 200,60" fill="#232f42" stroke="#475569"/>
+      <line x1="40" y1="150" x2="200" y2="150" stroke="#f87171" stroke-width="2.5"/>
+      <text x="115" y="168" fill="#f87171" font-size="13" font-weight="bold">X = Genişlik (W)</text>
+      <line x1="40" y1="150" x2="40" y2="60" stroke="#4ade80" stroke-width="2.5"/>
+      <text x="8" y="105" fill="#4ade80" font-size="13" font-weight="bold">Y=H</text>
+      <line x1="200" y1="150" x2="260" y2="110" stroke="#38bdf8" stroke-width="2.5"/>
+      <text x="218" y="145" fill="#38bdf8" font-size="13" font-weight="bold">Z = Derinlik (L)</text>
+      <circle cx="40" cy="150" r="5" fill="#fbbf24"/>
+      <text x="50" y="150" fill="#fbbf24" font-size="12">(0,0,0) sol-alt-arka köşe</text>
+    </svg>
+    <p style="font-size:.9rem" class="sub">Kutu pozisyonu merkez değil, <b>sol-alt-arka köşedir</b> — frontend 3D sahne bu yüzden pivot offset uygular.</p>
+  </div>
+  <div class="card">
+    <h3>Motorun bildiği her şey</h3>
+    <table>
+      <tr><th>Araçtan</th><td>iç W/H/L, <code>MaxWeightCapacity</code>, kapı yönü (<code>LoadingType</code>)</td></tr>
+      <tr><th>Üründen</th><td>W/H/L, ağırlık, <code>IsStackable</code>, <code>MaxStackCount</code>, <code>MaxWeightOnTop</code>, izinli rotasyonlar, adet</td></tr>
+      <tr><th>Gruptan</th><td><code>GroupId</code>, <code>UnloadingOrder</code> (indirme sırası)</td></tr>
+      <tr><th>Kullanıcıdan</th><td>Kriter: <b>Lifo</b> / <b>WeightBalance</b> / <b>VolumeFirst</b>, <code>ClusterGroups</code></td></tr>
+    </table>
+  </div>
+</div>
+
+<h2>3 · Sıralama — Kim Önce Yerleşir?</h2>
+<p>Adetler tek tek kutulara açılır (10 adet ürün = 10 kutu), sonra sıralanır. Greedy algoritmalarda sıra sonucu doğrudan belirler: <b>büyük/ağır önce girer</b> çünkü sona kalırsa yer bulamaz.</p>
+<table>
+  <tr><th>Kriter</th><th>Sıralama anahtarı</th><th>Mantık</th></tr>
+  <tr><td><b>WeightBalance</b></td><td>Ağırlık DESC</td><td>Ağır kutular önce — denge onların yerine göre kurulur</td></tr>
+  <tr><td><b>Lifo / VolumeFirst</b></td><td>Hacim (W×H×L) DESC</td><td>Büyük kutular önce — küçükler boşlukları doldurur</td></tr>
+</table>
+<div class="note">
+  <b>Grup kümeleme açıksa:</b> gruplu ürünler <code>UnloadingOrder</code> <b>DESC</b> ile öne alınır.
+  Yüksek sıra numarası = en son inecek = aracın <b>en dibine</b> önce yüklenir. Grupsuzlar en sona eklenir.
+</div>
+
+<h2>4 · Extreme-Point Yöntemi — Aday Noktalar</h2>
+<p>Motor aracın her noktasını taramaz; yalnızca <b>uç noktaları (extreme points)</b> dener. Başlangıçta tek aday vardır: köşe <code>(0,0,0)</code>. Her kutu yerleştiğinde <b>3 yeni aday</b> doğar:</p>
+<div class="card">
+<svg viewBox="0 0 640 220" width="100%">
+  <rect x="30" y="30" width="270" height="160" fill="none" stroke="#475569" stroke-dasharray="6 4"/>
+  <rect x="30" y="110" width="110" height="80" fill="#0c4a6e" stroke="#38bdf8" stroke-width="2"/>
+  <text x="60" y="157" fill="#e2e8f0" font-size="13">Kutu</text>
+  <circle cx="140" cy="190" r="6" fill="#4ade80"/><text x="150" y="196" fill="#4ade80" font-size="12">sağı → (x+W, y, z)</text>
+  <circle cx="30" cy="110" r="6" fill="#fbbf24"/><text x="40" y="105" fill="#fbbf24" font-size="12">üstü → (x, y+H, z)</text>
+  <circle cx="30" cy="190" r="6" fill="#c084fc"/><text x="12" y="212" fill="#c084fc" font-size="12">önü → (x, y, z+D)</text>
+  <text x="330" y="60" fill="#94a3b8" font-size="13">• Sonraki kutular yalnızca bu noktalara denenir.</text>
+  <text x="330" y="85" fill="#94a3b8" font-size="13">• Araç dışına taşan adaylar listeden silinir.</text>
+  <text x="330" y="110" fill="#94a3b8" font-size="13">• Tarama sırası: önce alçak (y), sonra arka (z),</text>
+  <text x="345" y="130" fill="#94a3b8" font-size="13">sonra sol (x) — doğal “zemine ve dibe yasla”.</text>
+  <text x="330" y="165" fill="#fbbf24" font-size="13">WeightBalance özel tohumu: 4 zemin köşesi de</text>
+  <text x="345" y="185" fill="#fbbf24" font-size="13">aday eklenir — yoksa her şey (0,0,0)'a yığılırdı.</text>
+</svg>
+</div>
+
+<h2>5 · Rotasyonlar — Kutu Kaç Şekilde Durabilir?</h2>
+<p>Bir dikdörtgen prizma en fazla 6 farklı boyut kombinasyonuyla durabilir. Üründeki rotasyon kısıtı bunu daraltır:</p>
+<table>
+  <tr><th>AllowedRotations</th><th>Denenen yönelimler</th><th>Tipik ürün</th></tr>
+  <tr><td><code>Fixed</code></td><td>1 — (W,H,L) sabit</td><td>“Bu taraf yukarı” + yön kilitli</td></tr>
+  <tr><td><code>NoVertical</code></td><td>2 — düz + 90° yatay dönüş (Yaw)</td><td>Kırılgan koliler (yan yatırılamaz)</td></tr>
+  <tr><td><code>PitchOnly</code> / <code>RollOnly</code></td><td>2 — tek eksen devrilme</td><td>Rulolar, silindirler</td></tr>
+  <tr><td><code>NoYaw</code></td><td>3</td><td>Yön sabit ama devrilebilir</td></tr>
+  <tr><td><code>All</code></td><td>6 — tüm kombinasyonlar</td><td>Sağlam, simetrik kutu</td></tr>
+</table>
+
+<h2>6 · Beş Fiziksel Kısıt — Elenme Kapıları</h2>
+<p>Her <i>aday nokta × yönelim</i> çifti şu kapılardan sırayla geçmek zorunda. Biri bile takılırsa o aday elenir:</p>
+<div class="flow">
+  <div class="step"><span class="tag t-info">1</span><b>Sınır</b> — kutu araç iç hacminden taşmıyor mu? <span class="mono">x+w ≤ W, y+h ≤ H, z+d ≤ L</span></div>
+  <div class="arrow">▼</div>
+  <div class="step"><span class="tag t-info">2</span><b>Çakışma</b> — yerleşmiş hiçbir kutuyla hacim kesişimi yok (3 eksende AABB testi).</div>
+  <div class="arrow">▼</div>
+  <div class="step"><span class="tag t-info">3</span><b>Destek (%80 kuralı)</b> — kutu zeminde değilse, taban alanının <b>en az %80'i</b> alttaki kutuların üst yüzeylerine oturmalı. Havada asılı kutu olamaz.</div>
+  <div class="arrow">▼</div>
+  <div class="step"><span class="tag t-info">4</span><b>İstiflenebilirlik</b> — <code>IsStackable=false</code> olan kutunun üstüne hiçbir şey konamaz. LIFO modunda ek kural: <b>geç inecek ürün, erken inecek ürünün üstüne konamaz</b> (yoksa boşaltırken altta kalır).</div>
+  <div class="arrow">▼</div>
+  <div class="step"><span class="tag t-info">5</span><b>İstif limitleri</b> — alttaki her kutu için: üzerindeki kutu sayısı +1 ≤ <code>MaxStackCount</code> <b>ve</b> üzerindeki toplam ağırlık + yeni ağırlık ≤ <code>MaxWeightOnTop</code>.</div>
+</div>
+<div class="card">
+<svg viewBox="0 0 640 150" width="100%">
+  <line x1="20" y1="130" x2="300" y2="130" stroke="#475569" stroke-width="3"/>
+  <rect x="40" y="80" width="120" height="50" fill="#14532d" stroke="#4ade80" stroke-width="2"/>
+  <rect x="60" y="35" width="120" height="45" fill="#0c4a6e" stroke="#38bdf8" stroke-width="2"/>
+  <text x="72" y="63" fill="#e2e8f0" font-size="12">üstteki kutu</text>
+  <line x1="60" y1="80" x2="160" y2="80" stroke="#4ade80" stroke-width="4"/>
+  <line x1="160" y1="80" x2="180" y2="80" stroke="#f87171" stroke-width="4"/>
+  <text x="40" y="20" fill="#94a3b8" font-size="12">destek: 100/120 = %83 ✓ yerleşir</text>
+  <line x1="340" y1="130" x2="620" y2="130" stroke="#475569" stroke-width="3"/>
+  <rect x="360" y="80" width="100" height="50" fill="#14532d" stroke="#4ade80" stroke-width="2"/>
+  <rect x="430" y="35" width="120" height="45" fill="#450a0a" stroke="#f87171" stroke-width="2"/>
+  <text x="448" y="63" fill="#e2e8f0" font-size="12">%25 destek ✗</text>
+  <text x="380" y="20" fill="#94a3b8" font-size="12">taban çoğu boşlukta → elenir</text>
+</svg>
+</div>
+
+<h2>7 · Maliyet Fonksiyonu — “En İyi Yer” Nasıl Seçiliyor?</h2>
+<p>Kısıtları geçen her aday bir <b>puan</b> alır; <b>en düşük puan kazanır</b>. Katsayılar kademeli önceliktir: <code>1.000.000 × y</code> demek “alçakta durmak her şeyden önemli” demektir.</p>
+
+<h3>VolumeFirst (hacim öncelikli)</h3>
+<div class="formula">puan = y·1.000.000 + z·1.000 + dengeCezası·500 + x + bölgeCezası</div>
+<p style="font-size:.92rem">Önce zemine, sonra aracın dibine, sonra sola yasla. Denge küçük bir düzeltici olarak işin içinde.</p>
+
+<h3>WeightBalance (ağırlık dengesi)</h3>
+<div class="formula">puan = y·1.000.000 + dengeCezası·900.000 + bölgeCezası</div>
+<p style="font-size:.92rem">Z/X tercihi yok — tek dert alçak durmak ve ağırlık merkezini ortalamak. Denge cezası:</p>
+<div class="formula">dengeCezası = |yeniCoGx − W/2| / (W/2) + |yeniCoGz − L/2| / (L/2)</div>
+<p style="font-size:.92rem">Yani “bu kutu buraya konursa aracın ağırlık merkezi orta noktadan yüzde kaç sapar?” Sapma iki eksende normalize edilip toplanır. Motor bunu her adayda <b>anlık moment toplamlarıyla</b> (momentX, momentZ) O(1) hesaplar.</p>
+
+<h3>Lifo (son giren ilk çıkar)</h3>
+<div class="formula">puan = y·1.000.000 + z·1.000 + x + bölgeCezası</div>
+<p style="font-size:.92rem">Denge terimi yok; sıralama + bölge (zone) mekanizması işi yapar.</p>
+
+<h3>Bölge cezası (LIFO + arka kapı)</h3>
+<div class="card">
+<svg viewBox="0 0 640 130" width="100%">
+  <rect x="30" y="25" width="580" height="70" fill="#1e293b" stroke="#475569" stroke-width="2"/>
+  <rect x="30" y="25" width="193" height="70" fill="#14532d" opacity=".55"/>
+  <rect x="223" y="25" width="193" height="70" fill="#451a03" opacity=".55"/>
+  <rect x="416" y="25" width="194" height="70" fill="#450a0a" opacity=".55"/>
+  <text x="70" y="65" fill="#4ade80" font-size="13">Grup C (son inen)</text>
+  <text x="265" y="65" fill="#fbbf24" font-size="13">Grup B</text>
+  <text x="455" y="65" fill="#f87171" font-size="13">Grup A (ilk inen)</text>
+  <text x="585" y="118" fill="#94a3b8" font-size="12">← kapı</text>
+  <text x="30" y="118" fill="#94a3b8" font-size="12">araç dibi (z=0)</text>
+</svg>
+<p style="font-size:.92rem">Araç boyu grup sayısına eşit bölünür; her grubun kendi Z bandı olur. Bandın dışına taşan her santimetre <b>×2000 ceza</b> alır — kutu fiilen kendi bölgesine hapsedilir. Böylece Grup A kapıda durur, önce iner.</p>
+</div>
+
+<h2>8 · İkinci Geçiş — Takas ile Denge İyileştirme</h2>
+<p>Sadece <b>WeightBalance</b> modunda çalışır. Greedy tek tek karar verdiği için sonuç globalde ideal olmayabilir; motor bitince kutu çiftlerini takas etmeyi dener:</p>
+<div class="card">
+  <ul>
+    <li>Her turda <b>tüm kutu çiftleri</b> (O(n²)) denenir, en fazla <b>3 tur</b>.</li>
+    <li>Takas kabul şartları: iki kutu birbirinin yerine <b>sığmalı</b>, kimseyle <b>çakışmamalı</b>, <b>%80 destek</b> ve tüm <b>istif kısıtları</b> yeni yerde de sağlanmalı, boyları farklıysa <b>eski üstlerindeki kutular havada kalmamalı</b>.</li>
+    <li>Kabul ölçütü: toplam denge cezası <b>ölçülebilir şekilde düşmeli</b> (&gt; 0.001). Tur boyunca hiçbir takas kazandırmazsa erken çıkılır.</li>
+  </ul>
+</div>
+
+<h2>9 · Çıktılar — Motor Ne Raporluyor?</h2>
+<div class="grid g2">
+  <div class="card">
+    <h3>Yerleşenler</h3>
+    <p style="font-size:.92rem">Her kutu için: konum (X,Y,Z), yerleşmiş boyutlar (W,H,D), uygulanan rotasyon, ağırlık. 3D sahne bunları doğrudan çizer.</p>
+    <h3>Sığmayanlar</h3>
+    <p style="font-size:.92rem">Neden etiketiyle gruplanır:</p>
+    <p><span class="tag t-bad">WeightLimitExceeded</span> araç tonaj sınırı doldu</p>
+    <p><span class="tag t-bad">InsufficientSpace</span> hiçbir aday nokta × rotasyon kombinasyonu 5 kapıdan geçemedi</p>
+    <p><span class="tag t-bad">Contaminated</span> uyumsuz grup nedeniyle motora hiç girmedi</p>
+  </div>
+  <div class="card">
+    <h3>Metrikler</h3>
+    <div class="formula">FillRate = Σ(kutu hacmi) / araç hacmi</div>
+    <div class="formula">CoG = Σ(ağırlık × kutu merkezi) / toplam ağırlık</div>
+    <div class="formula">BalanceOffset% = |CoG − orta nokta| / yarı boyut × 100</div>
+    <p style="font-size:.92rem">CoG üç eksende ayrı hesaplanır; X ve Z sapmaları yüzde olarak plan detayında gösterilir (ör. “sol-sağ dengesi %3 sapmış”).</p>
+  </div>
+</div>
+
+<h2>10 · Sınırlar ve Bilinçli Ödünleşimler</h2>
+<table>
+  <tr><th>Karar</th><th>Neden</th><th>Yol haritasında</th></tr>
+  <tr><td>Azami 500 kutu</td><td>Hesap istek içinde <b>senkron</b> çalışıyor; maliyet kutu sayısıyla süper-lineer büyür. Arka plan işine taşınırsa gevşetilebilir.</td><td>F1.3 backtracking maliyeti artırır → sınır yeniden ölçülecek</td></tr>
+  <tr><td>Greedy (geri dönüşsüz)</td><td>Bir kutu yerleşince kararı değişmez — optimal garanti yok ama hız deterministik. 3D bin packing NP-hard; kesin çözüm pratik değil.</td><td><b>F1.3 ile kalkıyor</b> (sınırlı backtracking); F1.5 ile ikinci strateji geliyor</td></tr>
+  <tr><td>%80 destek eşiği</td><td>Gerçek hayattaki “biraz taşabilir” toleransı; %100 istemek doluluk oranını ciddi düşürürdü.</td><td><b>F1.4 ile parametrik oluyor</b> (kural motoru, deploy'suz değişir)</td></tr>
+  <tr><td>Sabit skor katsayıları</td><td>Üç kriter modu kod içinde sabit ağırlıklarla tanımlı.</td><td><b>F3.1 ile yapılandırılabilir</b>; denge terimi F3.3 ile opsiyonel</td></tr>
+  <tr><td>decimal aritmetik</td><td>cm hassasiyetinde yüzen nokta hatası birikmesin diye tüm geometri <code>decimal</code> ile.</td><td>değişmiyor</td></tr>
+  <tr><td>İptal desteği</td><td>Kutu döngüsü ve her takas turu <code>CancellationToken</code> kontrol eder — istemci vazgeçince CPU bırakılır.</td><td>değişmiyor; backtracking dallarına da eklenecek</td></tr>
+</table>
+
+<h2>11 · Dosya Haritası — Algoritma Projede Nerede?</h2>
+<p>Çekirdek tek dosyada; etrafındaki her şey ya onu besler ya sonucunu taşır. Yol: <code>apps/backend/</code></p>
+
+<div class="card">
+  <h3>Çekirdek — asıl hesap burada</h3>
+  <table>
+    <tr><th style="width:46%">Dosya</th><th>İçerik</th></tr>
+    <tr><td><code>CargoPilot.Infrastructure/Services/OptimizationEngine.cs</code></td><td>Motorun tamamı (584 satır). <code>Run()</code> ana döngü · <code>ComputeScore</code> skor (364) · <code>GetOrientations</code> rotasyonlar (408) · <code>HasSupport</code> %80 kuralı (470) · <code>ViolatesStack*</code> istif kısıtları (492-569) · <code>ImproveBalance</code> denge takası (229) · <code>ComputeGroupZones</code> LIFO bölgeleri (152)</td></tr>
+  </table>
+</div>
+
+<div class="grid g2">
+  <div class="card">
+    <h3>Kontrat ve modeller (Application)</h3>
+    <table>
+      <tr><td><code>Common/Interfaces/IOptimizationEngine.cs</code></td><td>motor arayüzü</td></tr>
+      <tr><td><code>Common/Models/OptimizationInput.cs</code></td><td>girdi: araç + ürünler + kriter</td></tr>
+      <tr><td><code>Common/Models/OptimizationResult.cs</code></td><td>çıktı: yerleşimler, FillRate, CoG</td></tr>
+      <tr><td><code>Common/Config/OptimizationLimits.cs</code></td><td>500 kutu sınırı</td></tr>
+      <tr><td><code>Common/ContaminationFilter.cs</code></td><td>uyumsuz grup ayıklama (motor öncesi)</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h3>Motoru çağıranlar — iki giriş kapısı</h3>
+    <table>
+      <tr><td><code>Features/Plans/CreatePlan/CreatePlanCommandHandler.cs</code></td><td>yeni plan (POST); girdiyi kuran <code>BuildInput</code> burada (224)</td></tr>
+      <tr><td><code>Features/Plans/ReOptimizePlan/ReOptimizePlanCommandHandler.cs</code></td><td>yeniden optimize (PUT)</td></tr>
+    </table>
+    <h3>Kayıt ve kablolama</h3>
+    <table>
+      <tr><td><code>Infrastructure/Persistence/Repositories/LoadingPlanRepository.cs</code></td><td><code>SaveWithResultAsync</code> — sonucu DB'ye yazar</td></tr>
+      <tr><td><code>Infrastructure/DependencyInjection.cs</code></td><td>DI kaydı</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Domain enum'ları — kuralların sözlüğü (<code>CargoPilot.Domain/Enums/</code>)</h3>
+  <table>
+    <tr><td><code>LoadingPlanOptimizationCriteria.cs</code></td><td>Lifo / WeightBalance / VolumeFirst</td></tr>
+    <tr><td><code>AllowedRotations.cs</code></td><td>ürünün dönüş izinleri — F2.1'de 6 yüzey bayrağına dönüşecek</td></tr>
+    <tr><td><code>LoadingPlanPlacementRotation.cs</code></td><td>sonuçta kaydedilen 6 rotasyon</td></tr>
+    <tr><td><code>LoadingType.cs</code> · <code>UnplacedReason.cs</code></td><td>kapı yönü · sığmama sebepleri</td></tr>
+  </table>
+</div>
+
+<div class="note"><b>Pratik kural:</b> değişiklik %90 ihtimalle <code>OptimizationEngine.cs</code>'e dokunur. Girdiye alan ekliyorsan <code>OptimizationInput.cs</code> + <code>BuildInput</code>; çıktıya alan ekliyorsan <code>OptimizationResult.cs</code> + repository zinciri de değişir.</div>
+
+<h2>12 · Yol Haritası — Yeni Feature'lar Motoru Nasıl Değiştirecek?</h2>
+<p><code>rolefeatures.html</code> + <code>subfeatures.html</code> planındaki algoritma-ilişkili işlerin motora etkisi, <b>geliştirme sırasına göre</b>. Her kartta: bugünkü hesap → yeni hesap ve motorda dokunulan yer. Salt UI/platform işleri (F2.2 yüzey seçici, F5.2 boşluk görselleştirme, F5.4 çıktılar, F6.2/F6.3) yalnızca ilgili motor işinin yanında anılır.</p>
+<p class="sub">Rozetler görev sahipleri: <span class="owner o-be1">Doğancan</span><span class="owner o-be2">Hasan</span><span class="owner o-three">Efe</span><span class="owner o-fe">Sena</span><span class="owner o-joker">Çağrı</span></p>
+
+<details class="phase" open>
+  <summary><span class="pno">FAZ 1</span><span class="ptitle">Temel Modeller</span><span class="pdesc">bağımlılık yok — herkes paralel başlar</span></summary>
+  <div class="phase-body">
+
+    <div class="feat">
+      <h4><span class="fid">F1.1</span> Sıkı istifleme + temas/komşuluk kısıtı<span class="owner o-be1">Doğancan</span></h4>
+      <p style="font-size:.92rem">Motorun çekirdek revizyonu. Bugün skor fonksiyonu kutuyu yalnızca "alçak ve dipte" olmaya iter; iki kutu arasında birkaç cm boşluk kalması skoru hiç etkilemez.</p>
+      <div class="beforeafter">
+        <div class="ba ba-now"><b>Bugün</b><code>puan = y·1M + z·1000 + x + …</code><br>Temas kavramı yok — kutu duvara/komşuya değmese de aynı puanı alır. EP tohumları yalnızca kutu köşelerinden doğar; araya "yetim boşluk" kalabilir.</div>
+        <div class="ba ba-next"><b>Sonrası</b><code>puan = … − temasAlanı·k</code><br>Aday konumun komşu kutu yüzeyleriyle ve araç duvarlarıyla <b>temas eden yüzey alanı</b> hesaplanır, skora ödül (negatif terim) olarak girer. EP üretimi komşu yüzeylere <b>projeksiyon</b> yapacak şekilde revize edilir — yeni adaylar hep bir yüzeye "yapışık" doğar.</div>
+      </div>
+      <svg viewBox="0 0 640 120" width="100%">
+        <line x1="20" y1="100" x2="300" y2="100" stroke="#475569" stroke-width="3"/>
+        <rect x="40" y="55" width="80" height="45" fill="#0c4a6e" stroke="#38bdf8"/>
+        <rect x="150" y="55" width="80" height="45" fill="#2a1a1a" stroke="#f87171" stroke-dasharray="4 3"/>
+        <text x="124" y="45" fill="#f87171" font-size="11">30cm yetim boşluk ✗</text>
+        <line x1="340" y1="100" x2="620" y2="100" stroke="#475569" stroke-width="3"/>
+        <rect x="360" y="55" width="80" height="45" fill="#0c4a6e" stroke="#38bdf8"/>
+        <rect x="440" y="55" width="80" height="45" fill="#10231a" stroke="#4ade80"/>
+        <text x="418" y="45" fill="#4ade80" font-size="11">temas ödülü → bitişik ✓</text>
+      </svg>
+      <p class="touch">Dokunulan yerler: <code>ComputeScore</code> (yeni temas terimi), extreme-point üretimi (satır 99-106 → projeksiyonlu üretim), yeni <code>ContactArea()</code> yardımcısı. Çıktı formatı değişmez — 3D sahne aynen çizer.</p>
+    </div>
+
+    <div class="feat">
+      <h4><span class="fid">F2.1</span> Altı yüzey kısıt modeli ve rotasyon çözümlemesi<span class="owner o-be2">Hasan</span></h4>
+      <p style="font-size:.92rem">Rotasyon izni artık ürün-geneli bir enum değil, <b>yüzey başına iki bayrak</b> olur: "bu yüzey zemine gelebilir mi?" ve "bu yüzeyin üstüne yük konabilir mi?".</p>
+      <div class="beforeafter">
+        <div class="ba ba-now"><b>Bugün</b><code>AllowedRotations</code> enum'u (6 sabit mod) → <code>GetOrientations</code> switch'i 1-6 yönelim döner. İstiflenebilirlik kutu-geneli tek <code>IsStackable</code> biti.</div>
+        <div class="ba ba-next"><b>Sonrası</b>6 yönelimin her biri için "tabana gelen yüzey" bakılır; o yüzeyin <b>zemin bayrağı</b> kapalıysa yönelim elenir — izinli rotasyonlar bayraklardan <b>otomatik türetilir</b>. <code>ViolatesStackability</code> artık alttaki kutunun <b>yerleşmiş yöneliminde üste bakan yüzeyinin</b> yük bayrağına bakar.</div>
+      </div>
+      <div class="formula">izinliYönelimler = { o ∈ 6 yönelim | zeminBayrağı[tabanYüzeyi(o)] = açık }</div>
+      <p class="touch">Dokunulan yerler: <code>OptimizationItemInput</code> (enum → 6×2 bayrak), <code>GetOrientations</code> (switch → türetme), <code>ViolatesStackability</code> (yönelim-farkında istif). DB şeması + migration ve API kontratı bu işte; frontend'deki 3D yüzey seçici (<b>F2.2 — Efe</b>) aynı kontrat üzerinden paralel geliştirilir.</p>
+    </div>
+
+    <div class="feat">
+      <h4><span class="fid">F5.1</span> Kalan boşluk hesabı ve data kartı<span class="owner o-joker">Çağrı</span></h4>
+      <p style="font-size:.92rem">Motor bugün doluluğu tek sayıyla raporluyor (<code>FillRate</code>). Kullanıcı "%78 dolu"yu görüyor ama kalan %22'nin <i>nerede ve ne ölçüde</i> olduğunu bilmiyor.</p>
+      <div class="beforeafter">
+        <div class="ba ba-now"><b>Bugün</b><code>FillRate = Σhacim / araçHacmi</code><br>Boşluğun konumu ve şekli hesaplanmıyor; sadece oran var.</div>
+        <div class="ba ba-next"><b>Sonrası</b>Yerleşim bitince <b>maksimal boş dikdörtgen prizmalar</b> çıkarılır (yerleşimlerin kapladığı hacmin tümleyeni). Sonuca <code>RemainingSpaces[]</code> eklenir: her boşluk için W×H×L ve m³. Data kartı "2.4 m³ kaldı — en büyüğü 120×180×90 cm" diyebilir.</div>
+      </div>
+      <p class="touch">Dokunulan yerler: motor <b>sonrası</b> post-process servis (çekirdek değişmez), <code>OptimizationResult</code> + API DTO'ya yeni alanlar, DB'de saklama. 3D'de yarı saydam gösterim (<b>F5.2 — Efe</b>) ve PDF/Excel alanları (<b>F5.4</b>) bu hesabın tüketicileri.</p>
+    </div>
+
+  </div>
+</details>
+
+<details class="phase">
+  <summary><span class="pno">FAZ 2</span><span class="ptitle">Çekirdek Genişleme</span><span class="pdesc">Faz 1 çıktıları üzerine</span></summary>
+  <div class="phase-body">
+
+    <div class="feat">
+      <h4><span class="fid">F1.3</span> Geriye dönük pozisyon değerlendirme (backtracking)<span class="owner o-be1">Doğancan</span> <span class="sub" style="font-size:.78rem">← F1.1</span></h4>
+      <p style="font-size:.92rem">Bölüm 10'daki "greedy geri dönüşsüz" sınırı burada kalkıyor. Bugün bir kutu yerleşince karar kesindir; erken verilmiş kötü bir karar sona kalan kutuyu <code>InsufficientSpace</code>'e düşürebilir.</p>
+      <div class="beforeafter">
+        <div class="ba ba-now"><b>Bugün</b>Aday bulunamazsa kutu doğrudan <code>unplaced</code> listesine gider (satır 88-92). Önceki yerleşimlere asla dönülmez.</div>
+        <div class="ba ba-next"><b>Sonrası</b>Kutu sığmadığında son K yerleşim <b>geri alınır</b>, alternatif aday/yönelimlerle yeniden denenir (sınırlı derinlikli arama). Toplam doluluk için "bir kutuyu az-ideal yere koy ama iki kutu daha sığdır" takası mümkün olur.</div>
+      </div>
+      <div class="formula">sığmadı → son K kararı geri al → alternatif dallar → en iyi toplam FillRate'i tut</div>
+      <p class="touch">Dokunulan yer: <code>Run()</code> ana döngüsü — düz foreach yerine geri alınabilir durum (EP kümesi + moment toplamlarının snapshot'ı). ⚠️ Süre maliyeti büyür: 500-kutu sınırının varlık sebebi bu maliyettir, performans ölçümü işin kapsamında.</p>
+    </div>
+
+    <div class="feat">
+      <h4><span class="fid">F1.4</span> Kural motoru (rule engine)<span class="owner o-be2">Hasan</span> <span class="sub" style="font-size:.78rem">Sena destek (kural ekranı)</span></h4>
+      <p style="font-size:.92rem">Bölüm 6'daki 5 kapının eşikleri bugün koda gömülü: %80 destek, LIFO istif yasağı, MaxStackCount… Her eşik değişikliği deploy istiyor.</p>
+      <div class="beforeafter">
+        <div class="ba ba-now"><b>Bugün</b><code>supportedArea / footprint ≥ 0.80m</code> — sabit literal. LIFO kuralı <code>ViolatesStackability</code> içinde if satırı.</div>
+        <div class="ba ba-next"><b>Sonrası</b>Kurallar DB'de tutulur, arayüzden düzenlenir; motor çalışma anında kural setini okuyup kapıları ona göre değerlendirir. "Destek eşiği %85 olsun", "X grubu asla üst üste binmesin" gibi değişiklikler <b>deploy'suz</b> devreye girer. <b>F6.1</b>'deki saha tecrübesinin girileceği altyapı budur.</div>
+      </div>
+      <p class="touch">Dokunulan yerler: kural şeması + DB + CRUD API; motorda kapılar (<code>HasSupport</code>, <code>ViolatesStack*</code>) parametrik kural değerlendiricisine bağlanır. Motor imzasına kural seti girdisi eklenir.</p>
+    </div>
+
+    <div class="feat">
+      <h4><span class="fid">F1.2</span> Tolerans ve güvenlik payı parametresi<span class="owner o-be2">Hasan</span> <span class="sub" style="font-size:.78rem">← F4.1 form altyapısı</span></h4>
+      <p style="font-size:.92rem">Sahadaki operatör milimetrik çalışamaz; kağıt üzerinde 0 cm arayla dizilmiş plan uygulanamıyor. Kullanıcı ürün başına tolerans girer, sistem değer dayatmaz.</p>
+      <div class="beforeafter">
+        <div class="ba ba-now"><b>Bugün</b>Sınır ve çakışma kontrolleri kutunun <b>gerçek ölçüsüyle</b> yapılır: <code>x+w ≤ W</code>, AABB testi birebir ölçüyle.</div>
+        <div class="ba ba-next"><b>Sonrası</b>Kontrollerde <b>efektif boyut</b> kullanılır: <code>wEff = w + 2·tolerans</code> (her eksende). Kutu komşusuna en az tolerans kadar mesafeyle yerleşir; kayda ve 3D sahneye <b>gerçek boyut</b> yazılır — boşluk payı görünmez ama garantidir.</div>
+      </div>
+      <svg viewBox="0 0 640 100" width="100%">
+        <rect x="60" y="20" width="140" height="60" fill="#0c4a6e" stroke="#38bdf8" stroke-width="2"/>
+        <rect x="48" y="12" width="164" height="76" fill="none" stroke="#fbbf24" stroke-dasharray="5 4"/>
+        <text x="230" y="40" fill="#fbbf24" font-size="12">kesikli çizgi = efektif boyut (w + 2·tolerans)</text>
+        <text x="230" y="62" fill="#94a3b8" font-size="12">çakışma/sınır testleri bu zarfla yapılır</text>
+      </svg>
+      <p class="touch">Dokunulan yerler: <code>OptimizationItemInput</code>'a tolerans alanı; <code>HasOverlap</code> ve sınır kontrolü efektif boyutla; DB kolonu + form (F4.1 şemasının üstüne). Not: F1.1'in temas ödülüyle bilinçli gerilim var — temas "efektif zarfa" göre hesaplanır, gerçek yüzeye değil.</p>
+    </div>
+
+    <div class="feat">
+      <h4><span class="fid">F4.2</span> Modüler / çok parçalı ürün<span class="owner o-joker">Çağrı</span> <span class="sub" style="font-size:.78rem">← F4.1 şema</span></h4>
+      <p style="font-size:.92rem">Demonte mobilya gibi "1 ürün = N farklı koli" durumu. Motorun adet açma aşaması değişir.</p>
+      <div class="beforeafter">
+        <div class="ba ba-now"><b>Bugün</b><code>expanded = items.SelectMany(i => Range(0, i.Quantity)…)</code> — her adet, ürünün <b>aynı ölçülü</b> kopyası.</div>
+        <div class="ba ba-next"><b>Sonrası</b>Çok parçalı ürün, <b>farklı ölçülü koli alt kırılımlarına</b> açılır; her koli bağımsız yerleşir. Yerleşim sonucuna <code>ParentProductId</code> taşınır — raporda ve 3D'de koliler ürün etrafında gruplanır ("Gardırop: 3/3 koli yerleşti").</div>
+      </div>
+      <p class="touch">Dokunulan yerler: expand aşaması (satır 18-19), <code>PlacedItemResult</code>'a parent alanı, DB ilişkisi. Kısmi yerleşme kararı gerekir: bir koli sığmazsa ürünün tamamı mı düşer? (Ekiple netleşecek iş kuralı.)</p>
+    </div>
+
+  </div>
+</details>
+
+<details class="phase">
+  <summary><span class="pno">FAZ 3</span><span class="ptitle">Optimizasyon ve Dönüşüm</span><span class="pdesc">algoritma olgunlaşır, tecrübe kurallaşır</span></summary>
+  <div class="phase-body">
+
+    <div class="feat">
+      <h4><span class="fid">F3.1</span> Çok amaçlı ağırlıklı uygunluk fonksiyonu<span class="owner o-be1">Doğancan</span> <span class="sub" style="font-size:.78rem">← F1.1, F1.3</span></h4>
+      <p style="font-size:.92rem">Bölüm 7'deki üç ayrı sabit-katsayılı formül tek parametrik forma birleşir. Bu, F3.2 mod ekranının arkasındaki hesap motorudur.</p>
+      <div class="beforeafter">
+        <div class="ba ba-now"><b>Bugün</b>Kriter başına ayrı switch kolu:<br><code>VolumeFirst: y·1M + z·1000 + denge·500 + x</code><br><code>WeightBalance: y·1M + denge·900K</code><br><code>Lifo: y·1M + z·1000 + x</code><br>Katsayılar kodda sabit.</div>
+        <div class="ba ba-next"><b>Sonrası</b>Tek formül:<br><code>puan = w₁·yükseklik + w₂·denge + w₃·kompaktlık(temas) + w₄·bölge + …</code><br>Katsayı setleri yapılandırılabilir. Mevcut üç mod, <b>üç hazır katsayı seti</b> olarak aynen korunur — varsayılan davranış değişmez (ağır altta, önce denge, sonra doluluk).</div>
+      </div>
+      <p class="touch">Dokunulan yerler: <code>ComputeScore</code> switch'i → katsayı vektörüyle tek ifade; katsayı setleri config/DB; sonuç karşılaştırma testleri (aynı girdi, eski vs yeni skor — üç hazır set eski davranışı birebir üretmeli).</p>
+    </div>
+
+    <div class="feat">
+      <h4><span class="fid">F3.2</span> Mod seçim ekranı<span class="owner o-fe">Sena</span> <span class="sub" style="font-size:.78rem">F3.1 kontratıyla paralel</span></h4>
+      <div class="beforeafter">
+        <div class="ba ba-now"><b>Bugün</b>Plan isteği <code>OptimizationCriteria</code> enum'u taşıyor (0/1/2); wizard'da örtük.</div>
+        <div class="ba ba-next"><b>Sonrası</b>Wizard'a açık bir "önceliğin ne?" adımı: ağırlık dengesi / hacim doluluğu / ağırlık merkezi. Seçim backend'de <b>katsayı setine</b> çözülür; üretilen planda hangi modun kullanıldığı görünür şekilde raporlanır.</div>
+      </div>
+      <p class="touch">Motor tarafında değişiklik yok (F3.1 halleder); API kontratı seçimi + plan çıktısına mod bilgisi. Frontend: wizard adımı, tek-rota SPA kuralı korunarak.</p>
+    </div>
+
+    <div class="feat">
+      <h4><span class="fid">F5.3</span> Hacim kapsamı seçimi<span class="owner o-three">Efe</span> <span class="sub" style="font-size:.78rem">Hasan destek (API)</span></h4>
+      <p style="font-size:.92rem">"Bu araca ikinci sevkiyat için yer bırak" senaryosu. Motor artık aracın tamamına değil, kullanıcının ayırdığı hacme yerleştirir.</p>
+      <div class="beforeafter">
+        <div class="ba ba-now"><b>Bugün</b>Sınır kontrolü daima aracın iç ölçüleriyle: <code>z+d ≤ VehicleLength</code>. EP budaması da tam hacme göre.</div>
+        <div class="ba ba-next"><b>Sonrası</b>Motor <b>efektif sınırlarla</b> çalışır: <code>LEff = L · kapsamOranı</code> (ör. boyun %70'i). Sınır kontrolü, EP budaması ve zone hesabı efektif hacme göre; FillRate iki türlü raporlanır (efektif hacme göre / araca göre). 3D sahnede kapsam sınırı çizgiyle işaretlenir.</div>
+      </div>
+      <svg viewBox="0 0 640 100" width="100%">
+        <rect x="30" y="20" width="580" height="60" fill="#1e293b" stroke="#475569" stroke-width="2"/>
+        <rect x="30" y="20" width="406" height="60" fill="#0c4a6e" opacity=".5"/>
+        <line x1="436" y1="12" x2="436" y2="88" stroke="#fbbf24" stroke-width="3" stroke-dasharray="6 4"/>
+        <text x="150" y="55" fill="#7dd3fc" font-size="13">kullanılan kapsam (%70)</text>
+        <text x="465" y="55" fill="#94a3b8" font-size="12">rezerve alan</text>
+      </svg>
+      <p class="touch">Dokunulan yerler: <code>OptimizationInput</code>'a kapsam parametresi, <code>Run()</code> sınır sabitleri, wizard girdisi + 3D kapsam çizgisi.</p>
+    </div>
+
+    <div class="feat">
+      <h4><span class="fid">F6.1</span> Saha tecrübesinin kural setine dönüşmesi<span class="owner o-joker">Çağrı</span> <span class="sub" style="font-size:.78rem">← F1.4 kural motoru</span></h4>
+      <div class="beforeafter">
+        <div class="ba ba-now"><b>Bugün</b>Hacim/istif bilgisi deneyimli çalışanların zihninde; motorun kuralları genel-geçer varsayımlar.</div>
+        <div class="ba ba-next"><b>Sonrası</b>Saha görüşmeleriyle toplanan tecrübe yapılandırılmış kurallara çevrilip <b>F1.4 motoruna veri olarak girilir</b> (kod değişikliği yok). Motorun ürettiği planlar gerçek yükleme senaryolarıyla karşılaştırılarak kalibre edilir.</div>
+      </div>
+      <p class="touch">Algoritmaya etkisi dolaylı ama büyük: aynı çekirdek, domain bilgisiyle beslenince farklı (daha uygulanabilir) planlar üretir. Doğrulama = gerçek senaryo karşılaştırması.</p>
+    </div>
+
+  </div>
+</details>
+
+<details class="phase">
+  <summary><span class="pno">FAZ 4</span><span class="ptitle">Kalite ve Kapanış</span><span class="pdesc">stabilize sistemin güvenceye alınması</span></summary>
+  <div class="phase-body">
+
+    <div class="feat">
+      <h4><span class="fid">F1.5</span> Az ürünlü senaryolarda boşluk giderme + Guillotine 3D fallback<span class="owner o-be1">Doğancan</span> <span class="sub" style="font-size:.78rem">← F1.1, F1.3, F3.1</span></h4>
+      <p style="font-size:.92rem">EP heuristic'i çok kutuda iyidir ama az kutuda (ör. 5-10 büyük parça) sıralar arasında bariz boşluklar bırakabilir. Motor artık tek stratejiye mahkûm değil.</p>
+      <div class="beforeafter">
+        <div class="ba ba-now"><b>Bugün</b>Her plan tek yolla çözülür: EP greedy. Az ürünlü senaryonun özel muamelesi yok.</div>
+        <div class="ba ba-next"><b>Sonrası</b>Az ürün senaryosu otomatik tespit edilir (kutu sayısı + doluluk eşiği). Bu durumda <b>iki strateji birden koşulur</b>: EP ve <b>Guillotine 3D</b> (hacmi kesme düzlemleriyle bölerek yerleştirme). Metrikleri (FillRate, denge) karşılaştırılır, <b>iyi olan sonuç seçilir</b>.</div>
+      </div>
+      <div class="formula">sonuç = argmax( metrik(EP), metrik(Guillotine3D) )   — yalnızca az-ürün senaryosunda</div>
+      <p class="touch">Dokunulan yerler: <code>Run()</code> önüne senaryo tespiti; yeni <code>GuillotineEngine</code> (aynı <code>IOptimizationEngine</code> kontratı); karşılaştırma/seçim katmanı. Çıktı formatı aynı kaldığı için sahne ve raporlar etkilenmez.</p>
+    </div>
+
+    <div class="feat">
+      <h4><span class="fid">F3.3</span> Opsiyonel ve parametrik ağırlık merkezi kısıtı<span class="owner o-three">Efe</span> <span class="sub" style="font-size:.78rem">← F3.1 · Doğancan destek</span></h4>
+      <div class="beforeafter">
+        <div class="ba ba-now"><b>Bugün</b>Denge cezası her planda örtük ve zorunlu (VolumeFirst'te ×500, WeightBalance'ta ×900K). Kapatılamaz; eşik yok, ihlal kavramı yok — sadece "elinden geleni yapar".</div>
+        <div class="ba ba-next"><b>Sonrası</b>CoG kısıtı <b>kullanıcı parametresi</b>: aç/kapat + sınır değeri (ör. "sapma %10'u geçmesin"). Kapalıysa denge terimi skordan çıkar → doluluk artar. Açık ve sonuç eşiği aşıyorsa plan <b>anlaşılır bir ihlal geri bildirimiyle</b> döner ("CoG %14 sapıyor, sınırın %10").</div>
+      </div>
+      <p class="touch">Dokunulan yerler: <code>OptimizationInput</code>'a CoG parametreleri; <code>ComputeScore</code>'da koşullu denge terimi (F3.1 katsayısı üzerinden w₂=0); sonuç doğrulaması + <code>OptimizationResult</code>'a ihlal alanı; UI toggle + geri bildirim.</p>
+    </div>
+
+    <div class="feat">
+      <h4><span class="fid">F2.3</span> Rotasyon tutarlılık doğrulaması + kapı yönü düzeltmesi<span class="owner o-three">Efe</span> <span class="sub" style="font-size:.78rem">← F2.1, F2.2 · Doğancan destek</span></h4>
+      <div class="beforeafter">
+        <div class="ba ba-now"><b>Bugün</b>Bazı senaryolarda ürün izinsiz rotasyonla yerleşebiliyor; zone hesabı yalnızca <code>LoadingType.Rear</code>'ı tanıyor — yan/üst kapıda kapı yönü davranışı tutarsız.</div>
+        <div class="ba ba-next"><b>Sonrası</b>Hatalı senaryolar tek tek reprodüle edilir; <code>GetOrientations</code> çıktıları (F2.1 sonrası yüzey-türetimli hali) ile 3D sahnedeki karşılıkları <b>birebir eşlenir</b>; <code>ComputeGroupZones</code> ve kapıya-yakın tercih tüm kapı yönleri için doğru çalışır. Her rotasyon × kapı yönü kombinasyonu test setiyle sabitlenir.</div>
+      </div>
+      <p class="touch">Dokunulan yerler: <code>GetOrientations</code>/<code>ComputeGroupZones</code> düzeltmeleri + frontend <code>scene-config.ts</code> eşleme doğrulaması. Bu bir davranış değişikliği değil, <b>doğruluk sabitleme</b> işi — çıktısı regresyon test seti.</p>
+    </div>
+
+    <div class="feat">
+      <h4><span class="fid">F6.4</span> Otomatik regresyon seti<span class="owner o-joker">Çağrı</span> <span class="sub" style="font-size:.78rem">← tüm algoritma işleri</span></h4>
+      <p style="font-size:.92rem">Fazlar boyunca çekirdek 6 kez ellendi (F1.1, F1.3, F1.4, F3.1, F1.5, F2.3). Bu iş güvenlik ağıdır: kritik akışlar (plan oluşturma, 3D görüntüleme, rapor) Playwright ile uçtan uca teste bağlanır ve CI'da koşar — algoritma değişikliği mevcut planların davranışını bozarsa anında yakalanır. Motor için ayrıca <b>altın senaryo</b> yaklaşımı önerilir: bilinen girdiler → beklenen FillRate/CoG aralıkları.</p>
+    </div>
+
+  </div>
+</details>
+
+<p class="sub" style="margin-top:2.5rem">Kaynak: <code>apps/backend/CargoPilot.Infrastructure/Services/OptimizationEngine.cs</code> ·
+<code>CreatePlanCommandHandler.cs</code> · <code>ContaminationFilter.cs</code> · <code>OptimizationLimits.cs</code> ·
+<code>rolefeatures.html</code> · <code>subfeatures.html</code></p>
+
+</main>
+</body>
+</html>

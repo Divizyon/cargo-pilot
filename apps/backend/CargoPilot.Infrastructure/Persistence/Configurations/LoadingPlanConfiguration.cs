@@ -1,4 +1,4 @@
-using CargoPilot.Domain.Entities;
+﻿using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -81,6 +81,22 @@ internal sealed class LoadingPlanConfiguration : IEntityTypeConfiguration<Loadin
             .HasMaxLength(50);
 
         builder.Property(plan => plan.CompanyId);
+
+        // Kosu kimligi. Sequencer varsayilani Static kalir cunku gecis oncesi
+        // kayitlar gercekten statik siralamayla uretildi; onlari GRASP diye
+        // isaretlemek yalan olurdu.
+        builder.Property(plan => plan.Sequencer)
+            .IsRequired()
+            .HasDefaultValue(SequencerKind.Static);
+
+        builder.Property(plan => plan.Seed)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(plan => plan.SearchIterations);
+        builder.Property(plan => plan.SearchEvaluations);
+        builder.Property(plan => plan.SearchImproved);
+        builder.Property(plan => plan.SearchDurationMs);
 
         builder.HasOne(plan => plan.Vehicle)
             .WithMany()
