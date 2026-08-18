@@ -176,24 +176,25 @@ jobs:
       FRONTEND_PORT: 3001
       MSSQL_PORT: 1434
       MSSQL_DATABASE: CargoPilotTest
-      # SEC-12: Kimlik bilgisi niteliğindeki değerlerde gömülü fallback YOK.
-      # Secret tanımlı değilse aşağıdaki doğrulama adımı pipeline'ı durdurur;
-      # herkesin görebildiği bir parola/anahtarla deploy edilmez.
-      MSSQL_SA_PASSWORD: ${{ secrets.TEST_MSSQL_SA_PASSWORD }}
       MINIO_API_PORT: 9002
       MINIO_CONSOLE_PORT: 9003
-      MINIO_ROOT_USER: ${{ secrets.TEST_MINIO_ROOT_USER }}
-      MINIO_ROOT_PASSWORD: ${{ secrets.TEST_MINIO_ROOT_PASSWORD }}
       MINIO_BUCKET: cargo-pilot-test
-      Seed__DefaultAdminPassword: ${{ secrets.SEED_DEFAULT_ADMIN_PASSWORD }}
-      # Geçici CI yığını Test ortamında koşar: liste boşsa uygulama BAŞLAMAZ.
-      # Runner üzerinde frontend http://localhost:3001'de yayınlandığı için
-      # CI'ya özgü origin budur; sunucu değerleri .env.test'ten gelir.
+      # SEC-12: Kimlik bilgisi niteliğindeki degerlerde gomulu fallback YOK.
+      # Bu job tamamen runner uzerinde gecici bir yigin kurar ve sonunda
+      # `down -v` ile siler; canli test sunucusuna dokunmaz (o is ayri job'da,
+      # sunucunun kendi infra/env/.env.test dosyasiyla). Dolayisiyla asagidaki
+      # kimlik bilgileri tek kullanimliktir ve "Gecici yigin kimlik bilgileri"
+      # adiminda her kosuda rastgele uretilir. Repo secret'i tanimliysa o
+      # kullanilir; tanimli degilse sabit/herkesin gorebildigi bir degere
+      # DUSULMEZ. Bu degiskenler bilincli olarak job env'inde tanimlanmaz,
+      # cunku job env'i $GITHUB_ENV ile yazilan degerleri ezer.
+      #
+      # Gecici CI yigini Test ortaminda kosar: liste bossa uygulama BASLAMAZ.
+      # Runner uzerinde frontend http://localhost:3001'de yayinlandigi icin
+      # CI'ya ozgu origin budur; sunucu degerleri .env.test'ten gelir.
       CORS_ALLOWED_ORIGIN_0: ${{ secrets.CORS_ALLOWED_ORIGIN_0 || 'http://localhost:3001' }}
-      # Host header doğrulaması: healthcheck'ler localhost üzerinden gidiyor.
+      # Host header dogrulamasi: healthcheck'ler localhost uzerinden gidiyor.
       ALLOWED_HOSTS: localhost
-      # En az 32 karakter olmalı; uzunluk da doğrulama adımında kontrol edilir.
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
       # Resend — secret yoksa boş bırakılır (compose'da da `${RESEND_API_KEY:-}`
       # opsiyonel); CI'da e-posta gönderimi devre dışı kalır, sahte anahtar gömülmez.
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
@@ -206,31 +207,87 @@ jobs:
       - name: Kodu al
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # SEC-12: Zorunlu kimlik bilgileri build/deploy başlamadan doğrulanır.
-      # Eksikse pipeline burada açık bir mesajla durur.
-      - name: Zorunlu secret'ları ve yapılandırmayı doğrula
+      # SEC-12: Gecici yigin icin kimlik bilgileri. Repo secret'i varsa o kullanilir,
+      # yoksa her kosuda rastgele uretilir. Sabit/herkesin gorebildigi bir degere
+      # ASLA dusulmez -- SEC-12'nin kapattiği risk tam olarak buydu.
+      # Bu yigin runner'a ozeldir ve adim sonunda `down -v` ile silinir.
+      - name: Gecici yigin kimlik bilgilerini hazirla
+        env:
+          SECRET_MSSQL_SA_PASSWORD: ${{ secrets.TEST_MSSQL_SA_PASSWORD }}
+          SECRET_MINIO_ROOT_USER: ${{ secrets.TEST_MINIO_ROOT_USER }}
+          SECRET_MINIO_ROOT_PASSWORD: ${{ secrets.TEST_MINIO_ROOT_PASSWORD }}
+          SECRET_SEED_ADMIN_PASSWORD: ${{ secrets.SEED_DEFAULT_ADMIN_PASSWORD }}
+          SECRET_JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          set -euo pipefail
+
+          # MSSQL ve seed parolasi karmasiklik kurali istiyor (buyuk/kucuk/rakam/simge).
+          # `head -c` boru hattini erken kapatip pipefail ile SIGPIPE hatasi
+          # verebilir; tam cikti alinip bash substring ile kesiliyor.
+          random_password() {
+            raw="$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9')"
+            printf 'Ci%sAa1!' "${raw:0:20}"
+          }
+          random_token() {
+            raw="$(openssl rand -base64 64 | tr -dc 'A-Za-z0-9')"
+            printf '%s' "${raw:0:48}"
+          }
+
+          publish() {
+            name="$1"; value="$2"; source="$3"
+            echo "::add-mask::${value}"
+            echo "${name}=${value}" >> "$GITHUB_ENV"
+            echo "  ${name}: ${source}"
+          }
+
+          resolve() {
+            name="$1"; provided="$2"; generator="$3"
+            if [ -n "${provided}" ]; then
+              publish "${name}" "${provided}" "repo secret'indan alindi"
+            else
+              publish "${name}" "$(${generator})" "bu kosu icin uretildi (gecici)"
+            fi
+          }
+
+          echo "Gecici yigin kimlik bilgileri:"
+          resolve MSSQL_SA_PASSWORD          "${SECRET_MSSQL_SA_PASSWORD}"   random_password
+          resolve MINIO_ROOT_PASSWORD        "${SECRET_MINIO_ROOT_PASSWORD}" random_password
+          resolve Seed__DefaultAdminPassword "${SECRET_SEED_ADMIN_PASSWORD}" random_password
+          resolve JWT_SECRET                 "${SECRET_JWT_SECRET}"          random_token
+
+          # MinIO kullanici adi gizli degil ama sabit "minioadmin" kullanilmaz.
+          if [ -n "${SECRET_MINIO_ROOT_USER}" ]; then
+            echo "MINIO_ROOT_USER=${SECRET_MINIO_ROOT_USER}" >> "$GITHUB_ENV"
+            echo "  MINIO_ROOT_USER: repo secret'indan alindi"
+          else
+            echo "MINIO_ROOT_USER=ci-$(openssl rand -hex 6)" >> "$GITHUB_ENV"
+            echo "  MINIO_ROOT_USER: bu kosu icin uretildi (gecici)"
+          fi
+
+      # SEC-12: Onceki adimdan sonra hicbir kimlik bilgisi bos veya zayif kalmamali.
+      # Bos deger, job env blogunun bozuldugunu gosterir.
+      - name: Yapilandirmayi dogrula
         run: |
           missing=""
-          # CORS_ALLOWED_ORIGIN_0: Test/Production ortamlarında liste boşsa
-          # uygulama InvalidOperationException ile başlamıyor — konteyner
-          # ayağa kalkmadan burada yakalanır.
-          for var in JWT_SECRET MSSQL_SA_PASSWORD MINIO_ROOT_USER MINIO_ROOT_PASSWORD Seed__DefaultAdminPassword CORS_ALLOWED_ORIGIN_0; do
+          # CORS_ALLOWED_ORIGIN_0: Test/Production ortamlarinda liste bossa
+          # uygulama InvalidOperationException ile baslamiyor -- konteyner
+          # ayaga kalkmadan burada yakalanir.
+          for var in JWT_SECRET MSSQL_SA_PASSWORD MINIO_ROOT_USER MINIO_ROOT_PASSWORD Seed__DefaultAdminPassword CORS_ALLOWED_ORIGIN_0 ALLOWED_HOSTS; do
             if [ -z "${!var}" ]; then
               missing="${missing} ${var}"
             fi
           done
           if [ -n "${missing}" ]; then
-            echo "::error::Zorunlu yapılandırma eksik (boş env:${missing})."
-            echo "Beklenen secret adları: JWT_SECRET, TEST_MSSQL_SA_PASSWORD, TEST_MINIO_ROOT_USER, TEST_MINIO_ROOT_PASSWORD, SEED_DEFAULT_ADMIN_PASSWORD."
-            echo "CORS_ALLOWED_ORIGIN_0 için CI varsayılanı vardır; boşsa job env bloğu bozulmuş demektir."
-            echo "Settings > Secrets and variables > Actions altından tanımlayın."
+            echo "::error::Zorunlu yapilandirma eksik (bos env:${missing})."
+            echo "Bu degerler 'Gecici yigin kimlik bilgilerini hazirla' adiminda uretilir;"
+            echo "bos gelmesi job env blogunun veya o adimin bozuldugunu gosterir."
             exit 1
           fi
           if [ "${#JWT_SECRET}" -lt 32 ]; then
-            echo "::error::JWT_SECRET en az 32 karakter olmalı (mevcut: ${#JWT_SECRET})."
+            echo "::error::JWT_SECRET en az 32 karakter olmali (mevcut: ${#JWT_SECRET})."
             exit 1
           fi
-          echo "Zorunlu secret'lar tanımlı."
+          echo "Yapilandirma tamam."
 
       - name: Docker Buildx kur
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
@@ -332,16 +389,13 @@ jobs:
       FRONTEND_PORT: 3001
       MSSQL_PORT: 1434
       MSSQL_DATABASE: CargoPilotTest
-      # SEC-12: gomulu fallback yok. Bu job `needs: [deploy]` ile kosuyor ve deploy
-      # job'u zorunlu secret'lari zaten dogruladi; secret eksikse buraya hic gelinmez.
-      MSSQL_SA_PASSWORD: ${{ secrets.TEST_MSSQL_SA_PASSWORD }}
       MINIO_API_PORT: 9002
       MINIO_CONSOLE_PORT: 9003
-      MINIO_ROOT_USER: ${{ secrets.TEST_MINIO_ROOT_USER }}
-      MINIO_ROOT_PASSWORD: ${{ secrets.TEST_MINIO_ROOT_PASSWORD }}
       MINIO_BUCKET: cargo-pilot-test
-      Seed__DefaultAdminPassword: ${{ secrets.SEED_DEFAULT_ADMIN_PASSWORD }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      # SEC-12: gomulu fallback yok. Bu job da kendi gecici yiginini kurup siliyor;
+      # kimlik bilgileri "Gecici yigin kimlik bilgilerini hazirla" adiminda
+      # uretilir (repo secret'i varsa o kullanilir). Job env'inde tanimlanmazlar,
+      # cunku job env'i $GITHUB_ENV ile yazilan degerleri ezer.
       # SEC-01: bu yigin da Test ortaminda kosuyor; CORS listesi bossa uygulama
       # baslamaz. Runner'da frontend http://localhost:3001'de yayinlanir.
       CORS_ALLOWED_ORIGIN_0: ${{ secrets.CORS_ALLOWED_ORIGIN_0 || 'http://localhost:3001' }}
@@ -361,6 +415,47 @@ jobs:
     steps:
       - name: Kodu al
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Gecici yigin kimlik bilgilerini hazirla
+        env:
+          SECRET_MSSQL_SA_PASSWORD: ${{ secrets.TEST_MSSQL_SA_PASSWORD }}
+          SECRET_MINIO_ROOT_USER: ${{ secrets.TEST_MINIO_ROOT_USER }}
+          SECRET_MINIO_ROOT_PASSWORD: ${{ secrets.TEST_MINIO_ROOT_PASSWORD }}
+          SECRET_SEED_ADMIN_PASSWORD: ${{ secrets.SEED_DEFAULT_ADMIN_PASSWORD }}
+          SECRET_JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          set -euo pipefail
+
+          # `head -c` boru hattini erken kapatip pipefail ile SIGPIPE hatasi
+          # verebilir; tam cikti alinip bash substring ile kesiliyor.
+          random_password() {
+            raw="$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9')"
+            printf 'Ci%sAa1!' "${raw:0:20}"
+          }
+
+          publish() {
+            echo "::add-mask::$2"
+            echo "$1=$2" >> "$GITHUB_ENV"
+          }
+
+          MSSQL_PW="${SECRET_MSSQL_SA_PASSWORD:-$(random_password)}"
+          MINIO_PW="${SECRET_MINIO_ROOT_PASSWORD:-$(random_password)}"
+          SEED_PW="${SECRET_SEED_ADMIN_PASSWORD:-$(random_password)}"
+          JWT_RAW="$(openssl rand -base64 64 | tr -dc 'A-Za-z0-9')"
+          JWT="${SECRET_JWT_SECRET:-${JWT_RAW:0:48}}"
+
+          publish MSSQL_SA_PASSWORD "${MSSQL_PW}"
+          publish MINIO_ROOT_PASSWORD "${MINIO_PW}"
+          publish Seed__DefaultAdminPassword "${SEED_PW}"
+          publish JWT_SECRET "${JWT}"
+          # Playwright ayni parolayla giris yapar; iki deger ayrisamaz.
+          publish E2E_ADMIN_PASSWORD "${SEED_PW}"
+
+          if [ -n "${SECRET_MINIO_ROOT_USER}" ]; then
+            echo "MINIO_ROOT_USER=${SECRET_MINIO_ROOT_USER}" >> "$GITHUB_ENV"
+          else
+            echo "MINIO_ROOT_USER=ci-$(openssl rand -hex 6)" >> "$GITHUB_ENV"
+          fi
 
       - name: Docker Buildx kur
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
@@ -444,8 +539,8 @@ jobs:
         env:
           E2E_BASE_URL: http://localhost:3001
           E2E_ADMIN_EMAIL: admin@cargopilot.com
-          # SEC-12: seed parolasi ile ayni deger olmali; gomulu fallback yok.
-          E2E_ADMIN_PASSWORD: ${{ secrets.SEED_DEFAULT_ADMIN_PASSWORD }}
+          # E2E_ADMIN_PASSWORD 'Gecici yigin kimlik bilgileri' adiminda seed
+          # parolasiyla ayni degere set edilir; burada tekrar tanimlanmaz.
           E2E_ERP_SERVER: erp-mssql,1433
           E2E_ERP_DATABASE: ERPTEST
           E2E_ERP_USER: sa
