@@ -312,11 +312,14 @@ ilk günden çalışması için gereken minimumu, öncelik sırasına göre veri
 
 | Secret | Tanımsızsa ne olur (bugünkü davranış) |
 |---|---|
-| `JWT_SECRET` | Fallback var (`ci-test-secret-key-...`); yeni repoda "sıfırdan temiz başlangıç" fırsatını kaçırmamak için gerçek bir değerle tanımlanmalı |
+| `JWT_SECRET` | **Fallback kaldırıldı (SEC-12).** Tanımsızsa geçici CI yığını için koşu anında rastgele üretilir; sabit bir değere düşülmez. Gerçek bir değerle tanımlanması yine önerilir (koşular arası tutarlılık için), ancak zorunlu değil |
 | `VITE_API_BASE_URL` | Fallback yok, boş build-arg → deploy edilen frontend gerçek API'ye bağlanamaz |
 | `VITE_OAUTH_GOOGLE_URL` | Aynı — Google login butonu boş URL'e gider |
-| `TEST_MSSQL_SA_PASSWORD`, `TEST_MINIO_ROOT_USER`, `TEST_MINIO_ROOT_PASSWORD`, `SEED_DEFAULT_ADMIN_PASSWORD` | Fallback var (D-15) — yeni repoda bu hardcoded fallback'lerle başlamak yerine gerçek değer tanımlamak, deseni ilk günden kırar |
-| `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_FROM_NAME`, `PASSWORD_RESET_FRONTEND_URL`, `EMAIL_CHANGE_FRONTEND_CONFIRM_URL` | Fallback var; e-posta gönderimi gerçek test edilmek isteniyorsa tanımlanmalı, aksi hâlde placeholder ile devam edilebilir |
+| `TEST_MSSQL_SA_PASSWORD`, `TEST_MINIO_ROOT_USER`, `TEST_MINIO_ROOT_PASSWORD`, `SEED_DEFAULT_ADMIN_PASSWORD` | **Hardcoded fallback'ler kaldırıldı (SEC-12 / D-15).** Bu değerler yalnızca runner üzerinde kurulup `down -v` ile silinen geçici yığın için kullanılıyor; tanımsızsa "Geçici yığın kimlik bilgilerini hazırla" adımında koşu başına üretilir ve loglarda maskelenir. Canlı test sunucusuna giden `deploy-test-server` job'u bunları değil, sunucunun kendi `infra/env/.env.test` dosyasını kullanır |
+| `RESEND_API_KEY` | Gömülü placeholder kaldırıldı; tanımsızsa koşu başına üretilir. **Uygulama bu değeri zorunlu tutuyor** (`Resend:ApiKey is required`, `ValidateOnStart`) — boş bırakılamaz, o yüzden üretilen bir değer konur. Gerçek e-posta gönderimi test edilecekse gerçek anahtar tanımlanmalı |
+| `RESEND_FROM_EMAIL`, `RESEND_FROM_NAME`, `PASSWORD_RESET_FRONTEND_URL`, `EMAIL_CHANGE_FRONTEND_CONFIRM_URL` | Fallback var (parola/anahtar niteliğinde olmadıkları için bilinçli olarak korundu); e-posta akışı gerçek test edilecekse tanımlanmalı |
+
+| `METRICS_SCRAPE_TOKEN` | Tanımsızsa `/metrics` scrape yolu kapalı kalır ve Prometheus backend job'u `down` olur; uygulama metrikleri toplanmaz (host/konteyner metrikleri etkilenmez). Aynı değer `infra/docker/prometheus/secrets/metrics-token` dosyasına da yazılmalıdır — bkz. [Monitoring & Alerting](monitoring-setup.md) |
 
 ### İlk günden gerekmez
 

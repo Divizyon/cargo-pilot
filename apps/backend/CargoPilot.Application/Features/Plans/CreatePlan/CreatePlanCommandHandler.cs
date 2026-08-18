@@ -19,6 +19,7 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
     private readonly IOptimizationEngine _optimizationEngine;
     private readonly ICurrentUserService _currentUserService;
     private readonly INotificationService _notificationService;
+    private readonly ICompanyRepository _companyRepository;
 
     public CreatePlanCommandHandler(
         ILoadingPlanRepository planRepository,
@@ -27,7 +28,8 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         ILoadingPlanItemGroupRepository groupRepository,
         IOptimizationEngine optimizationEngine,
         ICurrentUserService currentUserService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        ICompanyRepository companyRepository)
     {
         _planRepository = planRepository;
         _vehicleRepository = vehicleRepository;
@@ -36,42 +38,16 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         _optimizationEngine = optimizationEngine;
         _currentUserService = currentUserService;
         _notificationService = notificationService;
+        _companyRepository = companyRepository;
     }
 
     public async Task<Result<Guid>> Handle(CreatePlanCommand request, CancellationToken cancellationToken)
     {
         var companyId = _currentUserService.CompanyId;
 
-        if (_currentUserService.UserType == UserType.Individual && _currentUserService.UserId is { } planUserId)
-        {
-            var currentCount = await _planRepository.CountByUserAsync(planUserId, cancellationToken);
-            var maxCount = SubscriptionLimits.GetMaxLoadingPlanCount(SubscriptionType.Free);
-            if (currentCount >= maxCount)
-            {
-                await _notificationService.CreateAsync(
-                    userId: planUserId,
-                    companyId: companyId,
-                    type: NotificationType.UsageLimitReached,
-                    title: "Plan Kotası Doldu",
-                    description: $"Maksimum yükleme planı sayısına ({maxCount}) ulaştınız. Daha fazla plan oluşturmak için planınızı yükseltin.",
-                    cancellationToken: cancellationToken);
-                return Result<Guid>.Failure(
-                    new Error(ErrorType.BusinessRule, "Plan.LimitExceeded",
-                        "Abonelik planı kapsamındaki maksimum yükleme planı sayısına ulaşıldı."));
-            }
-
-            var warningThreshold = (int)(maxCount * 0.8);
-            if (currentCount + 1 >= warningThreshold && currentCount + 1 < maxCount)
-            {
-                await _notificationService.CreateAsync(
-                    userId: planUserId,
-                    companyId: companyId,
-                    type: NotificationType.UsageLimitWarning,
-                    title: "Plan Kotası Dolmak Üzere",
-                    description: $"Yükleme planı kotanızın %80'ine ulaştınız ({currentCount + 1}/{maxCount}). Kota dolmadan önce planınızı yükseltmeyi düşünün.",
-                    cancellationToken: cancellationToken);
-            }
-        }
+        var quotaError = await EnforcePlanQuotaAsync(companyId, cancellationToken);
+        if (quotaError is not null)
+            return Result<Guid>.Failure(quotaError);
 
         var vehicle = await _vehicleRepository.GetByIdAsync(request.VehicleId, companyId, cancellationToken);
         if (vehicle is null)
@@ -237,6 +213,68 @@ public sealed class CreatePlanCommandHandler : IRequestHandler<CreatePlanCommand
         }
 
         return Result<Guid>.Success(planId);
+    }
+
+    /// <summary>
+    /// Plan kotasını kullanıcının gerçek abonelik tipine göre uygular.
+    /// Kota aşıldıysa hata döner, aşılmadıysa null döner.
+    /// </summary>
+    private async Task<Error?> EnforcePlanQuotaAsync(Guid? companyId, CancellationToken cancellationToken)
+    {
+        var userType = _currentUserService.UserType;
+        if (!IsQuotaEnforced(userType) || _currentUserService.UserId is not { } planUserId)
+            return null;
+
+        var subscriptionType = await ResolveSubscriptionTypeAsync(companyId, cancellationToken);
+        var maxCount = SubscriptionLimits.GetMaxLoadingPlanCount(subscriptionType);
+
+        // Bireysel kullanıcının kotası kendi planlarıyla, kurumsal kullanıcınınki
+        // şirketin tüm planlarıyla ölçülür; abonelik de şirkete bağlı olduğu için
+        // koltuk paylaşan çalışanlar tek kotayı tüketir (GetMySubscription ile aynı).
+        var currentCount = userType == UserType.Individual || companyId is not { } quotaCompanyId
+            ? await _planRepository.CountByUserAsync(planUserId, cancellationToken)
+            : await _planRepository.CountByCompanyAsync(quotaCompanyId, cancellationToken);
+
+        if (currentCount >= maxCount)
+        {
+            await _notificationService.CreateAsync(
+                userId: planUserId,
+                companyId: companyId,
+                type: NotificationType.UsageLimitReached,
+                title: "Plan Kotası Doldu",
+                description: $"Maksimum yükleme planı sayısına ({maxCount}) ulaştınız. Daha fazla plan oluşturmak için planınızı yükseltin.",
+                cancellationToken: cancellationToken);
+            return new Error(ErrorType.BusinessRule, "Plan.LimitExceeded",
+                "Abonelik planı kapsamındaki maksimum yükleme planı sayısına ulaşıldı.");
+        }
+
+        var warningThreshold = (int)(maxCount * 0.8);
+        if (currentCount + 1 >= warningThreshold && currentCount + 1 < maxCount)
+        {
+            await _notificationService.CreateAsync(
+                userId: planUserId,
+                companyId: companyId,
+                type: NotificationType.UsageLimitWarning,
+                title: "Plan Kotası Dolmak Üzere",
+                description: $"Yükleme planı kotanızın %80'ine ulaştınız ({currentCount + 1}/{maxCount}). Kota dolmadan önce planınızı yükseltmeyi düşünün.",
+                cancellationToken: cancellationToken);
+        }
+
+        return null;
+    }
+
+    /// <summary>SuperAdmin platform rolüdür; müşteri kotasına tabi değildir.</summary>
+    private static bool IsQuotaEnforced(UserType? userType) =>
+        userType is UserType.Individual or UserType.CompanyAdmin or UserType.CompanyWorker;
+
+    /// <summary>Abonelik tipi şirket kaydında tutulur; kayıt yoksa güvenli varsayılan Free'dir.</summary>
+    private async Task<SubscriptionType> ResolveSubscriptionTypeAsync(Guid? companyId, CancellationToken cancellationToken)
+    {
+        if (companyId is not { } id)
+            return SubscriptionType.Free;
+
+        var company = await _companyRepository.GetByIdAsync(id, cancellationToken);
+        return company?.SubscriptionType ?? SubscriptionType.Free;
     }
 
     private static OptimizationInput BuildInput(

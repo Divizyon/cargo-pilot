@@ -5,6 +5,7 @@ using CargoPilot.Infrastructure.Persistence.Seeding;
 using CargoPilot.WebAPI;
 using Hangfire;
 using Serilog;
+using Serilog.Events;
 using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,7 +26,7 @@ var useInMemory = builder.Configuration.GetValue<bool>("UseInMemoryDatabase");
 builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration, useInMemoryRepository: useInMemory)
-    .AddPresentation(builder.Configuration, useInMemoryRepository: useInMemory);
+    .AddPresentation(builder.Configuration, builder.Environment, useInMemoryRepository: useInMemory);
 
 var app = builder.Build();
 
@@ -35,6 +36,23 @@ if (!useInMemory) {
     var dbInitializer = scope.ServiceProvider.GetRequiredService<DbInitializer>();
     await dbInitializer.InitializeAsync();
 }
+
+// OBS-01: Her HTTP isteği için tek satırlık yapılandırılmış log.
+// Sağlık ve metrik uçları izleme sistemleri tarafından sürekli çağrıldığı için
+// Verbose'a düşürülür; aksi hâlde gerçek trafiği gürültüyle boğar.
+app.UseSerilogRequestLogging(options =>
+    options.GetLevel = (httpContext, _, exception) =>
+    {
+        if (exception is not null || httpContext.Response.StatusCode >= StatusCodes.Status500InternalServerError)
+        {
+            return LogEventLevel.Error;
+        }
+
+        var path = httpContext.Request.Path;
+        return path.StartsWithSegments("/health") || path.StartsWithSegments("/metrics")
+            ? LogEventLevel.Verbose
+            : LogEventLevel.Information;
+    });
 
 app.UsePresentation(useInMemory);
 

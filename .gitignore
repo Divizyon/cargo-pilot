@@ -14,6 +14,10 @@ infra/env/.env.prod
 !infra/env/.env.*.example
 # Frontend: .env.*.example şablonları yukarıdaki !.env.*.example genel kuralı ile kapsanır.
 
+# Prometheus scrape token'ı (SuperAdmin JWT) — asla commit edilmemeli.
+infra/docker/prometheus/secrets/*
+!infra/docker/prometheus/secrets/README.md
+
 # --------------------------------------------
 # .NET / Backend
 # --------------------------------------------

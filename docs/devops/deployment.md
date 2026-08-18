@@ -14,9 +14,9 @@ Bu doküman test ve production ortamlarının servis adreslerini, stack yönetim
 |--------|-------|
 | Frontend | `http://104.247.163.42:3001` |
 | Backend API | `http://104.247.163.42:8081` |
-| Backend Health | `http://104.247.163.42:8081/health` |
-| MinIO Console | `http://104.247.163.42:9003` |
-| MinIO API | `http://104.247.163.42:9002` |
+| Backend Health | `http://104.247.163.42:8081/health` (sığ; `/health/detail` artık SuperAdmin ister) |
+| MinIO Console | 🔒 `127.0.0.1:9003` — SSH tüneli gerekir |
+| MinIO API | 🔒 `127.0.0.1:9002` — dışarıya nginx `/media/` üzerinden açık |
 | MSSQL | `104.247.163.42:1434` — DB: `CargoPilotTest` |
 | Grafana | `http://104.247.163.42:3002` |
 | Prometheus | `http://104.247.163.42:9091` |
@@ -27,14 +27,41 @@ Bu doküman test ve production ortamlarının servis adreslerini, stack yönetim
 |--------|-------|
 | Frontend | `http://104.247.163.42:80` |
 | Backend API | `http://104.247.163.42:8080` |
-| Backend Health | `http://104.247.163.42:8080/health` |
-| MinIO Console | `http://104.247.163.42:9001` |
-| MinIO API | `http://104.247.163.42:9000` |
-| MSSQL | `104.247.163.42:1433` — DB: `CargoPilot` |
+| Backend Health | `http://104.247.163.42:8080/health` (sığ; `/health/detail` artık SuperAdmin ister) |
+| MinIO Console | 🔒 `127.0.0.1:9001` — SSH tüneli gerekir |
+| MinIO API | 🔒 `127.0.0.1:9000` — dışarıya `MINIO_PUBLIC_ENDPOINT` reverse proxy'si üzerinden açık |
+| MSSQL | 🔒 `127.0.0.1:1433` — DB: `CargoPilot` (SSH tüneli gerekir) |
 | Grafana | `http://104.247.163.42:3000` |
 | Prometheus | `http://104.247.163.42:9090` |
 {% endtab %}
 {% endtabs %}
+
+{% hint style="warning" %}
+**🔒 MinIO portları artık dışarıya açık değil.** DEP-01(a) kapsamında MinIO API ve Console
+yalnızca loopback'e publish edilir
+(`infra/compose/docker-compose.{test,prod}.yml`: `127.0.0.1:${MINIO_API_PORT}:9000`,
+`127.0.0.1:${MINIO_CONSOLE_PORT}:9001`). Aynı şekilde prod MSSQL de
+`127.0.0.1:${MSSQL_PORT}:1433` ile bağlanır. Bu adreslere tarayıcıdan doğrudan
+erişilemez — SSH tüneli kurun:
+
+```bash
+# MinIO Console (test 9003 / prod 9001)
+ssh -N -L 9003:127.0.0.1:9003 root@104.247.163.42
+# ardından tarayıcıda: http://localhost:9003
+
+# MinIO Console (prod)
+ssh -N -L 9001:127.0.0.1:9001 root@104.247.163.42
+
+# Prod MSSQL
+ssh -N -L 1433:127.0.0.1:1433 root@104.247.163.42
+```
+
+MinIO image'ı ayrıca `quay.io/minio/minio:RELEASE.2024-01-31T20-20-33Z`'ye yükseltildi
+(CVE-2023-28432/28434, CVE-2024-24747, CVE-2022-31028 sonrası sürüm).
+
+⚠️ Test ortamında MSSQL (`1434`) hâlâ dışarıya publish edilmektedir
+(`docker-compose.test.yml`: `"${MSSQL_PORT}:1433"`).
+{% endhint %}
 
 ---
 

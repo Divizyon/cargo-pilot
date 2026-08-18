@@ -4,7 +4,11 @@ public sealed class UserSession {
     public Guid Id { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public Guid UserId { get; private set; }
-    public string Token { get; private set; } = null!;
+    /// <summary>
+    /// Refresh token'ın SHA-256 hash'i. Ham token hiçbir zaman saklanmaz;
+    /// yalnızca istemciye döner. Doğrulama gelen token'ın hash'i ile yapılır.
+    /// </summary>
+    public string TokenHash { get; private set; } = null!;
     public string? CreatedByIp { get; private set; }
     public DateTime ExpiresAt { get; private set; }
     public DateTime LastUsedAt { get; private set; }
@@ -23,7 +27,7 @@ public sealed class UserSession {
     public UserSession(
         Guid id,
         Guid userId,
-        string token,
+        string tokenHash,
         DateTime expiresAt,
         DateTime lastUsedAt,
         string? createdByIp = null,
@@ -31,7 +35,7 @@ public sealed class UserSession {
         Id = id;
         CreatedAtUtc = DateTime.UtcNow;
         UserId = userId;
-        Token = token;
+        TokenHash = tokenHash;
         CreatedByIp = createdByIp;
         ExpiresAt = expiresAt;
         LastUsedAt = lastUsedAt;
