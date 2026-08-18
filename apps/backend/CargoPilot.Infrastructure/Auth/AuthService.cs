@@ -10,6 +10,7 @@ using CargoPilot.Application.Features.Auth.DTOs;
 using CargoPilot.Domain.Entities;
 using CargoPilot.Domain.Enums;
 using CargoPilot.Infrastructure.Persistence;
+using CargoPilot.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -27,12 +28,11 @@ internal sealed class AuthService : IAuthService
 #pragma warning restore S2068
 
     /// <summary>
-    /// Refresh token'lar veritabanına hash'lenerek yazılır; veritabanı sızıntısında
-    /// token'lar doğrudan kullanılamaz. Token yüksek entropili rastgele değer
-    /// olduğundan sözlük saldırısı geçerli değildir, SHA-256 yeterlidir.
+    /// Refresh token'lar veritabanına yalnızca hash'lenerek yazılır; ham token
+    /// sadece istemciye döner. Doğrulama <see cref="RefreshTokenHasher"/> üzerinden yapılır.
     /// </summary>
     private static string HashRefreshToken(string refreshToken)
-        => Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(refreshToken)));
+        => RefreshTokenHasher.Hash(refreshToken);
 
     private static readonly Action<ILogger, Guid, Exception?> LogNewDeviceEmailFailed =
         LoggerMessage.Define<Guid>(
@@ -241,7 +241,7 @@ internal sealed class AuthService : IAuthService
         var session = new UserSession(
             id: Guid.NewGuid(),
             userId: user.Id,
-            token: HashRefreshToken(refreshToken),
+            tokenHash: HashRefreshToken(refreshToken),
             expiresAt: sessionExpiry,
             lastUsedAt: now,
             createdByIp: ipAddress,
@@ -309,7 +309,7 @@ internal sealed class AuthService : IAuthService
 
         var session = await _context.UserSessions
             .Include(s => s.User)
-            .FirstOrDefaultAsync(s => s.Token == hashedToken, cancellationToken);
+            .FirstOrDefaultAsync(s => s.TokenHash == hashedToken, cancellationToken);
 
         if (session is null || session.User is null)
             return Result<RefreshResponse>.Failure(AuthErrors.InvalidToken);
@@ -355,7 +355,7 @@ internal sealed class AuthService : IAuthService
         var newSession = new UserSession(
             id: Guid.NewGuid(),
             userId: session.UserId,
-            token: HashRefreshToken(newRefreshToken),
+            tokenHash: HashRefreshToken(newRefreshToken),
             expiresAt: sessionExpiry,
             lastUsedAt: now,
             createdByIp: ipAddress,
@@ -466,7 +466,7 @@ internal sealed class AuthService : IAuthService
         var hashedToken = HashRefreshToken(refreshToken);
 
         var session = await _context.UserSessions
-            .FirstOrDefaultAsync(s => s.Token == hashedToken, cancellationToken);
+            .FirstOrDefaultAsync(s => s.TokenHash == hashedToken, cancellationToken);
 
         if (session is null || session.IsRevoked)
             return Result<bool>.Success(true);
@@ -519,7 +519,7 @@ internal sealed class AuthService : IAuthService
         _context.UserSessions.Add(new UserSession(
             id: Guid.NewGuid(),
             userId: user.Id,
-            token: HashRefreshToken(refreshToken),
+            tokenHash: HashRefreshToken(refreshToken),
             expiresAt: sessionExpiry,
             lastUsedAt: now,
             createdByIp: null,

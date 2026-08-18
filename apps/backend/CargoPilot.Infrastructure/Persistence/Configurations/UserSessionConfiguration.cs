@@ -16,8 +16,9 @@ internal sealed class UserSessionConfiguration : IEntityTypeConfiguration<UserSe
         builder.Property(session => session.UserId)
             .IsRequired();
 
-        builder.Property(session => session.Token)
-            .HasMaxLength(500)
+        // SHA-256 hash hex olarak 64 karakter; kolon sabit uzunlukta tutulur.
+        builder.Property(session => session.TokenHash)
+            .HasMaxLength(64)
             .IsRequired();
 
         builder.Property(session => session.CreatedByIp)
@@ -41,6 +42,6 @@ internal sealed class UserSessionConfiguration : IEntityTypeConfiguration<UserSe
             .HasForeignKey(session => session.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasIndex(session => session.Token);
+        builder.HasIndex(session => session.TokenHash);
     }
 }
