@@ -205,39 +205,59 @@ internal static class BeamSequencer
             var branches = new List<(PlacementState State, List<SequencedItem> Order, decimal Fill)>(
                 beam.Count * Variants.Length * ItemChoices);
 
+            // Sure kontrolu ISIN DURUMU granulaligindedir. Daha ince yapmak
+            // (dal basina) paralel degerlendirmede DETERMINIZMI bozardi: hangi
+            // dalin butce dolmadan bittigi is parcacigi zamanlamasina kalirdi.
+            // Daha kaba yapmak (yalniz seviye basina) bir seviyeyi tamamen
+            // kosturur ve 2 saniyelik butce 4,5 saniyeye tasardi — bir kez
+            // yasandi.
             foreach (var (state, order) in beam)
             {
-                // Sure kontrolu UC dongude birden yapilir. Yalnizca en ictekinde
-                // yapildiginda bir SEVIYE tamamen kosuyordu: 8 isin x 4 urun x
-                // 3 ayar = 96 dal, her biri bir tamamlama demek. Olculdu, 2
-                // saniyelik butce uretimde 4,5 saniyeye tasiyordu.
                 if (clock.ElapsedMilliseconds >= budget.MaxDurationMs) break;
 
-                foreach (var choice in Choices(order, state.Consumed))
+                var choices = Choices(order, state.Consumed);
+
+                // Bir isin durumunun butun dallari (urun x ayar) BIRBIRINDEN
+                // BAGIMSIZDIR: her biri kendi kopyasi uzerinde calisir ve
+                // yerlestirme yolunda degisken statik durum yoktur. Sonuclar
+                // sabit indeksli bir diziye yazilir, sonra INDEKS SIRASINDA
+                // toplanir — yani paralellik degerlendirme sirasini degistirir,
+                // sonucu degistirmez (R-C02).
+                var slots = new (PlacementState State, List<SequencedItem> Order, decimal Fill,
+                    OptimizationResult Completed)?[choices.Count * Variants.Length];
+
+                Parallel.For(0, slots.Length, new ParallelOptions
                 {
-                    if (clock.ElapsedMilliseconds >= budget.MaxDurationMs) break;
+                    CancellationToken = cancellationToken,
+                    MaxDegreeOfParallelism = Environment.ProcessorCount,
+                }, slot =>
+                {
+                    var variant = Variants[slot % Variants.Length];
+                    var choice = choices[slot / Variants.Length];
 
                     var (preferred, flags) = Prefer(order, state.Consumed, choice);
                     var seed = state.WithConsumed(flags);
 
-                    foreach (var variant in Variants)
-                    {
-                        if (clock.ElapsedMilliseconds >= budget.MaxDurationMs) break;
+                    var advanced = WallBuilderPlacement.Run(
+                        input, preferred, variant, seed, cancellationToken, target).State;
 
-                        var advanced = WallBuilderPlacement.Run(
-                            input, preferred, variant, seed.Clone(), cancellationToken, target).State;
+                    // Tamamlama YALNIZCA olcumdur: dalin nereye varacagini
+                    // gosterir, kendisi saklanmaz. Bu, "ileri bakis"in ta
+                    // kendisidir — acgozlu secim burada bir sonuca baglanir.
+                    var completed = WallBuilderPlacement.Run(
+                        input, preferred, variant, advanced.Clone(), cancellationToken).Result;
 
-                        // Tamamlama YALNIZCA olcumdur: dalin nereye varacagini
-                        // gosterir, kendisi saklanmaz. Bu, "ileri bakis"in ta
-                        // kendisidir — acgozlu secim burada bir sonuca baglanir.
-                        var completed = WallBuilderPlacement.Run(
-                            input, preferred, variant, advanced.Clone(), cancellationToken).Result;
+                    slots[slot] = (advanced, preferred, completed.FillRate, completed);
+                });
 
-                        evaluations++;
-                        if (completed.FillRate > best.FillRate) best = completed;
+                foreach (var slot in slots)
+                {
+                    if (slot is not { } result) continue;
 
-                        branches.Add((advanced, preferred, completed.FillRate));
-                    }
+                    evaluations++;
+                    if (result.Completed.FillRate > best.FillRate) best = result.Completed;
+
+                    branches.Add((result.State, result.Order, result.Fill));
                 }
             }
 

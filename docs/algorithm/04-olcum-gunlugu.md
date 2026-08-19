@@ -2580,3 +2580,52 @@ VNS'in kazanabilmesi için **düz yüzey üretmesi** gerekir, boşluk doldurmas�
 
 **F-5 ve F-6 ikisine de denk düşmüyor:** ne boşluk doldurmak mümkün (destek yok), ne de bunlar
 saniyede dal sayısını artırıyor. Sıraya alınmadılar; gerekçe budur.
+
+---
+
+## F-3 · Paralel dal değerlendirme — **%89,98 → %90,51**
+
+`DR-63` iki rejim tespit etmişti: az tipli yükte beam doymuş, çok tipli yükte doymamış ve 15 kat
+bütçe +1,2 puan getiriyor. Oradaki sınır **verim**di — yani saniyede kaç dal değerlendirildiği.
+
+Bir ışın durumunun bütün dalları (ürün × ayar) birbirinden bağımsız: her biri kendi kopyası
+üzerinde çalışıyor ve yerleştirme yolunda **değişken statik durum yok** (doğrulandı). Makinede
+20 çekirdek var.
+
+### Determinizm nasıl korundu
+
+Üç tasarım kararı:
+
+1. **Sonuçlar sabit indeksli bir diziye yazılır**, sonra **indeks sırasında** toplanır. Paralellik
+   değerlendirme sırasını değiştirir, sonucu değiştirmez.
+2. **Süre kontrolü ışın durumu granülaritesinde.** Daha ince (dal başına) yapmak determinizmi
+   bozardı: hangi dalın bütçe dolmadan bittiği iş parçacığı zamanlamasına kalırdı. Daha kaba
+   (seviye başına) yapmak bütçeyi taşırırdı — bir kez yaşandı.
+3. Bir ışın durumunun dalları ya **hepsi** çalışır ya hiçbiri.
+
+**Sınandı.** Bütçe bağlayıcı olmayacak şekilde (120 sn verildi, 4,7 sn kullanıldı) aynı girdi üç
+kez koşuldu: **%91,76 · %91,76 · %91,76**. Süre değişti (4695 / 4866 / 4833 ms), sonuç değişmedi.
+
+### Ölçüm (25 örnek/küme)
+
+| | BR1 | BR2 | BR3 | BR4 | BR5 | BR6 | BR7 | **Ort** |
+|---|---|---|---|---|---|---|---|---|
+| Seri | %89,54 | %90,14 | %90,82 | %89,92 | %90,18 | %90,10 | %89,53 | %89,98 |
+| **Paralel** | %89,72 | %90,54 | %91,13 | %90,58 | %90,86 | %90,67 | %90,06 | **%90,51** |
+| Fark | +0,18 | +0,40 | +0,31 | +0,66 | +0,68 | +0,57 | **+0,53** | **+0,53** |
+
+**`DR-63`'ün tahmini birebir tuttu:** doymuş BR1'de kazanç en küçük (+0,18), doymamış BR4/BR5/BR7'de
+en büyük (+0,53…+0,68). Paralellik doymamış kümelerde doğrudan doluluğa dönüşüyor.
+
+Yedi kümenin yedisi de **%89,7'nin üstünde**, dördü **%90,5'in üstünde**.
+
+### Açık kalan: üretimde eşzamanlılık
+
+Ölçüm **tek istek** üzerinden yapıldı. Üretimde `MaxDegreeOfParallelism = Environment.ProcessorCount`
+her plan isteğinin bütün çekirdekleri istemesi demek; eşzamanlı iki istek birbirini yavaşlatır ve
+beam bütçeye bağlı olduğu için **doluluk düşer**. Konteynerin CPU sınırı da hesaba katılmalı.
+
+Bu ölçülmedi ve açık borçtur. Muhtemel çözüm: paralellik derecesini istek başına sınırlamak ya da
+motor çağrılarını bir kuyruğa almak.
+
+173/36/228 yeşil, 17 snapshot sabit, statik yol etkilenmedi (paralellik yalnız beam'de), kapı geçti.

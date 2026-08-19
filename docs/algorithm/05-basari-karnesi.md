@@ -8,13 +8,13 @@ durur.
 Terimler için [00-sozluk.md](00-sozluk.md). Bir sayıyı buraya yazmadan önce hangi **yerleştirici ·
 sıralayıcı · korpus · yönelim** ile ölçüldüğü belirtilmelidir; yoksa sayı kıyaslanamaz.
 
-**Son güncelleme:** 19 Ağustos 2026 (iteratif ışın genişletme, `DR-60`) · dal `feat/algoritma-arama-katmani`
+**Son güncelleme:** 19 Ağustos 2026 (paralel dal değerlendirme, `DR-64`) · dal `feat/algoritma-arama-katmani`
 
 ---
 
 ## Tek satırda
 
-**Duvar örücü + ileri bakışlı ışın araması, BR1-BR7: ~%90.** Greedy'nin (%75,23) 12,5 puan üstünde, literatürün en
+**Duvar örücü + ileri bakışlı ışın araması, BR1-BR7: %90,51.** Greedy'nin (%75,23) 12,5 puan üstünde, literatürün en
 iyilerinin (~%94-95, ama örnek başına 240-320 saniyeyle) ~7 puan altında. Kayıp neredeyse eşit
 bölünüyor: yarısı duvar kesitinde kalan **kenar şeritleri**, yarısı yığının üstündeki **ölü hava**.
 Yığının içi masif.
@@ -34,7 +34,7 @@ oldu; tek resmî sayı var, eski `strict`/`free` ikiliği kaldırıldı.
 | Duvar örücü + GRASP, yönelim eşlemesi hatalıyken | %86,23 | 1,1-2,0 sn |
 | Duvar örücü + GRASP, sözlükbilimsel aday seçimi | %87,73 | 1,3-2,0 sn |
 | Duvar örücü + GRASP — *kıyas referansı* | %88,34 | 1,3-2,0 sn |
-| Duvar örücü + **beam** — *üretim varsayılanı* | **%89,97-90,04** | 2,0 sn (anytime) |
+| Duvar örücü + **beam** — *üretim varsayılanı* | **%90,51** | 2,0 sn (anytime, paralel) |
 | Literatürün en iyileri (CLTRS, ID-GLTS, BSG-VCS, mp-BRKGA) | ~%94-95 | örnek başına ~240-320 sn |
 
 Literatür kıyası **eşit süreli değildir** — onlar örnek başına dakikalar harcıyor, biz 2 saniye.
@@ -48,7 +48,7 @@ Araştırma yanıtı 2 saniyelik bütçede gerçekçi hedefi **%90-92** olarak v
 | Kutu tipi sayısı | 3 | 5 | 8 | 10 | 12 | 15 | 20 |
 | Static (CI referansı) | %82,47 | %83,35 | %83,68 | %83,40 | %83,59 | %83,17 | %83,17 |
 | GRASP | %86,35 | %88,11 | %89,14 | %88,61 | %88,58 | %88,45 | %87,48 |
-| **Beam** | %89,54 | %90,14 | %90,82 | %89,92 | %90,18 | %90,10 | %89,53 |
+| **Beam** | %89,72 | %90,54 | %91,13 | %90,58 | %90,86 | %90,67 | %90,06 |
 
 **Kümeler arası fark neredeyse kapandı.** VCS aday değerlendirmesi (`DR-52`) en çok heterojen
 kümelerde kazandırdı; static'te yayılım 1,21 puana indi (önce 1,71). BR1 tek kaybeden (−0,31
@@ -124,6 +124,7 @@ duvar disiplininden vazgeçiyor** (GRASP'ta kutuların %45'i hiçbir duvarda de�
 |---|---|---|
 | `DR-38` | **Kısıt tarafında kıyas kapsaması yok.** Hiçbir korpusta LIFO / kırılganlık / ağırlık senaryosu yok; `R-C14` metrikleri (`WallCount`, `AvgWallFlushness`, `ZoneViolations`) hiç üretilmiyor | `DR-09`/`DR-10`/`DR-11` doğrulanamıyor |
 | — | **Ağırlık dengesi duvar örücüde optimize edilmiyor.** Greedy'nin `BalanceScoring`'i kalktı; denge yalnız GRASP uygunluğunda, sıra düzeyinde | Bilerek kabul edilen gerileme (~3× kötü) |
+| `DR-64` | **Eşzamanlılık ölçülmedi** — beam her istekte bütün çekirdekleri istiyor; eşzamanlı istekler doluluğu düşürebilir | Ölçüm tek istek üzerinden yapıldı |
 | — | **Üretim gecikmesi ~4 sn** ve arayüzde bekleme göstergesi yok. Ölçüldü: yarısı motor değil, **API/DB yükü** (static de 2,09 sn) | İki ayrı iş: arayüz göstergesi ve kalıcılık maliyeti |
 | — | İki ret sebebi hiç üretilmiyor (`NotStackable`, `GeometryConstraint`) | 12 Ağu 2026 raporundan devreden borç |
 | `DR-53` | **VCS ince ayarında puan kalmadı** — 25 yapılandırma tarandı, kazanan bölge %83,35-83,40'ta düz | Kalan kazanç ileri bakışta (F7-4) |
