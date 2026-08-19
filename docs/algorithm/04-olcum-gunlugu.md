@@ -2526,3 +2526,57 @@ taşınmıyor — mekanizma değerli, yalnız *ek kalibrasyonda* puan yok.
 "blok zenginliği heterojenlikle çöküyor" bulgusu oradan geldi. Ama **üretim derlemesinde duran,
 yalnız ölçümün çağırdığı bir sınıf**; ileride aksiyon uzayı yeniden ele alınmazsa taşınması ya da
 kaldırılması gerekir. Açık borç olarak not edildi.
+
+---
+
+## F-6 öncesi teşhis · **doygunluk kümeye bağlı** — ve bu, sıradaki işi değiştiriyor
+
+F-6 (sınırlı VNS) ve F-5 (defragmentation) aynı varsayıma dayanıyor: planda hâlâ doldurulabilecek
+yer var, yeniden düzenlemekle kazanılabilir. Önce o varsayım sınandı.
+
+### Yerleşemeyen kutular neden yerleşemiyor
+
+BR1, 20 örnek, beam:
+
+| Ölçü | Static | **Beam** |
+|---|---|---|
+| Kalan boşluk sayısı | 4 | **3** |
+| Sığan ama yerleşemeyen | %18,4 | %10,5 |
+| **Sığan + destekli** | %0,0 | **%0,0** |
+
+Yerleşemeyen kutuların %10,5'i bir boşluğa **geometrik olarak** sığıyor, ama **hiçbiri orada destek
+bulamıyor**. Kalan boşlukların tabanı havada — `DR-47`'nin teşhisi aynen duruyor.
+
+Yani "kalanları bir de şuraya koyalım" türü bir post-optimizasyonun alacağı hiçbir şey yok.
+VNS'in kazanabilmesi için **düz yüzey üretmesi** gerekir, boşluk doldurması değil.
+
+### Süre/kalite eğrisi: iki farklı rejim
+
+| Küme | Tip | 2 sn | 30 sn | Fark |
+|---|---|---|---|---|
+| **BR1** | 3 | %89,53 | %89,59 | **+0,06** |
+| BR3 | 8 | %91,54 | %91,83 | +0,29 |
+| BR5 | 12 | %90,21 | %91,45 | +1,24 |
+| **BR7** | 20 | %89,35 | **%90,55** | **+1,20** |
+
+**Doygunluk tek bir gerçek değil, kümeye bağlı:**
+
+- **Az tipli yükte (BR1) beam doymuş.** On beş kat bütçe 0,06 puan getiriyor — gürültü. Üç kutu
+  tipiyle dallanma uzayı küçük, arama onu tüketiyor. Buradaki sınır **yapısal**: kalan boşlukların
+  tabanı havada ve hiçbir arama bunu değiştiremiyor.
+- **Çok tipli yükte (BR5, BR7) doymamış.** On beş kat bütçe **+1,2 puan** getiriyor. Yirmi tiple
+  dallanma uzayı büyük ve 2 saniye onu tüketmeye yetmiyor. Buradaki sınır **verim**.
+
+### Sıradaki işi bu belirliyor
+
+İki rejim iki farklı iş demek:
+
+1. **Çok tipli yük için: F-3 (rollout maliyetini düşür).** Saniyede daha çok dal değerlendirmek
+   doğrudan doluluğa dönüyor — BR7 bunu ölçülmüş biçimde gösteriyor. Araştırmanın önerdiği yollar:
+   kısmi rollout, ucuz vekil skor, paralel dal değerlendirme.
+2. **Az tipli yük için: hiçbir arama iyileştirmesi işe yaramaz.** Orada kazanç ancak yerleştiricinin
+   **ürettiği yüzeyin** değişmesiyle gelir. O kaldıraç bu oturumda bir kez çekildi (`CS(b)`, +0,55)
+   ve işe yaradı; ikinci bir çekiş için yeni bir mekanizma gerekir.
+
+**F-5 ve F-6 ikisine de denk düşmüyor:** ne boşluk doldurmak mümkün (destek yok), ne de bunlar
+saniyede dal sayısını artırıyor. Sıraya alınmadılar; gerekçe budur.
