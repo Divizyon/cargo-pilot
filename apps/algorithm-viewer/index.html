@@ -88,6 +88,14 @@ main{display:flex;flex-direction:column;min-width:0;min-height:0}
 .view{background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r);padding:8px}
 .view h2{margin:0 0 6px;font-size:11px;font-weight:500;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
 .view canvas{width:100%;height:auto;display:block;border-radius:4px;background:#0B1220}
+.view.span2{grid-column:span 2}
+@media (max-width:760px){.view.span2{grid-column:span 1}}
+#stage{position:relative;border-radius:4px;background:#0B1220;display:grid;place-items:center;min-height:280px;overflow:hidden}
+#stage canvas{cursor:grab}
+#stage canvas:active{cursor:grabbing}
+.start{background:var(--panel);color:var(--text);border:1px solid var(--line)}
+.start:hover{border-color:var(--accent);color:var(--accent);filter:none}
+.stage-note{position:absolute;left:8px;bottom:6px;font-size:11px;color:var(--muted);pointer-events:none}
 
 .foot{padding:10px 16px;border-top:1px solid var(--line);background:var(--panel-2);display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 input[type=range]{accent-color:var(--accent);flex:1;min-width:140px;cursor:pointer}
@@ -207,7 +215,6 @@ const VIEWS = [
   { t:'Soldan (+x)',   h:'z', v:'y', d:'x', hf:false, vf:true,  near:'min' },
   { t:'Sağdan (−x)',   h:'z', v:'y', d:'x', hf:true,  vf:true,  near:'max' },
   { t:'Üstten (−y)',   h:'z', v:'x', d:'y', hf:false, vf:false, near:'max' },
-  { t:'Alttan (+y)',   h:'z', v:'x', d:'y', hf:false, vf:true,  near:'min' },
 ];
 
 const SIZE = { x:'w', y:'h', z:'l' };
@@ -326,6 +333,8 @@ function select(i){
   $('step').value = sc.boxes.length;
   stepLabel();
 
+  build3d();
+
   for (const el of $('list').children)
     el.setAttribute('aria-current', Number(el.dataset.ix) === i);
   const active = $('list').querySelector('[aria-current=true]');
@@ -337,6 +346,16 @@ function select(i){
 /* ── çizim ─────────────────────────────────────────────────────────────── */
 function buildViews(){
   const frag = document.createDocumentFragment();
+
+  const solid = document.createElement('section');
+  solid.className = 'view span2';
+  solid.innerHTML =
+    '<h2>3B sahne</h2>' +
+    '<div id="stage"><button class="btn start" id="go3d" type="button">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" width="16" height="16" aria-hidden="true">' +
+    '<path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12"/><path d="M21 7l-9 5-9-5"/></svg>' +
+    'Sahneyi başlat</button></div>';
+  frag.appendChild(solid);
   VIEWS.forEach((v, k) => {
     const box = document.createElement('section');
     box.className = 'view';
@@ -424,13 +443,14 @@ function stepLabel(){
 $('t-gap').addEventListener('click', ev => {
   state.gaps = !state.gaps;
   ev.currentTarget.setAttribute('aria-pressed', state.gaps);
-  draw();
+  draw(); update3d();
 });
 
 $('t-mode').addEventListener('click', ev => {
   state.sliceMode = !state.sliceMode;
   ev.currentTarget.setAttribute('aria-pressed', state.sliceMode);
   $('t-mode-l').textContent = state.sliceMode ? 'Projeksiyon' : 'Kesit dilimi';
+  setTimeout(update3d, 0);
   const r = $('step');
   if (state.sliceMode){ r.min = 0; r.max = 100; r.value = 50; state.slice = .5; }
   else { r.min = 0; r.max = state.bundle.scenarios[state.cur].boxes.length; r.value = r.max; state.step = Number(r.max); }
@@ -440,7 +460,7 @@ $('t-mode').addEventListener('click', ev => {
 $('step').addEventListener('input', ev => {
   if (state.sliceMode){ state.slice = Number(ev.target.value) / 100; $('stepv').textContent = '%' + ev.target.value; }
   else { state.step = Number(ev.target.value); stepLabel(); }
-  draw();
+  draw(); update3d();
 });
 
 $('t-play').addEventListener('click', ev => {
@@ -457,13 +477,174 @@ $('t-play').addEventListener('click', ev => {
         last = t;
         state.step = Math.min(n, state.step + 1);
         $('step').value = state.step;
-        stepLabel(); draw();
+        stepLabel(); draw(); update3d();
       }
       if (state.step >= n){ state.playing = false; $('t-play').setAttribute('aria-pressed', false); return; }
       state.raf = requestAnimationFrame(tick);
     };
     state.raf = requestAnimationFrame(tick);
   } else cancelAnimationFrame(state.raf);
+});
+
+
+/* ── 3B sahne ──────────────────────────────────────────────────────────────
+   Tembel yuklenir: kullanici "Sahneyi baslat" demeden three.js indirilmez ve
+   olcum akisinda hicbir maliyeti olmaz.
+
+   Sahne sozlesmesi degistirilmez (docs/COORDINATE_STANDARD.md): x = genislik,
+   y = yukseklik, z = uzunluk; z = 0 uzak yuz, z = uzunluk referans kapi.
+   Three.js de sag elli ve Y yukaridir, yani AYNALAMA ya da telafi donusumu
+   YOKTUR — kamera dogrudan kapi tarafina konur.
+
+   Kutu konumu origin'e en yakin kosedir; mesh merkezi konum + olcu / 2.
+   Cok sayida kutu icin InstancedMesh kullanilir. */
+const CDN = 'https://esm.sh/three@0.169.0';
+const S3 = { on:false, T:null, renderer:null, scene:null, camera:null,
+             controls:null, mesh:null, shell:null, slab:null, raf:0, note:null };
+
+async function start3d(){
+  const stage = $('stage');
+  stage.innerHTML = '<span class="stage-note">yükleniyor…</span>';
+
+  let T, OrbitControls;
+  try {
+    T = await import(CDN);
+    ({ OrbitControls } = await import(CDN + '/examples/jsm/controls/OrbitControls.js'));
+  } catch {
+    stage.innerHTML = '<span class="stage-note">three.js indirilemedi — çevrimdışı olabilirsin. ' +
+                      'İki boyutlu bakışlar çalışmaya devam ediyor.</span>';
+    return;
+  }
+
+  S3.T = T;
+  stage.innerHTML = '';
+
+  const renderer = new T.WebGLRenderer({ antialias:true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x0B1220, 1);
+  stage.appendChild(renderer.domElement);
+
+  const scene = new T.Scene();
+  scene.add(new T.HemisphereLight(0xE2E8F0, 0x0B1220, 1.15));
+  const key = new T.DirectionalLight(0xFFFFFF, 1.5);
+  key.position.set(1, 2, 1.4);
+  scene.add(key);
+
+  const camera = new T.PerspectiveCamera(42, 3 / 2, 1, 20000);
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = !reduced;
+  controls.dampingFactor = 0.08;
+
+  const note = document.createElement('span');
+  note.className = 'stage-note';
+  stage.appendChild(note);
+
+  Object.assign(S3, { on:true, renderer, scene, camera, controls, note });
+
+  addEventListener('resize', size3d, { passive:true });
+  size3d();
+  build3d();
+
+  (function loop(){
+    S3.raf = requestAnimationFrame(loop);
+    controls.update();
+    renderer.render(scene, camera);
+  })();
+}
+
+function size3d(){
+  if (!S3.on) return;
+  const w = $('stage').clientWidth;
+  const h = Math.round(w * 2 / 3);
+  S3.renderer.setSize(w, h, false);
+  S3.renderer.domElement.style.width = w + 'px';
+  S3.renderer.domElement.style.height = h + 'px';
+  S3.camera.aspect = w / h;
+  S3.camera.updateProjectionMatrix();
+}
+
+/* Elle kurulan her kaynak elle birakilir: sahne senaryo degistikce yeniden
+   kurulur ve birakilmayan geometri/malzeme GPU'da birikirdi. */
+function clear3d(){
+  for (const key of ['mesh','shell','slab']){
+    const o = S3[key];
+    if (!o) continue;
+    S3.scene.remove(o);
+    if (o.geometry) o.geometry.dispose();
+    if (Array.isArray(o.material)) o.material.forEach(m => m.dispose());
+    else if (o.material) o.material.dispose();
+    S3[key] = null;
+  }
+}
+
+function build3d(){
+  if (!S3.on || !state.bundle) return;
+  const T = S3.T, sc = state.bundle.scenarios[state.cur];
+  const W = sc.vehicleWidth, H = sc.vehicleHeight, L = sc.vehicleLength;
+
+  clear3d();
+
+  // Kap: yalnizca kenarlar. Dolu yuzey yuku gizlerdi.
+  const shell = new T.LineSegments(
+    new T.EdgesGeometry(new T.BoxGeometry(W, H, L)),
+    new T.LineBasicMaterial({ color:0x64748B }));
+  shell.position.set(W/2, H/2, L/2);
+  S3.scene.add(shell);
+  S3.shell = shell;
+
+  const mesh = new T.InstancedMesh(
+    new T.BoxGeometry(1, 1, 1),
+    new T.MeshLambertMaterial(),
+    Math.max(1, sc.boxes.length));
+
+  const m = new T.Matrix4();
+  const pos = new T.Vector3(), rot = new T.Quaternion(), scl = new T.Vector3();
+  const col = new T.Color();
+
+  sc.boxes.forEach((b, i) => {
+    // Konum origin'e en yakin kose; mesh merkezi yariya kaydirilir.
+    pos.set(b.x + b.w/2, b.y + b.h/2, b.z + b.l/2);
+    scl.set(b.w, b.h, b.l);
+    m.compose(pos, rot, scl);
+    mesh.setMatrixAt(i, m);
+    mesh.setColorAt(i, col.set(PALETTE[b.t % PALETTE.length]));
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  S3.scene.add(mesh);
+  S3.mesh = mesh;
+
+  // Kullanilmayan uzunluk: yayilmanin gozle gorulur hali.
+  const reach = sc.boxes.reduce((a, b) => Math.max(a, b.z + b.l), 0);
+  if (L - reach > 1){
+    const slab = new T.Mesh(
+      new T.BoxGeometry(W, H, L - reach),
+      new T.MeshBasicMaterial({ color:0x7F1D1D, transparent:true, opacity:0.16, depthWrite:false }));
+    slab.position.set(W/2, H/2, reach + (L - reach)/2);
+    S3.scene.add(slab);
+    S3.slab = slab;
+  }
+
+  // Kamera kapi tarafinda: yukleme oradan yapiliyor, plan oradan okunuyor.
+  const span = Math.max(W, H, L);
+  S3.camera.position.set(W/2 + span*0.75, H*1.25, L + span*0.55);
+  S3.controls.target.set(W/2, H/2, L/2);
+  S3.controls.update();
+
+  update3d();
+}
+
+function update3d(){
+  if (!S3.on || !S3.mesh) return;
+  const sc = state.bundle.scenarios[state.cur];
+  S3.mesh.count = state.sliceMode ? sc.boxes.length : Math.max(0, state.step);
+  if (S3.slab) S3.slab.visible = state.gaps;
+  S3.note.textContent =
+    S3.mesh.count + '/' + sc.boxes.length + ' kutu · sürükle döndür, tekerlek yakınlaştır';
+}
+
+document.addEventListener('click', ev => {
+  if (ev.target.closest('#go3d')) start3d();
 });
 
 addEventListener('keydown', ev => {

@@ -29,9 +29,10 @@ Sonra `index.html` → dosyayı sürükle.
 
 | | |
 |---|---|
-| **Altı bakış** | Kapıdan, uzak yüzden, soldan, sağdan, üstten, alttan — hepsi aynı anda, senkron |
+| **3B sahne** | three.js · yörünge kamerası, `InstancedMesh`, kapı tarafından bakış. **Tembel yüklenir** — "Sahneyi başlat" demeden three.js indirilmez |
+| **Beş bakış** | Kapıdan, uzak yüzden, soldan, sağdan, üstten — hepsi aynı anda, senkron |
 | **Kesit dilimi** | Kaydırıcı bir düzlem seçer; o düzlemin **tam** kesiti çizilir |
-| **Boşluklar** | Kap önce boşluk rengiyle boyanır, kutular üzerine çizilir. Kesit kipinde ekranda kırmızı kalan **her piksel gerçekten boş hacimdir** |
+| **Boşluklar** | 2B'de kap önce boşluk rengiyle boyanır, kutular üzerine çizilir — kesit kipinde kırmızı kalan **her piksel gerçekten boş hacimdir**. 3B'de kullanılmayan uzunluk saydam kırmızı bir dilim olarak görünür |
 | **Yükleme animasyonu** | Kutular **yerleştirme sırasıyla** belirir — algoritmanın aracı gerçekte nasıl doldurduğu |
 | **Senaryo listesi** | 700 senaryo; doluluğa veya yayılmaya göre sıralanır. En kötü on senaryoyu bulmak iki tıklama |
 | **Git** | `#317` yaz, oraya atlar |
@@ -46,7 +47,9 @@ maliyet yalnızca JSON yazımıdır (700 senaryo ≈ 3,8 MB).
 ## Koordinat sözleşmesi
 
 `x` = genişlik, `y` = yükseklik, `z` = uzunluk; `z = 0` uzak yüz, `z = uzunluk` referans kapı.
-Kutu konumu origin'e en yakın köşedir. Altı bakış bu sözleşmeden türetilmiştir —
+Kutu konumu origin'e en yakın köşedir; 3B'de mesh merkezi `konum + ölçü / 2`'dir.
+Three.js de sağ elli ve Y yukarıdır, dolayısıyla **aynalama ya da telafi dönüşümü yoktur**.
+Bakışlar bu sözleşmeden türetilmiştir —
 [docs/COORDINATE_STANDARD.md](../../docs/COORDINATE_STANDARD.md).
 
 ## Neden `algorithm-test-ui` değil

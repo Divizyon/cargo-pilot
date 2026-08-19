@@ -33,7 +33,7 @@ public static class BrCommand
         if (real)
         {
             Console.WriteLine("ROADEF/EURO 2022 (Renault) dagilimindan uretildi — gercek INSTANCE degil, gercek SEKIL");
-            Console.WriteLine("13,5 m dorse · paletli ambalaj · arac basina ~4 tip · GERCEK agirlik limiti");
+            Console.WriteLine("gercek arac olculeri · yuk yari gercek (GR-*) yari rastgele (RS-*) · agirlik baglayici degil");
         }
         else
         {

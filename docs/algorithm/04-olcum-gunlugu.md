@@ -3183,3 +3183,44 @@ parçası sayar — gerçek korpus sayıları BR referansıyla kıyaslanamaz.
 
 İlk sürümde tip sayısı **iki düzgün sayının çarpımıyla** üretilmişti ve dağılım aşağı kaymıştı
 (medyan 2). Düzeltildi; medyan artık 4.
+
+---
+
+## 20 Ağustos 2026 — `GercekCorpus` düzeltildi: ağırlık bağlamıyor, yük yarı gerçek yarı rastgele
+
+İlk sürümde iki hata vardı, ikisi de ürün kararıyla düzeltildi.
+
+### 1. Ağırlık artık doluluk kaybettirmiyor
+
+İlk sürüm gerçek 24 t kapasiteyi koymuştu ve yerleşemeyenlerin **%41,1'i ağırlıktan** düşüyordu.
+Ürün kararı: **ağırlık tırda dengeyi ilgilendirir, doluluk kaybettirmemelidir.** Konteynerde
+zaten önemsiz. Limit `1.000.000 kg`'a alındı; kutu ağırlıkları gerçekçi kaldı, çünkü ağırlık
+merkezi ve denge ölçümleri onlara dayanıyor.
+
+### 2. Yük artık yarı gerçek yarı rastgele
+
+Yalnızca paletli ambalajla ölçmek **kesit döşeme sorununu yapay olarak kolaylaştırıyordu**:
+gerçek paletler araç genişliğine tam oturuyor (artık %1,6). Ürün her şey olabilir — palet de
+gelir, kasa da, boru da.
+
+Artık tipler dönüşümlü seçiliyor: `GR-*` gerçek tablodan (paletli, `NoVertical`), `RS-*` serbest
+ölçülü 20-130 cm (`All`). Ölçülen dağılım 221 gerçek / 181 rastgele.
+
+Araç ölçüleri **her senaryoda** gerçek tablodan gelir. *(BR1-BR7'nin konteyneri değişmedi —
+587×233×220 o kıyas kümesinin tanımının parçası ve literatürle kıyaslanabilir tek sayımız.)*
+
+### Ölçüm
+
+| Yol | BR1-BR7 | Gerçek · ilk sürüm | **Gerçek · düzeltilmiş** |
+|---|---|---|---|
+| Static | %84,26 | %75,59 | **%86,60** |
+| Beam | %91,30 | %86,02 | **%92,32** |
+
+Yayılma static ×1,151 · beam ×1,081. Dilim doluluğu %87,1 · %92,5.
+Yerleşemeyen sebeplerinin **tamamı** artık `InsufficientSpace`.
+
+Gerçekçi korpusta BR'den **daha yüksek** çıkıyoruz. Sebebi makul: araç 3,2 kat büyük (kenar
+etkisi küçülüyor) ve yükün yarısı araç genişliğine tam oturan paletler.
+
+**Bu, BR sayısının kötü olduğu anlamına gelmiyor** — iki korpus iki farklı şeyi ölçüyor. BR
+literatür kıyası için, gerçekçi korpus üretim beklentisi için.

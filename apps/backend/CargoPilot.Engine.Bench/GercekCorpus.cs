@@ -18,20 +18,29 @@ namespace CargoPilot.Engine.Bench;
 ///   arac hacmi            30,1 m3   ->  95,5 m3   (3,2 kat)
 ///   ambalaj hacmi medyan  0,25 m3   ->  1,17 m3   (4,7 kat)
 ///   arac basina urun tipi 3..100    ->  4,0
-///   agirlik limiti        hic baglamaz -> neredeyse hacimle birlikte bagliyor
 ///
-/// Son satir en onemlisi. BR'de limit 1.000.000 kg konmustu ("olculen sey hacim
-/// olsun diye") ve sonucu su oldu: agirlik kapisi yedi yuz ornekte HIC
-/// atesLENMIYOR. Gercekte hacim 70 parcada, agirlik 77 parcada doluyor — yani
-/// ikisi neredeyse ayni noktada bagliyor.
+/// ARAC OLCULERI her senaryoda gercek tablodan gelir; kiyas kumelerinin sabit
+/// konteyneri yerine gercek dorse dagilimi kullanilir.
+///
+/// YUK YARI GERCEK YARI RASTGELEDIR. Gercek yarisi ROADEF ambalaj tablosundan
+/// orneklenir (paletli, standart modul); rastgele yarisi serbest olculu kutu
+/// uretir. Sebep: urun her sey olabilir — palet de gelir, kasa da, boru da.
+/// Yalnizca paletli olcmek, kesit doseme sorununu yapay olarak kolaylastirirdi
+/// (gercek paletler arac genisligine tam oturuyor, artik %1,6).
+/// Tipler adindan ayirt edilir: <c>GR-*</c> gercek, <c>RS-*</c> rastgele.
+///
+/// AGIRLIK LIMITI BAGLAYICI DEGILDIR (1.000.000 kg). Bilincli bir urun karari:
+/// agirlik tirda dengeyi ilgilendirir, doluluk kaybettirmemelidir. Kutu
+/// agirliklari yine gercekci tutulur — agirlik merkezi ve denge olcumleri
+/// onlara dayanir — ama hicbir kutu agirlik yuzunden disarida kalmaz.
 ///
 /// URETIM DETERMINISTIKTIR (R-C02): tohum verilir, ayni tohum ayni korpusu
 /// verir. Rastgelelik <see cref="BenchRng"/> ile degil, basit bir dogrusal
 /// uretecle saglanir; amac istatistiksel kalite degil TEKRARLANABILIRLIK.
 ///
 /// DURUSTLUK NOTU: iki alan varsayimdir, olculmemistir.
-///   • Yonelim — paletli yuk devrilmez; tipler <c>NoVertical</c> alir
-///     (yukseklik sabit, yatay cift serbest). Gercek veride bu bilgi
+///   • Yonelim — paletli (gercek) tipler devrilmez, <c>NoVertical</c> alir;
+///     rastgele tipler serbesttir, <c>All</c> alir. Gercek veride bu bilgi
 ///     <c>Forced orientation</c> alanindadir ve ozetlerde yok.
 ///   • Tip sayisi — gercek ortalama 3,98; burada 2-6 arasi duzgun dagilim,
 ///     ortalama 4,0. Instance basina gercek dagilim ozetlerde yok.
@@ -91,7 +100,14 @@ public static class GercekCorpus
 
             for (var t = 0; t < typeCount; t++)
             {
-                var package = Pick(packages, p => p.Share, packageTotal, rng);
+                // Yari yariya: cift sirali tipler gercek tablodan, tek sirali
+                // tipler serbest olculu. Sira sabit oldugu icin oran senaryo
+                // basina da yaklasik yarim yarim kalir.
+                var fromReal = t % 2 == 0;
+                var package = fromReal
+                    ? Pick(packages, p => p.Share, packageTotal, rng)
+                    : Random(rng);
+
                 var unit = package.W * package.H * package.L;
                 if (unit <= 0m) continue;
 
@@ -99,7 +115,7 @@ public static class GercekCorpus
                 var slice = (goal - used) / (typeCount - t);
                 var quantity = Math.Max(1, (int)(slice / unit));
 
-                items.Add(Build(i, t, package, quantity));
+                items.Add(Build(i, t, package, quantity, fromReal));
                 used += unit * quantity;
                 boxes += quantity;
             }
@@ -110,9 +126,10 @@ public static class GercekCorpus
                 VehicleWidth: truck.Width,
                 VehicleHeight: truck.Height,
                 VehicleLength: truck.Length,
-                // BR'nin aksine GERCEK kapasite. Agirlik kapisinin atesLENMESI
-                // bu korpusun varlik sebeplerinden biri.
-                VehicleMaxWeight: truck.MaxWeight,
+                // Baglayici DEGIL. Agirlik tirda dengeyi ilgilendirir; doluluk
+                // kaybettirmemelidir (urun karari). Aracin gercek kapasitesi
+                // yine de tasinir, olcum tarafi isterse kullanir.
+                VehicleMaxWeight: 1_000_000m,
                 Items: items,
                 Criteria: LoadingPlanOptimizationCriteria.VolumeFirst,
                 LoadingType: LoadingType.Rear,
@@ -130,9 +147,30 @@ public static class GercekCorpus
         return instances;
     }
 
-    private static OptimizationItemInput Build(int instance, int type, Package package, int quantity)
+    /// <summary>
+    /// Serbest olculu kutu. Kenarlar 20-130 cm arasinda; gercek ambalajlarin
+    /// alt sinirindan biraz asagi, ust sinirindan biraz yukari, yani paletli
+    /// yukun DISINDA kalan her seyi (kasa, boru, kucuk koli) temsil eder.
+    ///
+    /// Yogunluk gercek yukun olculen ortalamasina (229 kg/m3) yakin tutulur;
+    /// agirlik baglayici olmasa da denge olcumleri gercekci kalsin diye.
+    /// </summary>
+    private static Package Random(Lcg rng)
     {
-        var code = string.Create(CultureInfo.InvariantCulture, $"GR-{instance + 1:D3}-{type + 1:D2}");
+        decimal Side() => 20m + Math.Round((decimal)rng.NextDouble() * 110m);
+
+        var l = Side();
+        var w = Side();
+        var h = Side();
+
+        return new Package(l, w, h, Math.Round(l * w * h / 1_000_000m * 229m, 1), 0);
+    }
+
+    private static OptimizationItemInput Build(
+        int instance, int type, Package package, int quantity, bool fromReal)
+    {
+        var code = string.Create(CultureInfo.InvariantCulture,
+            $"{(fromReal ? "GR" : "RS")}-{instance + 1:D3}-{type + 1:D2}");
 
         return new OptimizationItemInput(
             ItemId: BenchCatalog.StableId(code),
@@ -148,7 +186,8 @@ public static class GercekCorpus
             MaxStackCount: 0,
             MaxWeightOnTop: 0m,
             // Paletli yuk devrilmez: yukseklik sabit, yatay cift serbest.
-            AllowedRotations: AllowedRotations.NoVertical,
+            // Serbest olculu kutuda boyle bir kisit yok.
+            AllowedRotations: fromReal ? AllowedRotations.NoVertical : AllowedRotations.All,
             Quantity: quantity,
             GroupId: null,
             UnloadingOrder: null,
