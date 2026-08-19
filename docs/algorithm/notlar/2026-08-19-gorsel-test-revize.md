@@ -9,7 +9,7 @@ liste dolduğunda toplu bir araştırma + geliştirme turu yapılır ve kalıcı
 
 | # | Belirti | Alan | Durum |
 |---|---|---|---|
-| `G-1` | Plana farklı bir ürün eklenince **ekranda** yerleşim bozuluyor, kutular havada/kademeli duruyor | Frontend, manuel yerleşim önizlemesi | **Teşhis edildi** — kod tarafında doğrulandı |
+| `G-1` | ~~Ürün eklenince yerleşim bozuluyor~~ | Frontend | ❌ **TEŞHİS YANLIŞTI** — aşağıdaki düzeltmeye bakın |
 | `G-2` | İlk duvarda boşluk varken motor yeni duvar açıyor | **Motor**, duvar örücü | **Ölçüldü ve doğrulandı** — boşluk gerçek, kutu sığıyor |
 | `G-3` | Küçük kutu dik konunca kesitte kullanılamaz şerit kalıyor | **Motor**, yönelim + kesit döşemesi | **Ölçüldü** — `DR-57`'nin F6-3'ü kapatma gerekçesiyle çelişiyor |
 | `G-4` | Yarım dolu araçta yük bütün uzunluğa yayılıyor; `DepthSlack` tutmuyor | **Motor**, derinlik bütçesi | **`F8-1` ile büyük ölçüde kapandı** |
@@ -17,102 +17,56 @@ liste dolduğunda toplu bir araştırma + geliştirme turu yapılır ve kalıcı
 
 ---
 
-## `G-1` — Manuel ürün ekleme motoru değil, ayrı bir yerleştirici kullanıyor
+## `G-1` — ❌ Teşhis yanlıştı, düzeltildi
 
-### Belirti
+### Ne iddia etmiştim
 
-`%25 hedef · aynı yük (1 tip) · BR0` planı açılıp içine 5 adet `BR15-T007` eklendiğinde yerleşim
-bozuldu: yeni kutular mevcut yığının yanında/üstünde kademeli bir blok olarak belirdi, aralarında
-boşluk kaldı ve görüntü fiziksel olarak tutarsız hâle geldi.
+"Plana ürün eklenince frontend kendi paketleyicisiyle araç içine konum uyduruyor, motorun sekiz
+sert kapısının altısı atlanıyor." Ekran görüntüsündeki kutuların araç **içinde** olduğunu
+varsaymıştım.
 
-### Teşhis
+### Gerçek
 
-**Arayüzde iki ayrı yerleştirme algoritması var ve aynı sahnede çalışıyorlar.**
+Kullanıcı itiraz etti ve haklı çıktı. Kod üç kez okundu:
 
-| Yol | Yerleştirici | Nerede |
+| Eylem | Çağırdığı | Nereye koyuyor |
 |---|---|---|
-| Plan açılışı | **Motor** (duvar örücü + beam) | `pages/plans/NewPlanPage.tsx:85` → `setPlacements(data.placements)` |
-| Ürün ekleme / adet değiştirme | **Frontend'in kendi paketleyicisi** | `lib/store/usePlanStore.ts:87` `buildPlacements(...)` |
+| Ürün ekleme (`addManualItem`) | `buildStagingPlacements` | **Bekleme alanı — aracın dışı** |
+| Adet güncelleme (`updateItemQtyOnly`) | `buildStagingPlacements` | **Bekleme alanı** |
+| Yükle/çıkar (`togglePlacement`) | `buildStagingPlacements` | **Bekleme alanı** |
 
-Yani kullanıcı planı açtığında motorun ürettiği yerleşimi görüyor; bir ürün eklediğinde ise o
-yerleşimin **üstüne** tamamen başka bir algoritma yazıyor. İkisi birbirinin varsayımlarını
-bilmiyor.
+Yani normal akış **doğru çalışıyor**: kutu kenara geliyor, konum uydurulmuyor, motor ancak
+"optimize et" denince koşuyor. Ekran görüntüsünde araç içinde sandığım kutular bekleme
+alanındaydı — 3B perspektifi yanlış okumuşum.
 
-### Kusurun mekanizması
+### Geriye kalan — dar ve özel yollar
 
-`buildPlacements` imleci mevcut yerleşimden şöyle türetiliyor (`usePlanStore.ts:103-104`):
+`buildPlacements` (araç içine konum üreten yerel paketleyici) yalnızca üç yerden çağrılıyor:
 
-```ts
-const curY_init = valid.length > 0 ? Math.max(...valid.map((p) => p.positionY)) : 0;
-const curZ_init = maxZInLayer(valid, curY_init);
-```
+| Çağıran | Ne zaman |
+|---|---|
+| `retryUnfitItem` | Sığmayanlar panelinde **"tekrar dene"** düğmesi |
+| `updateItem` | `onPlace` yolundan, **zaten yerleşmiş** bir ürünün adedi değişince |
+| `setPreview` | Sürükleme önizlemesi (geçici) |
 
-- `curY_init` — mevcut kutuların **en yüksek origin Y'si**. Kutunun üstü değil, tabanı.
-- `maxZInLayer(valid, curY_init)` — yalnızca `positionY` bu değere **tam eşit** olan kutulara bakar.
+Bu üçü gerçekten motorun kapılarını atlıyor (destek oranı, kırılganlık, istif adedi, üst ağırlık,
+LIFO bölgesi, uyumsuz grup) ve `orientationIndex: 0` ile döndürme denemiyor. Ama hiçbiri normal
+akışta tetiklenmiyor; üçü de ayrı düğmeler.
 
-Bu imleç modeli, sahnenin **düz katmanlardan** oluştuğunu varsayar: her katmanın tek bir `Y`'si
-vardır ve o katman `Z` boyunca dolar. Frontend kendi ürettiği yerleşimde bu doğrudur.
+### Dersi
 
-**Motorun çıktısında doğru değildir.** Duvar örücü kule ve blok kurar; kutuların `positionY`
-değerleri düzensizdir ve aynı `Y`'de yalnızca birkaç kutu bulunur. Sonuç:
+Ekran görüntüsünden mekanizma çıkarmaya çalıştım ve kodu **eksik** okudum: `buildPlacements`
+fonksiyonunu bulup "ürün ekleme bunu çağırıyor" varsaydım, çağıranları doğrulamadan. Doğrulama
+tek bir `grep` kadardı.
 
-1. İmleç, sahnedeki **en yüksek tabana** sıçrar — boş hacmin nerede olduğuyla ilgisi yoktur.
-2. `maxZInLayer` o `Y`'deki *birkaç* kutuyu görür, gerisini görmez → `Z` imleci anlamsız bir yere düşer.
-3. Yeni kutular `x = 0`'dan başlayıp genişlik boyunca dizilir; altları düzensiz olduğu için
-   `gravityY` her kutuyu farklı yüksekliğe oturtur → **kademeli görüntü**.
-4. Ekrandaki boşluk gerçek boşluk değil; imleç oraya hiç bakmadı.
+Bu, aynı gün yakalanan ölçüm geçersizliklerinin (`DR-66`, `G-5`, `F8-2`) insan tarafındaki eşi:
+*ölçmeden emin olmak.*
 
-### Yan bulgular (aynı kod yolundan)
+### Yapılan işin akıbeti
 
-Manuel yol motorun kapılarını uygulamıyor. `computeViolations` (`lib/utils/geometry/geometry.ts:25`)
-**yalnızca kutu çakışmasına** bakıyor.
-
-| Kapı | Motor | Manuel yol |
-|---|---|---|
-| Çakışma | var | **var** |
-| Ağırlık limiti | var | **var** (`buildPlacements`, araç toplamı) |
-| Yönelim izni | var | kısmen — kutu **hep `orientationIndex: 0`** ile konuyor, döndürme hiç denenmiyor |
-| İstiflenebilirlik | var | kısmen — yalnız yeni katman gerektiğinde bakılıyor |
-| Destek oranı (%80) | var | **yok** — köşesiyle değen kutu geçerli sayılıyor |
-| Kırılganlık | var | **yok** |
-| Azami istif adedi | var | **yok** |
-| Üst ağırlık limiti | var | **yok** |
-| LIFO bölgesi | var | **yok** |
-| Uyumsuz grup | var | **yok** |
-
-Bu, `CLAUDE.md`'deki bağlayıcı kuralla doğrudan çelişiyor:
-
-> Manuel 3D edits must preserve the same validation and violation feedback.
-
-Ayrıca `buildPlacements`'in çalışma biçimi (satır → `Z` ilerlet → yeni `Y` katmanı) **katman
-örmedir** — müşterinin fiziksel olarak imkânsız bulduğu ve `DR-12` ile kalıcı olarak yasaklanan
-model. Motordan kaldırıldı, arayüzde duruyor.
-
-### Olası sebepler / düzeltme seçenekleri *(henüz seçilmedi)*
-
-1. **Manuel ekleme de motora gitsin.** Ürün eklenince plan yeniden optimize edilsin
-   (`PUT /loading-plans/{id}`). Tek yerleştirici kalır, tüm kapılar uygulanır.
-   *Bedeli:* her eklemede ~2-4 sn gecikme ve mevcut yerleşimin tamamen değişmesi — kullanıcı
-   "elle koyduğum kutu nereye gitti" der.
-2. **Artımlı motor çağrısı.** Mevcut yerleşim sabitlenip yalnızca yeni kutular yerleştirilsin.
-   Motorda karşılığı zaten var: `WallBuilderPlacement.Run(..., PlacementState? start, ...)` —
-   beam bunun için yazıldı, yarım durumdan devam edebiliyor. Sunulmuş bir uç nokta yok.
-   *Bedeli:* yeni API sözleşmesi; en temiz sonuç bu.
-3. **Frontend paketleyicisini boşluk tabanlı hâle getir.** İmleç yerine mevcut yerleşimden boş
-   hacim çıkarılıp kutu oraya konsun.
-   *Bedeli:* motorun `SpaceLedger`'ının ikinci bir uygulaması — iki yerde bakım, kaçınılmaz sapma.
-4. **En azından kapıları paylaş.** Hangi seçenek olursa olsun destek oranı, kırılganlık, istif ve
-   bölge kontrolleri manuel yola da girmeli; bugün sessizce geçiliyor.
-
-### Doğrulanacaklar
-
-- [x] **Manuel eklenen kutular kaydedilirken motora gidiyor.** `G-2`'de ölçüldü: kaydedilmiş plan,
-      aynı ürün listesiyle sıfırdan üretilen motor çıktısıyla **bit birebir aynı**. Yani yerel
-      koordinatlar veritabanına yazılmıyor; kayıtta motorun üretemeyeceği plan **yok**.
-      → Kusur veri değil **önizleme** kusuru: kullanıcı kaydedene kadar gerçek olmayan bir yerleşim
-      görüyor. Şiddeti düşürür, gerekliliğini düşürmez.
-- [ ] Adet değiştirme (`+`/`−`) ile ürün ekleme aynı yolu mu kullanıyor.
-- [ ] `orientationIndex: 0` sabitinin, dönmeden sığmayan kutuyu "sığmadı" saydığı senaryo.
+`RunIncremental` / `KeepExistingPlacements` (commit `b2d6fa64`) yazıldı, test edildi, canlıda
+doğrulandı — ama **yaşayan bir hatayı düzeltmiyor**. Bayrak varsayılan kapalı, hiçbir çağıran yok,
+davranış birebir aynı. Yukarıdaki üç dar yol bağlanmak istenirse hazır duruyor.
 
 ---
 
