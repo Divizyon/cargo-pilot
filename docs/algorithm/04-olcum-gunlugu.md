@@ -2492,3 +2492,37 @@ konteyneri (backend, frontend, iki MSSQL, MinIO) ayaktaydı.
 
 Bundan sonra beam ölçümlerinde **0,1 puandan küçük farklar gürültü sayılacak.** Static ölçümler
 etkilenmiyor — orası saf hesap, bit kararlı.
+
+---
+
+## F-4 · Bileşik blok eşiği — **zaten optimum, kazanç yok**
+
+Araştırmanın F-4'ü iki şey öneriyordu: bileşik blokları beam altında yeniden değerlendirmek ve
+blok üretim eşiğini kalibre etmek.
+
+Birincisi konusuz: bileşik blok bizde zaten **etkin** (`TopUp`, sütun tepesini başka ürünle
+tamamlar). Eşiği `FootprintMatch = 0,85` — üst kat, taban sütununun ayak izinin en az %85'ini
+kapatmalı.
+
+İkincisi ölçüldü. Static, 700 örnek, gürültüsüz:
+
+| Eşik | 0,60 | 0,70 | 0,80 | 0,82 | **0,85** | 0,88 | 0,90 | 0,95 | 1,00 |
+|---|---|---|---|---|---|---|---|---|---|
+| Doluluk | %82,57 | %83,12 | %83,56 | %83,59 | **%83,63** | %83,56 | %83,50 | %83,29 | %83,23 |
+
+**Temiz tek tepeli eğri, tepe tam 0,85'te.** İki yönde de kaybettiriyor: gevşetmek daha çok
+(−1,06 @ 0,60), sıkmak daha az (−0,40 @ 1,00). Değer değişmedi.
+
+Eğrinin şekli bileşik bloğun **çalıştığını** da doğruluyor: 1,00'da mekanizma fiilen kapanıyor
+(yalnız birebir ayak izi eşleşmesi) ve 0,40 puan kaybediliyor. Yani `GRASP'ta ±0` bulgusu beam'e
+taşınmıyor — mekanizma değerli, yalnız *ek kalibrasyonda* puan yok.
+
+### Yan tespit: `BlockCatalog` üretimde çağrılmıyor
+
+`F7-2`'de yazılan blok kataloğu (`DR-51`) üretim yolunda **hiç kullanılmıyor**. Sebebi kayıtlı:
+`F7-4b`'de dallanma "sıradaki ürün" üzerine kurulunca kataloğu ayrıca bağlamaya gerek kalmadı.
+
+Ölü kod değil — `BlockCatalogDiagnostics` üzerinden ölçüm düzeneği kullanıyor ve `DR-51`'in
+"blok zenginliği heterojenlikle çöküyor" bulgusu oradan geldi. Ama **üretim derlemesinde duran,
+yalnız ölçümün çağırdığı bir sınıf**; ileride aksiyon uzayı yeniden ele alınmazsa taşınması ya da
+kaldırılması gerekir. Açık borç olarak not edildi.
