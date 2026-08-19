@@ -112,6 +112,14 @@ public static class BrCommand
 
                 scenarios?.Add(PlanExport.From(instance.Id, set, input, result));
 
+                // Kisit varsa ihlal HER ornekte sayilir, yalniz --verbose'da
+                // degil: ihlal bir kalite olcusu degil hata sayacidir ve kapiya
+                // girer. Kisitsiz kosuda hesap hic yapilmaz.
+                if (options.Constraints != ConstraintCorpus.Kind.None && !options.Verbose)
+                {
+                    constraints.Add(ConstraintDiagnostics.Analyze(input, result));
+                }
+
                 if (!options.Verbose) continue;
 
                 waste.Add(WasteDiagnostics.Analyze(input, result));
@@ -141,13 +149,20 @@ public static class BrCommand
             var meanSlice = spreads.Count == 0 ? 0d : spreads.Average(s => s.SliceUtilPercent);
             var meanWalls = spreads.Count == 0 ? 0d : spreads.Average(s => s.WallCount);
 
+            var noConstraints = options.Constraints == ConstraintCorpus.Kind.None;
+
             all.AddRange(fills);
             setResults.Add(new BrBaseline.SetResult(
                 set,
                 limit,
                 Math.Round(Mean(fills), 2),
                 Math.Round(meanSpread, 4),
-                Math.Round(meanSlice, 2)));
+                Math.Round(meanSlice, 2),
+                noConstraints ? null : constraints.Sum(c => c.ZoneViolations),
+                noConstraints ? null : constraints.Sum(c => c.FragilityViolations),
+                noConstraints ? null : constraints.Sum(c => c.StackViolations)));
+
+            if (!options.Verbose) constraints.Clear();
 
             var sample = instances[0];
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,

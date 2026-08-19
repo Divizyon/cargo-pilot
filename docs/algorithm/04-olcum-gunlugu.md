@@ -3343,3 +3343,57 @@ köprü kurup arkada cep bırakması gerekiyor (`CepYerlesimiTests` geometrisi).
 belirgin biçimde bağlıyor (5.148 → 0) ama birim düzeyinde kilitlenmedi.
 
 177/36/228 test yeşil; static kapı %84,26 ile değişmeden geçti (LIFO kapalı olduğu için etkilenmez).
+
+---
+
+## 20 Ağustos 2026 — `L-3`: kısıt ihlali kapıya girdi (ve kapının kör olduğu yakalandı)
+
+Boşaltma yolu kuralı geldi ama hiçbir kapı onu korumuyordu. `br --constraints all` koşusu artık
+ihlal sayaçlarını referansa yazıyor ve **toleransı yok**: doluluk bir kalite ölçüsü, ihlal ise bir
+hata — sekiz sert kapı zaten uygulanıyor, sıfır olmayan her sayı bir kusurdur.
+
+Referans: `referans/br-wallbuilder-static-kisitli.json` (700 örnek, `all` kısıt, doluluk %51,21,
+üç ihlal sayacı da **sıfır**). Gecelik iş akışına ikinci bir adım olarak eklendi — kısıtsız koşuda
+LIFO/kırılganlık/istif hiç ateşlenmediği için o kapı bunu asla göremezdi.
+
+### Kapı önce **kör** çıktı
+
+Kapıyı sınamak için kural motorda kapatıldı ve koşu tekrarlandı. Sonuç:
+
+```
+iyilesme BR6: %51,39 -> %56,15 (+4,76 puan)
+iyilesme BR7: %48,32 -> %55,70 (+7,38 puan)
+kapi: GECTI
+```
+
+Kural tamamen kapalıyken kapı **geçti** — üstelik "iyileşme" bildirdi.
+
+Sebebi: `ConstraintDiagnostics`, motorun `PlacementValidator.ViolatesUnloadPath` fonksiyonunu
+çağırıyordu. Kural kapatılınca **dedektör de kapandı**; ihlal sayısı sıfır kaldı, doluluk arttı ve
+kapı bunu kazanç sandı.
+
+Bu, `PhysicalInvariants` başlığındaki uyarının birebir kendisi:
+
+> *Doğrulanacak kuralı doğrulanan koddan okumak, kural bozulduğunda testi de birlikte bozar.*
+
+Teşhis bağımsızlaştırıldı — kuralın kendi kopyası yazıldı. Aynı sınama tekrarlandı:
+
+```
+GERILEME BR1 bosaltma yolu ihlali: 0 -> 207
+GERILEME BR2 bosaltma yolu ihlali: 0 -> 474
+GERILEME BR3 bosaltma yolu ihlali: 0 -> 1.079
+GERILEME BR4 bosaltma yolu ihlali: 0 -> 1.421
+GERILEME BR5 bosaltma yolu ihlali: 0 -> 1.690
+```
+
+Kapı artık görüyor.
+
+### Ders
+
+`G-5`'te teşhisin motorla **aynı adayları görmesini** sağlamıştım ve o doğruydu: orada teşhis
+motorun *fırsatını* ölçüyordu. Burada teşhis motorun *kuralını denetliyor* — ve denetleyen,
+denetlenenden bağımsız olmak zorunda.
+
+İki durum arasındaki fark tek cümleyle: **aynı şeyi görmeli, aynı şeye inanmamalı.**
+
+177/36 test yeşil.

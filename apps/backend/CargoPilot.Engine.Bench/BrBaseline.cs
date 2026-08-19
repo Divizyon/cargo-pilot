@@ -47,7 +47,10 @@ public static class BrBaseline
         int Instances,
         decimal MeanFillPercent,
         double? MeanSpreadRatio = null,
-        double? MeanSliceUtilPercent = null);
+        double? MeanSliceUtilPercent = null,
+        int? ZoneViolations = null,
+        int? FragilityViolations = null,
+        int? StackViolations = null);
 
     public sealed record Report(
         string Strategy,
@@ -136,6 +139,10 @@ public static class BrBaseline
                 continue;
             }
 
+            Violation("bosaltma yolu", reference.ZoneViolations, set.ZoneViolations, set.Set, ref ok);
+            Violation("kirilganlik", reference.FragilityViolations, set.FragilityViolations, set.Set, ref ok);
+            Violation("istif", reference.StackViolations, set.StackViolations, set.Set, ref ok);
+
             var spreadDelta = actualSpread - expectedSpread;
             if (spreadDelta > SpreadTolerance)
             {
@@ -159,6 +166,23 @@ public static class BrBaseline
         Console.WriteLine(ok ? "kapi: GECTI" : "kapi: KALDI");
 
         return ok;
+    }
+
+    /// <summary>
+    /// Kisit ihlali UCUNCU bir kapidir ve toleransi YOKTUR. Doluluk ve yayilma
+    /// birer kalite olcusudur, ihlal ise bir HATA: sekiz sert kapi zaten
+    /// uygulaniyor, sifir olmayan her sayi bir kusurdur.
+    ///
+    /// Kisitsiz kosuda alanlar bos gelir ve kapi sessizce atlanir.
+    /// </summary>
+    private static void Violation(string name, int? expected, int? actual, int set, ref bool ok)
+    {
+        if (expected is not { } before || actual is not { } after || after <= before) return;
+
+        Console.Error.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"GERILEME BR{set} {name} ihlali: {before} -> {after}."));
+
+        ok = false;
     }
 
     /// <summary>

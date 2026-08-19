@@ -55,11 +55,7 @@ public static class ConstraintDiagnostics
             // kutuyu oynatmadan kapiya cikabilmeli. Olcut motorun kendi
             // kuralidir; teshis ile motor ayni tanimi paylasmazsa olculen sey
             // motorun uygulamadigi bir kural olur (bir kez yasandi).
-            if (PlacementValidator.ViolatesUnloadPath(
-                placed, box.X, box.Y, box.Z, box.Width, box.Height, box.Length, item.UnloadingOrder))
-            {
-                zone++;
-            }
+            if (Blocked(placed, box, item.UnloadingOrder)) zone++;
 
             // Kirilgan kutunun ustunde hicbir kutu olamaz.
             if (item.FragilityType == FragilityType.Fragile && CountAbove(placed, box) > 0) fragility++;
@@ -69,6 +65,38 @@ public static class ConstraintDiagnostics
         }
 
         return new Report(zone, fragility, stack, constrained, placed.Count);
+    }
+
+    /// <summary>
+    /// Bosaltma yolu kontrolu — motorun kodundan CAGRILMAZ, bilincli olarak
+    /// bagimsiz yazilir.
+    ///
+    /// Ilk surum <c>PlacementValidator.ViolatesUnloadPath</c>'i cagiriyordu ve
+    /// olcum duzenegini korlestirdigi SINANDI: kural motorda kapatilinca
+    /// teshis de birlikte kapandi, ihlal sayisi sifir kaldi ve kapi gecti.
+    /// Dogrulanacak kurali dogrulanan koddan okumak, kural bozuldugunda
+    /// denetciyi de birlikte bozar (ayni gerekce PhysicalInvariants basliginda).
+    ///
+    /// Kural: bir kutu, kendi inis sirasi geldiginde hala aracta olan hicbir
+    /// kutuyu oynatmadan kapiya cikabilmeli. Iki yonludur.
+    /// </summary>
+    private static bool Blocked(List<PlacedBox> placed, PlacedBox box, int? order)
+    {
+        if (order is not { } mine) return false;
+
+        var doorSide = box.Z + box.Length;
+
+        foreach (var other in placed)
+        {
+            if (other.UnloadingOrder is not { } theirs || theirs == mine) continue;
+            if (other.X >= box.X + box.Width || other.X + other.Width <= box.X) continue;
+            if (other.Y >= box.Y + box.Height || other.Y + other.Height <= box.Y) continue;
+
+            var otherDoorSide = other.Z + other.Length;
+            if (theirs > mine ? otherDoorSide > doorSide : doorSide > otherDoorSide) return true;
+        }
+
+        return false;
     }
 
     /// <summary>Kutunun ayak izini kesen ve daha yukarida duran kutu sayisi.</summary>

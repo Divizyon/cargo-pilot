@@ -68,6 +68,16 @@ jobs:
             br --baseline "$GITHUB_WORKSPACE/docs/algorithm/referans/br-wallbuilder-static.json" \
                --report "$GITHUB_WORKSPACE/br-wallbuilder-run.json"
 
+      # Kisit kapisi AYRI kosar: kisitsiz kosuda LIFO, kirilganlik ve istif
+      # kurallari hic atesLENMEZ, dolayisiyla ihlal sayaci her zaman sifirdir ve
+      # hicbir gerilemeyi gosteremez. Bu kosuda ucu birden aciktir.
+      #
+      # Ihlalin toleransi YOKTUR: doluluk bir kalite olcusu, ihlal ise bir hata.
+      # Sekiz sert kapi zaten uygulaniyor; sifir olmayan her sayi bir kusurdur.
+      - name: Duvar örücü — kısıtlı korpus (LIFO + kırılganlık + istif)
+        run: |
+          dotnet run --project apps/backend/CargoPilot.Engine.Bench --no-build --configuration Release --             br --constraints all                --baseline "$GITHUB_WORKSPACE/docs/algorithm/referans/br-wallbuilder-static-kisitli.json"                --report "$GITHUB_WORKSPACE/br-kisitli-run.json"
+
       # Kapi kaldiginda karsilastirmayi elle yapabilmek icin kosu ciktilari saklanir.
       - name: Koşu çıktılarını sakla
         if: always()
