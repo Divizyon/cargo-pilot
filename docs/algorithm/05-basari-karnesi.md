@@ -122,7 +122,7 @@ duvar disiplininden vazgeçiyor** (GRASP'ta kutuların %45'i hiçbir duvarda de�
 
 | | Ne | Etki |
 |---|---|---|
-| `DR-38` | **Kısıt tarafında kıyas kapsaması yok.** Hiçbir korpusta LIFO / kırılganlık / ağırlık senaryosu yok; `R-C14` metrikleri (`WallCount`, `AvgWallFlushness`, `ZoneViolations`) hiç üretilmiyor | `DR-09`/`DR-10`/`DR-11` doğrulanamıyor |
+| — | **Kısıtlar pahalı ve bu ilk kez ölçüldü** (`DR-66`): kırılganlık −32,39 · istif ≤2 −18,19 · LIFO −1,62 puan | BR sayılarımız **kısıtsız** dünyanın sayıları |
 | — | **Ağırlık dengesi duvar örücüde optimize edilmiyor.** Greedy'nin `BalanceScoring`'i kalktı; denge yalnız GRASP uygunluğunda, sıra düzeyinde | Bilerek kabul edilen gerileme (~3× kötü) |
 | `DR-65` | **Eşzamanlılık kaybı 4,8 puan** — 1 istek %87,01, 8+ istek %82,21 (aynı senaryo) | Taban hâlâ yüksüz GRASP'ın (%80,57) üstünde; çözüm kapasite planlaması |
 | — | **Üretim gecikmesi ~4 sn** ve arayüzde bekleme göstergesi yok. Ölçüldü: yarısı motor değil, **API/DB yükü** (static de 2,09 sn) | İki ayrı iş: arayüz göstergesi ve kalıcılık maliyeti |

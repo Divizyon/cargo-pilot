@@ -36,6 +36,7 @@ public static class BrCommand
         var support = new List<SupportDiagnostics.Distribution>();
         var maximality = new List<MaximalityDiagnostics.Report>();
         var walls = new List<WallDiagnostics.Report>();
+        var constraints = new List<ConstraintDiagnostics.Report>();
         var catalog = new List<BlockCatalogDiagnostics.Report>();
 
         foreach (var set in sets)
@@ -49,9 +50,10 @@ public static class BrCommand
             for (var i = 0; i < limit; i++)
             {
                 var instance = instances[i];
+                var constrained = ConstraintCorpus.Apply(instance.Input, options.Constraints);
                 var scaled = options.BrLoadRatio < 1m
-                    ? instance.Input with { Items = Scale(instance.Input.Items, options.BrLoadRatio) }
-                    : instance.Input;
+                    ? constrained with { Items = Scale(constrained.Items, options.BrLoadRatio) }
+                    : constrained;
                 var input = scaled with
                 {
                     Sequencer = options.Sequencer,
@@ -75,18 +77,20 @@ public static class BrCommand
                 support.Add(SupportDiagnostics.Analyze(input, result));
                 maximality.Add(MaximalityDiagnostics.Analyze(input, result));
                 walls.Add(WallDiagnostics.Analyze(input, result));
+                constraints.Add(ConstraintDiagnostics.Analyze(input, result));
                 catalog.Add(BlockCatalogDiagnostics.Analyze(input, BlockCatalog.DefaultMaxBlocks));
             }
 
             if (options.Verbose)
             {
-                WriteDiagnostics(set, waste, spaces, shape, support, maximality, walls, catalog);
+                WriteDiagnostics(set, waste, spaces, shape, support, maximality, walls, catalog, constraints);
                 waste.Clear();
                 spaces.Clear();
                 shape.Clear();
                 support.Clear();
                 maximality.Clear();
                 walls.Clear();
+                constraints.Clear();
                 catalog.Clear();
             }
 
@@ -132,7 +136,8 @@ public static class BrCommand
         List<SupportDiagnostics.Distribution> support,
         List<MaximalityDiagnostics.Report> maximality,
         List<WallDiagnostics.Report> walls,
-        List<BlockCatalogDiagnostics.Report> catalog)
+        List<BlockCatalogDiagnostics.Report> catalog,
+        List<ConstraintDiagnostics.Report> constraints)
     {
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"      BR{set} teshis · olu hava %{waste.Average(w => w.DeadAirPercent):F1}" +
@@ -174,6 +179,11 @@ public static class BrCommand
             + $" · sinira dayanan %{100d * catalog.Count(c => c.HitCap) / catalog.Count:F0}"
             + $" · kutu/blok ort {catalog.Average(c => c.MeanBoxesPerBlock):F1}"
             + $" · azami {catalog.Max(c => c.MaxBoxesPerBlock)}"));
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"           KISIT · kisitli kutu %{100d * constraints.Sum(c => c.ConstrainedBoxes) / Math.Max(1, constraints.Sum(c => c.PlacedBoxes)):F0}"
+            + $" · BOLGE ihlali {constraints.Sum(c => c.ZoneViolations)}"
+            + $" · KIRILGANLIK ihlali {constraints.Sum(c => c.FragilityViolations)}"
+            + $" · ISTIF ihlali {constraints.Sum(c => c.StackViolations)}"));
     }
 
     /// <summary>

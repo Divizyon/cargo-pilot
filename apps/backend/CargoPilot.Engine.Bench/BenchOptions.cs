@@ -26,6 +26,7 @@ public sealed record BenchOptions(
     int BrSet,
     decimal BrLoadRatio,
     decimal? DepthSlack,
+    ConstraintCorpus.Kind Constraints,
     (double Volume, double Waste, double Contact, double BoxCount)? VcsWeights,
     string? BaselinePath,
     decimal? SupportThreshold,
@@ -59,6 +60,7 @@ public sealed record BenchOptions(
         var brSet = -1;
         var brLoadRatio = 1m;
         decimal? depthSlack = null;
+        var constraints = ConstraintCorpus.Kind.None;
         (double, double, double, double)? vcsWeights = null;
         string? baselinePath = null;
         decimal? supportThreshold = null;
@@ -123,6 +125,9 @@ public sealed record BenchOptions(
                 case "--vcs":
                     vcsWeights = ParseVcs(value, arg);
                     break;
+                case "--constraints":
+                    constraints = ConstraintCorpus.Parse(value);
+                    break;
                 case "--depth-slack":
                     depthSlack = ParseDecimal(value, arg);
                     break;
@@ -157,6 +162,7 @@ public sealed record BenchOptions(
             Math.Clamp(brSet, -1, 15),
             Math.Clamp(brLoadRatio, 0.05m, 1m),
             depthSlack,
+            constraints,
             vcsWeights,
             baselinePath,
             supportThreshold,
@@ -198,6 +204,9 @@ public sealed record BenchOptions(
                                Kismi doluluk sinamak icin: 0,5 yarim yuk demektir.
               --vcs A,B,C,D    VCS ustelleri: hacim,kayip,temas,kutu (or. 1,2,0.5,1).
                                Verilmezse dordu de 1 (kalibre edilmemis taban).
+              --constraints K  br kipinde kisit ekler: none | lifo | fragile | stack | all.
+                               Veri degismez, yalniz kisit alanlari doldurulur;
+                               boylece kisitli/kisitsiz kosu birebir kiyaslanir.
               --depth-slack S  yuku ideal derinligin S katina toplar (or. 1,15).
                                Verilmezse sinir yok (bugunku davranis).
               --support N      asgari destek orani (varsayilan 0.80). YALNIZ OLCUM icin

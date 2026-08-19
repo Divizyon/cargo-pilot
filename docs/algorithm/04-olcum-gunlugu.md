@@ -2694,3 +2694,74 @@ Kayıp kapasiteyle ilgili, algoritmayla değil. Üç yol var ve üçü de bu otu
    zaten **anytime** (`DR-60`), yani bu desene hazır.
 
 Ölçülmüş eğri elde: kaç eşzamanlı istekte ne kaybedildiği biliniyor. Karar kapasite planlamasıdır.
+
+---
+
+## `DR-38` kapandı — **kısıt tarafı ilk kez ölçüldü**, ve bir yanılsama yakalandı
+
+İki korpusumuz da yalnız hacim ölçüyordu: `UnloadingOrder` hep `null`, hiçbir kutu kırılgan değil,
+istif sınırsız. Yani motorun sekiz sert kapısının üçü **yedi yüz örnekte hiç ateşlenmiyordu**;
+yalnız on yedi elle yazılmış senaryoda sınanıyorlardı.
+
+`ConstraintCorpus` yazıldı: BR örneğinin **verisini değiştirmeden** kısıt alanlarını dolduruyor —
+aynı kutular, aynı ölçüler. Böylece kısıtlı ve kısıtsız koşu birebir kıyaslanabiliyor ve fark
+yalnızca kısıttan geliyor. `--constraints none | lifo | fragile | stack | all`.
+
+### Önce bir yanılsama
+
+İlk koşu **LIFO'nun bedava olduğunu** söyledi: %83,63 → %83,63, tam sıfır maliyet.
+
+Şüphelenip bakınca sebep çıktı: `UseLifo` yalnızca `Criteria == Lifo` olduğunda açılıyor
+(`OptimizationModules.FromCriteria`). `UnloadingOrder` doldurulmuştu ama kriter `VolumeFirst`
+kalmıştı — **bölgeler hiç kurulmadı.** Ölçüm "LIFO bedava" diyordu çünkü LIFO hiç çalışmıyordu.
+
+Bu tam olarak `ConstraintDiagnostics`'in kendi belge yorumunda uyardığı tuzak: *"kısıt hiç
+ateşlenmediyse sıfır ihlal bir güvence değil, bir yanılsamadır."* Uyarıyı yazıp aynı tuzağa
+düşmek, kapsama metriğinin neden zorunlu olduğunun en iyi kanıtı.
+
+Düzeltildi: `Lifo` bayrağı kriteri de açıyor. Sıralama bozulmuyor — `ApplyCriteriaSort`'ta `Lifo`
+ve `VolumeFirst` aynı sırayı veriyor (hacim-azalan), yani ölçülen fark **yalnızca bölge
+kısıtından** geliyor.
+
+### Kısıtların maliyeti (static, 700 örnek, gürültüsüz)
+
+| Kısıt | Doluluk | Maliyet |
+|---|---|---|
+| Yok | **%83,63** | — |
+| **LIFO** (3 boşaltma grubu) | %82,01 | **−1,62** |
+| **İstif ≤ 2** | %65,44 | **−18,19** |
+| **Kırılganlık** (her 3. tip) | %51,24 | **−32,39** |
+| Hepsi birden | %45,92 | **−37,71** |
+
+**İlk kez sayısal:**
+
+- **LIFO ucuz.** Üç boşaltma grubu 1,62 puana mal oluyor. Aracı üç banda bölmenin bedeli
+  beklenenden düşük — duvar örücü zaten `z` boyunca ilerlediği için bölge disiplini onun doğal
+  çalışma biçimine yakın.
+- **Kırılganlık çok pahalı.** Tiplerin üçte biri kırılgan olunca doluluk **32 puan** düşüyor.
+  Sebep açık: kırılgan kutunun üstüne hiçbir şey konamıyor, yani her kırılgan kutu bulunduğu
+  sütunu kapatıyor ve yığın yükselemiyor.
+- **İstif sınırı da pahalı.** "Üstünde en fazla iki kutu" 18 puan.
+- Üçü birden 37,71 puan — yani doluluk **yarıya** iniyor.
+
+Bu sayılar bir uyarı olarak okunmalı: **BR ölçümlerimiz kısıtsız dünyanın sayılarıdır.** Gerçek
+sevkiyatta kırılgan ürün varsa %90 beklentisi gerçekçi değil.
+
+### İhlal taraması — asıl güvence
+
+Sekiz sert kapı yerleştirme anında zaten uygulanıyor, yani ihlaller **sıfır olmalı**. Değer tam
+bunda: sıfır olmadığı anda bir hata vardır ve yedi yüz örnekte aranması, on yedi senaryonun
+veremeyeceği bir güvencedir.
+
+| Yol | Kısıtlı kutu | Bölge ihlali | Kırılganlık | İstif |
+|---|---|---|---|---|
+| Static, her kısıt | %23-100 | **0** | **0** | **0** |
+| **Beam, tüm kümeler, `all`** | **%100** | **0** | **0** | **0** |
+
+Kapsama gerçek (kısıtlı kutu oranı raporlanıyor), ihlal sıfır.
+
+Gerekçesi yaşanmıştı: `DepthSlack` ile LIFO bölgeleri çatıştı (`DR-57`) ve hata yalnızca varsayılan
+açıldığında, değişmez testleri sayesinde görüldü. Kısıtlı korpus olsaydı aynı hata ölçümde de
+görünürdü — bundan sonra görünecek.
+
+173/36 test yeşil, kapı geçti (%83,63), motor kodu değişmedi.
