@@ -12,7 +12,8 @@ liste dolduğunda toplu bir araştırma + geliştirme turu yapılır ve kalıcı
 | `G-1` | Plana farklı bir ürün eklenince **ekranda** yerleşim bozuluyor, kutular havada/kademeli duruyor | Frontend, manuel yerleşim önizlemesi | **Teşhis edildi** — kod tarafında doğrulandı |
 | `G-2` | İlk duvarda boşluk varken motor yeni duvar açıyor | **Motor**, duvar örücü | **Ölçüldü ve doğrulandı** — boşluk gerçek, kutu sığıyor |
 | `G-3` | Küçük kutu dik konunca kesitte kullanılamaz şerit kalıyor | **Motor**, yönelim + kesit döşemesi | **Ölçüldü** — `DR-57`'nin F6-3'ü kapatma gerekçesiyle çelişiyor |
-| `G-4` | Yarım dolu araçta yük bütün uzunluğa yayılıyor; `DepthSlack` tutmuyor | **Motor**, derinlik bütçesi | **16 planda ölçüldü** — yayılma boşlukla birlikte artıyor |
+| `G-4` | Yarım dolu araçta yük bütün uzunluğa yayılıyor; `DepthSlack` tutmuyor | **Motor**, derinlik bütçesi | **`F8-1` ile büyük ölçüde kapandı** |
+| `G-5` | Kenarda sığacak yer görünüyor ama kutu konmuyor | **Motor**, aday konum üretimi | **Kök neden bulundu** — destek eşiği değil, boşluk **köşesi** |
 
 ---
 
@@ -401,3 +402,108 @@ kötü değil — **nereye yerleştireceğine karar verirken sıkılığı hiç 
 - [ ] **Gecelik kapıya yarım dolu rejim eklenmeli.** `--load-ratio` bayrağı var ama kapı yalnız
       taşan yükle koşuyor. Yukarıdaki tablo bugün **hiçbir ölçümde görünmüyor**; bu tablo kapıya
       girmeden yapılacak hiçbir düzeltme korunamaz.
+
+---
+
+## `G-5` — Aday konum boşluk başına **tek**: köşe. Kenardaki yer bu yüzden kullanılmıyor *(motor)*
+
+### Belirti
+
+`%100 hedef · tamamen farklı (100 tip) · BR15` planında kenarda gözle görülür boşluk var,
+oraya sığacak ürünler "yüklenemeyen" listesinde duruyor. İlk hipotez: **%80 destek kuralı**
+tıkıyor, 0,60'a indirilebilir.
+
+### Hipotez kısmen doğru — ama asıl tıkaç o değil
+
+27 yerleşemeyen kalemin her biri için, **son yerleşimde** her aday konum ve 6 yönelim tarandı;
+her konumda motorun kendi destek tanımıyla (`PlacementValidator.SupportRatio`) oran hesaplandı.
+
+| Sonuç | Adet |
+|---|---|
+| **≥ %80 destekli bir konumu VAR** (bugünkü eşiği zaten geçerdi) | **21** |
+| %60–80 arası (eşik 0,60 olsa açılırdı) | 1 |
+| %60 altı (altında destek yok, hiçbir eşik çözmez) | 0 |
+| Hiç sığacak yer yok | 5 |
+
+**21/27 kutu, bugünkü kuralı geçen bir konuma sahip ve yine de yerleşmemiş.** Yani engel destek
+eşiği değil.
+
+Doğrulama — `BR15-T026` için bulunan konum bağımsız olarak sınandı:
+
+```
+BR15-T026 rot=3 -> (0, 108, 318) olcu 29x80x65
+  arac ici mi : x+w=29<=233  y+h=188<=220  z+l=383<=587
+  destek      : %87,7   altinda BR15-T048, temas 1653 cm2
+  cakisan kutu: 0
+```
+
+Araç içinde, sıfır çakışma, %88 destek. Motor bu noktayı **hiç denemedi**.
+
+### Kök neden
+
+`WallBuilderPlacement.cs:785-799` — her boşluk için aday konum **tektir**:
+
+```csharp
+foreach (var space in ledger.Spaces)
+    ...
+    var x = fillFromMaxX ? space.MaxX - width : space.X;
+    var y = space.Y;
+    var z = space.Z < zFloor ? zFloor : space.Z;
+```
+
+Yani kutu yalnızca **boşluğun köşesine** konulmayı dener. Köşe desteksizse (ya da başka bir engel
+varsa) o boşluk tamamen elenir — hâlbuki 20 cm ileride tam destekli bir konum olabilir.
+
+Defter suçlu değil: boşluklar maksimal (`MAKSIMAL OLMAYAN bosluk %0,0`) ve tabanlarının desteksiz
+olabilmesi **bilinçli** bir tercih (`SpaceLedger` başlığı, F2a: tabanı destekli bölgeye kırpmak
+doluluğu %75,99 → %73,65'e düşürmüştü). Sorun boşluğun *kendisinde* değil, boşluk içinde **tek bir
+nokta denenmesinde**.
+
+Bu, literatürde bilinen ayrımdır: *corner point* yerine *extreme point* aday üretimi
+(Crainic, Perboli & Tadei, CIRRELT-2007-41). Araştırma raporu da aynı kaynağı `G-1` bağlamında
+gösteriyor.
+
+### Aynı kusur teşhis aracında da var
+
+`SpaceDiagnostics.SupportedSomewhere` desteği yine **yalnız boşluk köşesinde** sınıyor. Bu yüzden
+"sığan+destekli %0,1" diyor — gerçek sayı çok daha yüksek. Teşhis motorun kusurunu paylaştığı için
+kusuru göstermiyordu.
+
+### Destek eşiği ölçümü — kullanıcının önerisi ayrıca ölçüldü
+
+Static, BR1-BR7, 175 örnek:
+
+| Eşik | Doluluk | Kazanç | Ort. destek | En düşük | %80 altı kutu | Azami taşma |
+|---|---|---|---|---|---|---|
+| **0,80** *(bugün)* | %83,78 | — | %99,0 | %82,4 | %0,0 | 13 cm |
+| 0,70 | %84,23 | +0,45 | %98,3 | %72,8 | %3,9 | 21 cm |
+| **0,60** | **%84,42** | **+0,64** | %97,6 | %64,4 | %5,8 | 28 cm |
+| 0,50 | %84,64 | +0,86 | %96,8 | %54,8 | %7,4 | 40 cm |
+
+BR15'te kazanç daha büyük: **%79,32 → %80,85 (+1,53)**.
+
+Okunuşu: eşiği düşürmek planın tamamını gevşetmiyor — ortalama destek 0,60'ta bile %97,6.
+Yalnızca kutuların %5,8'i %80'in altına iniyor. Ama azami taşma 13 cm'den 28 cm'ye çıkıyor;
+0,50'de 40 cm'ye çıkıyor ki bu fiziksel olarak riskli.
+
+`DR-16` bu eşiğin "fizik kanunu değil **politika**" olduğunu ve "müşteri kararı sayı olmadan
+verilemez" dediğini kaydetmişti. Sayılar artık var.
+
+### Sıraya etkisi
+
+`G-5`'in kazanç potansiyeli `F8-2` ve `F8-3`'ten **büyük** görünüyor ve ikisinin de önüne geçmeli:
+
+- Kazanç iki rejimde birden: taşan yükte doluluk, kısmi yükte sıkılık.
+- Değişiklik yerleştiricinin **tek bir noktasında** (aday üretimi) toplanıyor.
+- `F8-3`'ün (kesit kombinasyonu) faydası zaten aday üretimine bağlı: daha iyi kombinasyon
+  seçilse bile konum denenmiyorsa işe yaramaz.
+
+### Doğrulanacaklar
+
+- [ ] Aday üretimi köşeden **destekli uç noktalara** genişletildiğinde BR1-BR7 ve BR15 ne kazanır?
+      Aday sayısı boşluk başına birden çoğa çıkacağı için **süre maliyeti ölçülmeli** (2 sn bütçe).
+- [ ] Aday sayısını sınırlamak gerekirse ölçüt ne olmalı: destek oranı mı, temas alanı mı?
+- [ ] `SpaceDiagnostics.SupportedSomewhere` aynı genişletmeyi almalı, yoksa ölçüm kusuru
+      paylaşmaya devam eder.
+- [ ] Destek eşiği 0,60 kararı `G-5` düzeltildikten **sonra** yeniden ölçülmeli: aday üretimi
+      düzelince eşik düşürmenin marjinal kazancı azalabilir.
