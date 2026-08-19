@@ -2,56 +2,56 @@
   "Strategy": "WallBuilder",
   "Sequencer": "Static",
   "Orientation": "Strict",
-  "MeanFillPercent": 74.18,
+  "MeanFillPercent": 74.23,
   "Sets": [
     {
       "Set": 1,
       "Instances": 100,
       "MeanFillPercent": 74.13,
-      "MeanSpreadRatio": 1.2652,
-      "MeanSliceUtilPercent": 79.27
+      "MeanSpreadRatio": 1.2643,
+      "MeanSliceUtilPercent": 79.33
     },
     {
       "Set": 2,
       "Instances": 100,
-      "MeanFillPercent": 74.19,
-      "MeanSpreadRatio": 1.2675,
-      "MeanSliceUtilPercent": 79.06
+      "MeanFillPercent": 74.27,
+      "MeanSpreadRatio": 1.2696,
+      "MeanSliceUtilPercent": 78.91
     },
     {
       "Set": 3,
       "Instances": 100,
-      "MeanFillPercent": 74.40,
-      "MeanSpreadRatio": 1.2718,
-      "MeanSliceUtilPercent": 78.76
+      "MeanFillPercent": 74.41,
+      "MeanSpreadRatio": 1.2706,
+      "MeanSliceUtilPercent": 78.84
     },
     {
       "Set": 4,
       "Instances": 100,
-      "MeanFillPercent": 74.25,
-      "MeanSpreadRatio": 1.2901,
-      "MeanSliceUtilPercent": 77.61
+      "MeanFillPercent": 74.26,
+      "MeanSpreadRatio": 1.286,
+      "MeanSliceUtilPercent": 77.87
     },
     {
       "Set": 5,
       "Instances": 100,
-      "MeanFillPercent": 74.13,
-      "MeanSpreadRatio": 1.2945,
-      "MeanSliceUtilPercent": 77.35
+      "MeanFillPercent": 74.18,
+      "MeanSpreadRatio": 1.2874,
+      "MeanSliceUtilPercent": 77.78
     },
     {
       "Set": 6,
       "Instances": 100,
-      "MeanFillPercent": 74.15,
-      "MeanSpreadRatio": 1.3068,
-      "MeanSliceUtilPercent": 76.57
+      "MeanFillPercent": 74.20,
+      "MeanSpreadRatio": 1.3059,
+      "MeanSliceUtilPercent": 76.63
     },
     {
       "Set": 7,
       "Instances": 100,
-      "MeanFillPercent": 73.99,
-      "MeanSpreadRatio": 1.3133,
-      "MeanSliceUtilPercent": 76.21
+      "MeanFillPercent": 74.18,
+      "MeanSpreadRatio": 1.309,
+      "MeanSliceUtilPercent": 76.45
     }
   ],
   "LoadRatio": 0.75

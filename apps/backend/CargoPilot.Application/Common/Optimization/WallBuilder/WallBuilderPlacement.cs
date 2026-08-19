@@ -336,6 +336,19 @@ internal static class WallBuilderPlacement
             failedSincePlacement.Clear();
         }
 
+        // SON GECIS. Ana dongu TEK YONLUDUR: bir kutu yerlesemediginde bir daha
+        // denenmez. Ama yerlesim durumu sonradan degisir — arkasindan gelen
+        // kutular platform kurar ve erken elenen kutunun yeri ACILIR.
+        //
+        // Olculdu (BR15, %100 yuk): 27 yerlesemeyen kalemin 21'i SON yerlesimde
+        // %80 destek esigini gecen bir konuma sahipti. Yani kayip, yer olmadigi
+        // icin degil, yer sonradan actigi icin olusuyordu.
+        //
+        // Gecis ilerleme durana kadar yinelenir: bir kutunun yerlesmesi bir
+        // sonrakine platform kurabilir.
+        RetryUnplaced(input, ledger, placements, instances, unplaced, groupZones,
+            fillFromMaxX, minSide, depthBudget, ref totalWeight, cancellationToken);
+
         state.TotalWeight = totalWeight;
         state.DepthBudget = depthBudget;
 
@@ -344,6 +357,71 @@ internal static class WallBuilderPlacement
                 placements, unplaced, input.VehicleWidth, input.VehicleHeight, input.VehicleLength,
                 walls: walls),
             state);
+    }
+
+    /// <summary>
+    /// Yerlesemeyen kutulari, ana dongu bittikten sonra defterin SON haliyle
+    /// yeniden dener. Duvar bandi yoktur (cep taramasiyla ayni kademe); bolge
+    /// ve derinlik butcesi korunur.
+    ///
+    /// Blok orulmez: bunlar artiklardir ve tek tek yerlesirler. Blok denemek
+    /// hem pahali olurdu hem de artiklarin ayni tipten komsusu genelde kalmaz.
+    ///
+    /// Determinizm (R-C02): liste sirasinda gezilir, rastgelelik yoktur.
+    /// </summary>
+    private static void RetryUnplaced(
+        OptimizationInput input,
+        SpaceLedger ledger,
+        List<PlacedBox> placements,
+        IReadOnlyList<SequencedItem> instances,
+        List<UnplacedBox> unplaced,
+        Dictionary<int, (decimal ZStart, decimal ZEnd)> groupZones,
+        bool fillFromMaxX,
+        decimal minSide,
+        decimal? depthBudget,
+        ref decimal totalWeight,
+        CancellationToken cancellationToken)
+    {
+        if (unplaced.Count == 0) return;
+
+        var byItem = new Dictionary<Guid, SequencedItem>();
+        foreach (var instance in instances) byItem.TryAdd(instance.Item.ItemId, instance);
+
+        var progressed = true;
+
+        while (progressed)
+        {
+            progressed = false;
+
+            for (var index = unplaced.Count - 1; index >= 0; index--)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (!byItem.TryGetValue(unplaced[index].ItemId, out var sequenced)) continue;
+
+                var item = sequenced.Item;
+                if (totalWeight + item.Weight > input.VehicleMaxWeight) continue;
+
+                decimal? zoneStart = null;
+                decimal? zoneEnd = null;
+                if (groupZones.TryGetValue(item.UnloadingOrder ?? -1, out var zone))
+                {
+                    zoneStart = zone.ZStart;
+                    zoneEnd = zone.ZEnd;
+                }
+
+                var attempt = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
+                    0m, depthBudget, zoneStart, zoneEnd, remaining: 1, 0m);
+
+                if (attempt.Box is not { } box) continue;
+
+                placements.Add(box);
+                totalWeight += box.Weight;
+                ledger.Place(box.X, box.Y, box.Z, box.Width, box.Height, box.Length, minSide);
+                unplaced.RemoveAt(index);
+                progressed = true;
+            }
+        }
     }
 
     /// <summary>Hedef derinligin buyutulme adimi; her basarisizlikta tavan bu kadar acilir.</summary>
@@ -971,7 +1049,7 @@ internal static class WallBuilderPlacement
     /// ILK konumda durur: <c>z</c> onceligi yukleme yonuyle ayni taraftadir ve
     /// sabit sira determinizmi (R-C02) korur.
     /// </summary>
-    private static (decimal X, decimal Z) SupportAligned(
+    internal static (decimal X, decimal Z) SupportAligned(
         List<PlacedBox> placements,
         FreeSpace space,
         decimal x, decimal y, decimal z,

@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Models;
+﻿using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Application.Common.Optimization.WallBuilder;
 
@@ -101,13 +101,31 @@ public static class SpaceDiagnostics
     /// <summary>
     /// Kutu, sigdigi bosluklardan BIRINDE destek de buluyor mu. Bulamiyorsa engel
     /// geometri degil %80 destek kuralidir — yani yigin ustunun engebesi.
+    ///
+    /// Aday konumlar motorun kendi uretecinden gelir: once bosluğun kosesi,
+    /// kose desteksizse alttaki destek kutularinin kenarlarina hizali konumlar
+    /// (<see cref="WallBuilderPlacement.SupportAligned"/>). Bu paylasim ZORUNLU:
+    /// teshis yalnizca koseyi sinadigi surece motorun kendi kusurunu paylasir ve
+    /// "destek bulamiyor" der — G-5'te tam olarak bu oldu, gercek sayi cok daha
+    /// yuksekti.
     /// </summary>
     private static bool SupportedSomewhere(
         IReadOnlyList<FreeSpace> spaces, List<PlacedBox> placed, OptimizationItemInput item)
         => PlacementValidator.GetOrientations(item)
-            .Any(o => spaces.Any(space =>
-                space.Fits(o.width, o.height, o.length)
-                && PlacementValidator.HasSupport(placed, space.X, space.Y, space.Z, o.width, o.length)));
+            .Any(o => spaces.Any(space => space.Fits(o.width, o.height, o.length)
+                && SupportedInSpace(placed, space, o.width, o.length)));
+
+    private static bool SupportedInSpace(
+        List<PlacedBox> placed, FreeSpace space, decimal width, decimal length)
+    {
+        if (PlacementValidator.HasSupport(placed, space.X, space.Y, space.Z, width, length)) return true;
+
+        var (x, z) = WallBuilderPlacement.SupportAligned(
+            placed, space, space.X, space.Y, space.Z, width, length,
+            zFloor: 0m, threshold: PlacementValidator.SupportThreshold);
+
+        return PlacementValidator.HasSupport(placed, x, space.Y, z, width, length);
+    }
 
     private static double Percent(decimal part, decimal total) => total == 0m ? 0d : (double)(part / total) * 100d;
 }
