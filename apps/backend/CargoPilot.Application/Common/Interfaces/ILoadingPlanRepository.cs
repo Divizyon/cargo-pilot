@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Erp;
+﻿using CargoPilot.Application.Common.Erp;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Features.Plans.GetDashboardStats;
 using CargoPilot.Application.Features.Plans.GetLoadingPlanReports;
@@ -45,6 +45,14 @@ public interface ILoadingPlanRepository
         CancellationToken cancellationToken = default);
 
     Task<LoadingPlan?> GetByIdAsync(Guid id, Guid? companyId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Planin mevcut yerlesimleri, artimli yerlestirmede SABIT tutulmak uzere.
+    /// Yalnizca konum ve donme doner; olculer motorda urunden turetilir.
+    /// </summary>
+    Task<IReadOnlyList<FixedPlacement>> GetFixedPlacementsAsync(
+        Guid planId,
+        CancellationToken cancellationToken = default);
     Task<int> CountByUserAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<int> CountByCompanyAsync(Guid companyId, CancellationToken cancellationToken = default);
 

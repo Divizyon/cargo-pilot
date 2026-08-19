@@ -424,6 +424,76 @@ internal static class WallBuilderPlacement
         }
     }
 
+    /// <summary>
+    /// SABIT yerlesimlerin uzerine yalnizca KALAN kutulari koyar.
+    ///
+    /// Neden gerekiyor: arayuzde plana bir urun eklendiginde bugun motor
+    /// cagrilmiyor, frontend kendi paketleyicisiyle konum uyduruyor (G-1). O
+    /// paketleyici motorun sekiz sert kapisinin altisini uygulamiyor ve
+    /// destek/kirilganlik/istif/bolge kontrolleri sessizce atlaniyor. Tam
+    /// yeniden optimizasyon ise mevcut kutulari da oynatir; kullanici "elle
+    /// koydugum kutu nereye gitti" der.
+    ///
+    /// Bu yol ikisinin arasidir: gelen yerlesimler DOKUNULMAZ, defter onlarla
+    /// doldurulur ve yalnizca eslesmeyen birimler yerlestirilir. Butun kapilar
+    /// motorun kendisinden gelir, cunku ayni yerlestirici kosar.
+    ///
+    /// Eslestirme urun kimligine gore yapilir: ayni tipten birimler birbirinin
+    /// ayni oldugu icin hangisinin sabit oldugu onemsizdir. Girdide karsiligi
+    /// olmayan sabit yerlesim yok sayilir — o urun listeden cikarilmis demektir.
+    ///
+    /// Donen sonuc SABITLERI DE ICERIR: <see cref="PlacementState.Placements"/>
+    /// onlarla baslar ve uzerine eklenir, yani cagiran taraf plani tek parca
+    /// olarak kaydedebilir.
+    /// </summary>
+    internal static OptimizationResult RunFrom(
+        OptimizationInput input,
+        IReadOnlyList<PlacedBox> fixedBoxes,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(fixedBoxes);
+
+        var expanded = input.Items.SelectMany(i => Enumerable.Range(0, i.Quantity).Select(_ => i));
+        var instances = ItemOrdering
+            .SortForGroupPlacement(expanded, input.Criteria, input.ClusterGroups)
+            .Select(SequencedItem.Plain)
+            .ToList();
+
+        var modules = OptimizationModules.Resolve(input);
+        var lifo = modules.UseLifo && instances.Exists(i => i.Item.UnloadingOrder.HasValue);
+        var state = PlacementState.Fresh(input, instances.Count, DepthBudget(input, instances, lifo));
+
+        var minSide = instances.Count == 0
+            ? 0m
+            : instances.Min(i => Math.Min(i.Item.Width, Math.Min(i.Item.Height, i.Item.Length)));
+
+        var consumed = state.Consumed;
+
+        foreach (var box in fixedBoxes)
+        {
+            var index = -1;
+            for (var position = 0; position < instances.Count; position++)
+            {
+                if (consumed[position] || instances[position].Item.ItemId != box.ItemId) continue;
+
+                index = position;
+                break;
+            }
+
+            // Girdide karsiligi kalmamis sabit yerlesim: urun listeden
+            // cikarilmis demektir, sessizce dusurulur.
+            if (index < 0) continue;
+
+            consumed[index] = true;
+            state.Placements.Add(box);
+            state.TotalWeight += box.Weight;
+            state.Ledger.Place(box.X, box.Y, box.Z, box.Width, box.Height, box.Length, minSide);
+        }
+
+        return Run(input, instances, DecoderKeys.Neutral, state, cancellationToken).Result;
+    }
+
     /// <summary>Hedef derinligin buyutulme adimi; her basarisizlikta tavan bu kadar acilir.</summary>
     private const double VcsTieEpsilon = 1e-9d;
 

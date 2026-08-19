@@ -364,6 +364,18 @@ internal sealed class LoadingPlanRepository : ILoadingPlanRepository
         => await _context.LoadingPlans
             .FirstOrDefaultAsync(p => p.Id == id && p.CompanyId == companyId, cancellationToken);
 
+    public async Task<IReadOnlyList<FixedPlacement>> GetFixedPlacementsAsync(
+        Guid planId,
+        CancellationToken cancellationToken = default)
+        => await _context.LoadingPlanPlacements
+            .AsNoTracking()
+            .Where(p => p.LoadingPlanId == planId)
+            // Sira determinizm icin: ayni plan her okundugunda ayni listeyi
+            // vermeli, yoksa artimli yerlestirme makineye bagli cikardi (R-C02).
+            .OrderBy(p => p.PositionZ).ThenBy(p => p.PositionY).ThenBy(p => p.PositionX).ThenBy(p => p.Id)
+            .Select(p => new FixedPlacement(p.ItemId, p.PositionX, p.PositionY, p.PositionZ, p.Rotation))
+            .ToListAsync(cancellationToken);
+
     public Task<int> CountByUserAsync(Guid userId, CancellationToken cancellationToken = default)
         => _context.LoadingPlans.CountAsync(p => p.CreatedBy == userId, cancellationToken);
 

@@ -98,10 +98,18 @@ public sealed class ReOptimizePlanCommandHandler : IRequestHandler<ReOptimizePla
             ? optimizationInput with { Items = contamination.Passed }
             : optimizationInput;
 
+        // Artimli yolda mevcut yerlesimler SABITTIR. Okuma yalnizca bayrak
+        // aciksa yapilir; kapali yol bugunku davranisin birebir aynisidir.
+        var fixedPlacements = request.KeepExistingPlacements
+            ? await _planRepository.GetFixedPlacementsAsync(plan.Id, cancellationToken)
+            : [];
+
         OptimizationResult result;
         try
         {
-            var engineResult = _optimizationEngine.Run(finalInput, cancellationToken);
+            var engineResult = request.KeepExistingPlacements
+                ? _optimizationEngine.RunIncremental(finalInput, fixedPlacements, cancellationToken)
+                : _optimizationEngine.Run(finalInput, cancellationToken);
             result = contamination.Contaminated.Count > 0
                 ? engineResult with { UnplacedItems = [.. engineResult.UnplacedItems, .. contamination.Contaminated] }
                 : engineResult;

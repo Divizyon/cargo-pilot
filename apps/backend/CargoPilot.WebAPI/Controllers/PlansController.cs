@@ -153,7 +153,7 @@ public sealed class PlansController : BaseController
     {
         var command = new ReOptimizePlanCommand(
             id, request.VehicleId, request.Items, request.OptimizationCriteria, request.Groups, request.ClusterGroups,
-            request.Sequencer, request.Seed);
+            request.Sequencer, request.Seed, request.KeepExistingPlacements);
         var result = await _mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }

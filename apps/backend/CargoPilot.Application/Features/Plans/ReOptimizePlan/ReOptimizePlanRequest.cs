@@ -9,7 +9,10 @@ public sealed record ReOptimizePlanRequest(
     IReadOnlyList<ReOptimizePlanGroupDefinition>? Groups = null,
     bool ClusterGroups = true,
     SequencerKind? Sequencer = null,
-    int Seed = 0);
+    int Seed = 0,
+    // Mevcut yerlesimler yerinde kalsin, yalnizca yeni kutular yerlestirilsin.
+    // Arayuzde plana urun eklendiginde kullanilir.
+    bool KeepExistingPlacements = false);
 
 public sealed record ReOptimizePlanGroupDefinition(
     Guid ClientGroupId,

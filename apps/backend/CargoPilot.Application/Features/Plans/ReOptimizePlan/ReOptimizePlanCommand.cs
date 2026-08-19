@@ -12,7 +12,8 @@ public sealed record ReOptimizePlanCommand(
     IReadOnlyList<ReOptimizePlanGroupDefinition>? Groups = null,
     bool ClusterGroups = true,
     SequencerKind? Sequencer = null,
-    int Seed = 0)
+    int Seed = 0,
+    bool KeepExistingPlacements = false)
     : IRequest<Result<Guid>>;
 
 public sealed record ReOptimizePlanItemRequest(Guid ItemId, int Quantity, Guid? GroupId = null);

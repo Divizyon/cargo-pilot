@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Interfaces;
+﻿using CargoPilot.Application.Common.Interfaces;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 
@@ -29,5 +29,41 @@ internal sealed class OptimizationEngine : IOptimizationEngine
             SequencerKind.Beam => Search.BeamSequencer.Run(input, cancellationToken),
             _ => WallBuilder.WallBuilderPlacement.Run(input, cancellationToken),
         };
+    }
+
+    /// <summary>
+    /// Artimli yerlestirme. Arama katmani CAGRILMAZ: eklenen birkac kutu icin
+    /// iki saniyelik bir arama hem gereksiz hem de anlamsizdir — sabit kutular
+    /// zaten oynatilamiyor, yani arama uzayi bir avuc konumdan ibaret.
+    /// </summary>
+    public OptimizationResult RunIncremental(
+        OptimizationInput input,
+        IReadOnlyList<FixedPlacement> fixedPlacements,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(fixedPlacements);
+
+        var itemsById = input.Items.ToDictionary(i => i.ItemId);
+        var boxes = new List<PlacedBox>(fixedPlacements.Count);
+
+        foreach (var fixedPlacement in fixedPlacements)
+        {
+            if (!itemsById.TryGetValue(fixedPlacement.ItemId, out var item)) continue;
+
+            var (width, height, length) = RotatedDimensions.Of(
+                item.Width, item.Height, item.Length, fixedPlacement.Rotation);
+
+            boxes.Add(new PlacedBox(
+                item.ItemId,
+                fixedPlacement.X, fixedPlacement.Y, fixedPlacement.Z,
+                width, height, length,
+                fixedPlacement.Rotation,
+                item.Weight,
+                item.IsStackable, item.MaxStackCount, item.MaxWeightOnTop,
+                item.FragilityType, item.UnloadingOrder));
+        }
+
+        return WallBuilder.WallBuilderPlacement.RunFrom(input, boxes, cancellationToken);
     }
 }
