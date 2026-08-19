@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cargo Pilot · Algoritma Görünümü</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Dark Mode (OLED) — teknik analiz aracı için seçildi: uzun bakış, düşük ışık,
+   yüksek kontrast. Renkler tek yerde durur; hiçbir kural gövdede tekrarlanmaz. */
+:root{
+  --bg:#0F172A; --panel:#1E293B; --panel-2:#172033; --line:#334155;
+  --text:#F8FAFC; --muted:#94A3B8; --accent:#22C55E;
+  --gap:#7F1D1D;            /* boşluk rengi — dolu hiçbir kutu bu tonda değil */
+  --warn:#F59E0B;
+  --r:8px; --dur:200ms;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:'Fira Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-size:14px; line-height:1.55; overflow:hidden;
+}
+.mono{font-family:'Fira Code',ui-monospace,'Cascadia Mono',Consolas,monospace}
+button,select,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ── iskelet ───────────────────────────────────────────────────────────── */
+#app{display:grid;grid-template-columns:320px 1fr;height:100%}
+@media (max-width:900px){#app{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
+
+aside{background:var(--panel-2);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+aside header{padding:16px 16px 12px;border-bottom:1px solid var(--line)}
+h1{font-size:14px;margin:0;font-weight:600;letter-spacing:.02em}
+.sub{color:var(--muted);font-size:12px;margin-top:2px}
+
+.field{display:flex;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line)}
+.field label{color:var(--muted);font-size:12px;white-space:nowrap}
+select,input[type=number],input[type=search]{
+  background:var(--panel);border:1px solid var(--line);border-radius:6px;
+  padding:5px 8px;width:100%;min-width:0;transition:border-color var(--dur)
+}
+select:hover,input:hover{border-color:var(--muted)}
+
+#list{overflow-y:auto;flex:1;min-height:0}
+.row{
+  display:grid;grid-template-columns:52px 1fr 62px;gap:8px;align-items:center;
+  padding:7px 16px;cursor:pointer;border-left:3px solid transparent;
+  transition:background var(--dur),border-color var(--dur)
+}
+.row:hover{background:#1E293B}
+.row[aria-current=true]{background:#1E293B;border-left-color:var(--accent)}
+.row .ix{color:var(--muted);font-size:12px}
+.row .id{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .pc{text-align:right;font-size:12px;font-weight:500}
+
+/* ── ana alan ──────────────────────────────────────────────────────────── */
+main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.bar{
+  display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+  padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel-2)
+}
+.stat{display:flex;flex-direction:column;line-height:1.2}
+.stat b{font-size:16px;font-weight:600}
+.stat span{color:var(--muted);font-size:11px}
+.spacer{flex:1}
+
+.toggle{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;
+  border:1px solid var(--line);background:var(--panel);cursor:pointer;font-size:12px;
+  transition:border-color var(--dur),background var(--dur),color var(--dur)
+}
+.toggle:hover{border-color:var(--muted)}
+.toggle[aria-pressed=true]{border-color:var(--accent);color:var(--accent)}
+.toggle svg{width:15px;height:15px;flex:none}
+
+#views{
+  flex:1;min-height:0;overflow:auto;padding:12px;
+  display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))
+}
+@media (max-width:1280px){#views{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){#views{grid-template-columns:minmax(0,1fr)}}
+.view{background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r);padding:8px}
+.view h2{margin:0 0 6px;font-size:11px;font-weight:500;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.view canvas{width:100%;height:auto;display:block;border-radius:4px;background:#0B1220}
+
+.foot{padding:10px 16px;border-top:1px solid var(--line);background:var(--panel-2);display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+input[type=range]{accent-color:var(--accent);flex:1;min-width:140px;cursor:pointer}
+.pill{font-size:11px;color:var(--muted);white-space:nowrap}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted);align-items:center}
+.sw{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:-1px}
+
+/* ── açılış ────────────────────────────────────────────────────────────── */
+#drop{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:10;text-align:center;padding:24px}
+#drop.hide{display:none}
+.card{border:1px dashed var(--line);border-radius:12px;padding:40px 44px;max-width:560px;transition:border-color var(--dur)}
+#drop.over .card{border-color:var(--accent)}
+.card h2{margin:0 0 6px;font-size:18px;font-weight:600}
+.card p{color:var(--muted);margin:0 0 18px}
+.card code{background:var(--panel);padding:2px 6px;border-radius:4px;font-size:12px}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#052e16;
+  padding:9px 16px;border-radius:8px;font-weight:600;cursor:pointer;
+  transition:filter var(--dur)
+}
+.btn:hover{filter:brightness(1.1)}
+.hint{margin-top:16px;font-size:12px;color:var(--muted)}
+kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:11px}
+.err{color:var(--warn);margin-top:12px;font-size:13px}
+</style>
+</head>
+<body>
+
+<div id="drop">
+  <div class="card">
+    <h2>Algoritma Görünümü</h2>
+    <p>Koşu çıktısını buraya bırak.</p>
+    <label class="btn" tabindex="0" role="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>
+      </svg>
+      Dosya seç
+      <input id="file" type="file" accept="application/json,.json" hidden>
+    </label>
+    <div class="hint">
+      Üretmek için:<br>
+      <code>dotnet run --project apps/backend/CargoPilot.Engine.Bench -c Release -- br --viewer kosu.json</code>
+    </div>
+    <div class="err" id="err" role="alert"></div>
+  </div>
+</div>
+
+<div id="app" hidden>
+  <aside>
+    <header>
+      <h1>Algoritma Görünümü</h1>
+      <div class="sub mono" id="meta">—</div>
+    </header>
+    <div class="field">
+      <label for="sort">Sırala</label>
+      <select id="sort">
+        <option value="ix">Koşu sırası</option>
+        <option value="low">Doluluk · düşükten</option>
+        <option value="high">Doluluk · yüksekten</option>
+        <option value="spread">Yayılma · kötüden</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="jump">Git</label>
+      <input id="jump" type="number" min="1" step="1" placeholder="317">
+      <input id="find" type="search" placeholder="br7-014" aria-label="Kimliğe göre ara">
+    </div>
+    <div id="list" role="listbox" aria-label="Senaryolar"></div>
+  </aside>
+
+  <main>
+    <div class="bar">
+      <div class="stat"><b class="mono" id="s-id">—</b><span>senaryo</span></div>
+      <div class="stat"><b class="mono" id="s-fill">—</b><span>doluluk</span></div>
+      <div class="stat"><b class="mono" id="s-spread">—</b><span>yayılma</span></div>
+      <div class="stat"><b class="mono" id="s-slice">—</b><span>dilim doluluğu</span></div>
+      <div class="stat"><b class="mono" id="s-box">—</b><span>kutu</span></div>
+      <div class="stat"><b class="mono" id="s-un">—</b><span>yerleşemeyen</span></div>
+      <div class="spacer"></div>
+      <button class="toggle" id="t-mode" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3h18v18H3z"/><path d="M3 12h18"/></svg>
+        <span id="t-mode-l">Kesit dilimi</span>
+      </button>
+      <button class="toggle" id="t-gap" aria-pressed="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3h18v18H3z"/><path d="M9 9h6v6H9z"/></svg>
+        Boşluklar
+      </button>
+      <button class="toggle" id="t-play" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+        Yükleme animasyonu
+      </button>
+    </div>
+
+    <div id="views"></div>
+
+    <div class="foot">
+      <span class="pill" id="lbl">Yüklenen kutu</span>
+      <input id="step" type="range" min="0" max="0" value="0" aria-label="Yükleme adımı">
+      <span class="pill mono" id="stepv">0/0</span>
+      <span class="legend">
+        <span><i class="sw" style="background:var(--gap)"></i>boşluk</span>
+        <span><i class="sw" style="background:#38BDF8"></i>kutu (tipe göre renk)</span>
+      </span>
+    </div>
+  </main>
+</div>
+
+<script>
+'use strict';
+
+/* Sahne sözleşmesi (docs/COORDINATE_STANDARD.md): x = genişlik, y = yükseklik,
+   z = uzunluk; z = 0 uzak yüz, z = uzunluk referans kapı. Kutu konumu origin'e
+   en yakın köşedir. Aşağıdaki altı bakış bu sözleşmeden türetilmiştir. */
+const VIEWS = [
+  { t:'Kapıdan (−z)',  h:'x', v:'y', d:'z', hf:false, vf:true,  near:'max' },
+  { t:'Uzak yüzden (+z)', h:'x', v:'y', d:'z', hf:true,  vf:true,  near:'min' },
+  { t:'Soldan (+x)',   h:'z', v:'y', d:'x', hf:false, vf:true,  near:'min' },
+  { t:'Sağdan (−x)',   h:'z', v:'y', d:'x', hf:true,  vf:true,  near:'max' },
+  { t:'Üstten (−y)',   h:'z', v:'x', d:'y', hf:false, vf:false, near:'max' },
+  { t:'Alttan (+y)',   h:'z', v:'x', d:'y', hf:false, vf:true,  near:'min' },
+];
+
+const SIZE = { x:'w', y:'h', z:'l' };
+const EXTENT = { x:'vehicleWidth', y:'vehicleHeight', z:'vehicleLength' };
+
+/* Kategorik palet: koyu zeminde ayırt edilebilir, boşluk kırmızısıyla
+   karışmayan tonlar. Tip sayısı paleti aşarsa döner. */
+const PALETTE = ['#38BDF8','#A78BFA','#34D399','#FBBF24','#F472B6','#22D3EE',
+                 '#FB923C','#4ADE80','#818CF8','#E879F9','#2DD4BF','#FACC15'];
+
+const GAP = getComputedStyle(document.body).getPropertyValue('--gap').trim() || '#7F1D1D';
+
+const state = { bundle:null, order:[], cur:0, slice:1, sliceMode:false,
+                gaps:true, playing:false, step:0, raf:0 };
+
+const $ = (id) => document.getElementById(id);
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ── yükleme ───────────────────────────────────────────────────────────── */
+function load(text){
+  let data;
+  try { data = JSON.parse(text); }
+  catch { return fail('Dosya JSON değil.'); }
+  if (!data || !Array.isArray(data.scenarios) || data.scenarios.length === 0)
+    return fail('Beklenen alan yok: scenarios[]. --viewer ile üretilmiş bir dosya mı?');
+
+  state.bundle = data;
+  $('drop').classList.add('hide');
+  $('app').hidden = false;
+  $('meta').textContent =
+    `${data.sequencer} · yük ${data.loadRatio} · kısıt ${data.constraints} · ort %${data.meanFillPercent}`;
+  $('jump').max = data.scenarios.length;
+  buildViews();
+  sort();
+  select(0);
+}
+function fail(m){ $('err').textContent = m; }
+
+const drop = $('drop');
+['dragenter','dragover'].forEach(e => drop.addEventListener(e, ev => {
+  ev.preventDefault(); drop.classList.add('over');
+}));
+['dragleave','drop'].forEach(e => drop.addEventListener(e, () => drop.classList.remove('over')));
+drop.addEventListener('drop', ev => {
+  ev.preventDefault();
+  const f = ev.dataTransfer.files[0];
+  if (f) f.text().then(load);
+});
+$('file').addEventListener('change', ev => {
+  const f = ev.target.files[0];
+  if (f) f.text().then(load);
+});
+document.querySelector('.btn').addEventListener('keydown', ev => {
+  if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); $('file').click(); }
+});
+
+/* ── senaryo listesi ───────────────────────────────────────────────────── */
+function sort(){
+  const s = state.bundle.scenarios;
+  const ix = s.map((_, i) => i);
+  const by = $('sort').value;
+  if (by === 'low')    ix.sort((a,b) => s[a].fillPercent - s[b].fillPercent);
+  if (by === 'high')   ix.sort((a,b) => s[b].fillPercent - s[a].fillPercent);
+  if (by === 'spread') ix.sort((a,b) => s[b].spreadRatio - s[a].spreadRatio);
+  state.order = ix;
+  renderList();
+}
+
+function renderList(){
+  const s = state.bundle.scenarios;
+  const q = $('find').value.trim().toLowerCase();
+  const frag = document.createDocumentFragment();
+
+  for (const i of state.order){
+    if (q && !s[i].id.toLowerCase().includes(q)) continue;
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.setAttribute('role','option');
+    row.tabIndex = 0;
+    row.dataset.ix = i;
+    row.setAttribute('aria-current', i === state.cur);
+    row.innerHTML =
+      `<span class="ix mono">#${i+1}</span>` +
+      `<span class="id mono"></span>` +
+      `<span class="pc mono">%${s[i].fillPercent.toFixed(1)}</span>`;
+    row.querySelector('.id').textContent = s[i].id;
+    row.addEventListener('click', () => select(i));
+    row.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(i); }
+    });
+    frag.appendChild(row);
+  }
+  const list = $('list');
+  list.replaceChildren(frag);
+}
+
+$('sort').addEventListener('change', sort);
+$('find').addEventListener('input', renderList);
+$('jump').addEventListener('change', ev => {
+  const n = Number(ev.target.value) - 1;
+  if (n >= 0 && n < state.bundle.scenarios.length) select(n);
+});
+
+function select(i){
+  state.cur = i;
+  const sc = state.bundle.scenarios[i];
+  $('s-id').textContent = sc.id;
+  $('s-fill').textContent = '%' + sc.fillPercent.toFixed(1);
+  $('s-spread').textContent = '×' + sc.spreadRatio.toFixed(3);
+  $('s-slice').textContent = '%' + sc.sliceUtilPercent.toFixed(1);
+  $('s-box').textContent = sc.boxes.length;
+  $('s-un').textContent = sc.unplaced.reduce((a,u) => a + u.n, 0);
+
+  state.step = sc.boxes.length;
+  $('step').max = sc.boxes.length;
+  $('step').value = sc.boxes.length;
+  stepLabel();
+
+  for (const el of $('list').children)
+    el.setAttribute('aria-current', Number(el.dataset.ix) === i);
+  const active = $('list').querySelector('[aria-current=true]');
+  if (active) active.scrollIntoView({ block:'nearest' });
+
+  draw();
+}
+
+/* ── çizim ─────────────────────────────────────────────────────────────── */
+function buildViews(){
+  const frag = document.createDocumentFragment();
+  VIEWS.forEach((v, k) => {
+    const box = document.createElement('section');
+    box.className = 'view';
+    const h = document.createElement('h2');
+    h.textContent = v.t;
+    const c = document.createElement('canvas');
+    c.id = 'cv' + k;
+    box.append(h, c);
+    frag.appendChild(box);
+  });
+  $('views').replaceChildren(frag);
+  addEventListener('resize', draw, { passive:true });
+}
+
+function draw(){
+  if (!state.bundle) return;
+  const sc = state.bundle.scenarios[state.cur];
+  VIEWS.forEach((v, k) => drawView($('cv' + k), v, sc));
+}
+
+function drawView(cv, v, sc){
+  const W = sc[EXTENT[v.h]], H = sc[EXTENT[v.v]], D = sc[EXTENT[v.d]];
+  const css = cv.parentElement.clientWidth - 16;
+  const ratio = H / W;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+
+  cv.style.height = Math.round(css * ratio) + 'px';
+  cv.width = Math.round(css * dpr);
+  cv.height = Math.round(css * ratio * dpr);
+
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const s = css / W;
+
+  // Zemin: boşluk gösterimi açıkken kap tamamen "boşluk" rengiyle boyanır ve
+  // kutular üzerine çizilir. Kesit dilimi kipinde bu TAM DOGRUDUR — ekranda
+  // kırmızı kalan her piksel gerçekten boş hacimdir.
+  g.fillStyle = state.gaps ? GAP : '#0B1220';
+  g.fillRect(0, 0, css, css * ratio);
+
+  const cut = state.sliceMode ? state.slice * D : null;
+  const boxes = [];
+  const limit = state.step;
+
+  for (let i = 0; i < limit && i < sc.boxes.length; i++){
+    const b = sc.boxes[i];
+    const d0 = b[v.d], d1 = d0 + b[SIZE[v.d]];
+    if (cut !== null && !(d0 <= cut && cut < d1)) continue;
+    boxes.push({ b, d0, d1, i });
+  }
+
+  // Uzaktan yakına: yakın olan üste çizilir.
+  boxes.sort((a, c) => v.near === 'max' ? a.d0 - c.d0 : c.d0 - a.d0);
+
+  for (const { b, i } of boxes){
+    let h0 = b[v.h], w0 = b[SIZE[v.h]];
+    let v0 = b[v.v], hh = b[SIZE[v.v]];
+    if (v.hf) h0 = W - h0 - w0;
+    if (v.vf) v0 = H - v0 - hh;
+
+    const x = h0 * s, y = v0 * s, w = w0 * s, h = hh * s;
+    g.fillStyle = PALETTE[b.t % PALETTE.length];
+    g.globalAlpha = i === limit - 1 && state.playing ? 1 : 0.92;
+    g.fillRect(x, y, w, h);
+    g.globalAlpha = 1;
+    g.strokeStyle = 'rgba(15,23,42,.85)';
+    g.lineWidth = 1;
+    g.strokeRect(x + .5, y + .5, Math.max(0, w - 1), Math.max(0, h - 1));
+  }
+
+  g.strokeStyle = '#475569';
+  g.lineWidth = 2;
+  g.strokeRect(1, 1, css - 2, css * ratio - 2);
+}
+
+/* ── kontroller ────────────────────────────────────────────────────────── */
+function stepLabel(){
+  const n = state.bundle.scenarios[state.cur].boxes.length;
+  $('lbl').textContent = state.sliceMode ? 'Kesit derinliği' : 'Yüklenen kutu';
+  $('stepv').textContent = state.sliceMode
+    ? '%' + Math.round(state.slice * 100)
+    : `${state.step}/${n}`;
+}
+
+$('t-gap').addEventListener('click', ev => {
+  state.gaps = !state.gaps;
+  ev.currentTarget.setAttribute('aria-pressed', state.gaps);
+  draw();
+});
+
+$('t-mode').addEventListener('click', ev => {
+  state.sliceMode = !state.sliceMode;
+  ev.currentTarget.setAttribute('aria-pressed', state.sliceMode);
+  $('t-mode-l').textContent = state.sliceMode ? 'Projeksiyon' : 'Kesit dilimi';
+  const r = $('step');
+  if (state.sliceMode){ r.min = 0; r.max = 100; r.value = 50; state.slice = .5; }
+  else { r.min = 0; r.max = state.bundle.scenarios[state.cur].boxes.length; r.value = r.max; state.step = Number(r.max); }
+  stepLabel(); draw();
+});
+
+$('step').addEventListener('input', ev => {
+  if (state.sliceMode){ state.slice = Number(ev.target.value) / 100; $('stepv').textContent = '%' + ev.target.value; }
+  else { state.step = Number(ev.target.value); stepLabel(); }
+  draw();
+});
+
+$('t-play').addEventListener('click', ev => {
+  state.playing = !state.playing;
+  ev.currentTarget.setAttribute('aria-pressed', state.playing);
+  if (state.playing){
+    if (state.sliceMode) $('t-mode').click();
+    state.step = 0; $('step').value = 0;
+    let last = 0;
+    const tick = (t) => {
+      if (!state.playing) return;
+      const n = state.bundle.scenarios[state.cur].boxes.length;
+      if (t - last > (reduced ? 400 : 45)){
+        last = t;
+        state.step = Math.min(n, state.step + 1);
+        $('step').value = state.step;
+        stepLabel(); draw();
+      }
+      if (state.step >= n){ state.playing = false; $('t-play').setAttribute('aria-pressed', false); return; }
+      state.raf = requestAnimationFrame(tick);
+    };
+    state.raf = requestAnimationFrame(tick);
+  } else cancelAnimationFrame(state.raf);
+});
+
+addEventListener('keydown', ev => {
+  if (!state.bundle || /input|select/i.test(ev.target.tagName)) return;
+  if (ev.key === 'ArrowRight' && state.cur < state.bundle.scenarios.length - 1) select(state.cur + 1);
+  if (ev.key === 'ArrowLeft'  && state.cur > 0) select(state.cur - 1);
+  if (ev.key === ' '){ ev.preventDefault(); $('t-play').click(); }
+});
+</script>
+</body>
+</html>

@@ -30,7 +30,8 @@ public sealed record BenchOptions(
     (double Volume, double Waste, double Contact, double BoxCount)? VcsWeights,
     string? BaselinePath,
     decimal? SupportThreshold,
-    int Stall)
+    int Stall,
+    string? ViewerPath)
 {
     public const int ExitOk = 0;
     public const int ExitFailed = 1;
@@ -42,6 +43,7 @@ public sealed record BenchOptions(
     {
         ArgumentNullException.ThrowIfNull(args);
 
+        string? viewerPath = null;
         var seedFrom = 1;
         var seedTo = 1;
         var count = 30;
@@ -137,6 +139,9 @@ public sealed record BenchOptions(
                 case "--set":
                     brSet = ParseInt(value, arg);
                     break;
+                case "--viewer":
+                    viewerPath = value;
+                    break;
                 case "--baseline":
                     baselinePath = value;
                     break;
@@ -166,7 +171,8 @@ public sealed record BenchOptions(
             vcsWeights,
             baselinePath,
             supportThreshold,
-            Math.Max(1, stall));
+            Math.Max(1, stall),
+            viewerPath);
     }
 
     public static int PrintUsage()
@@ -211,6 +217,9 @@ public sealed record BenchOptions(
               --depth-slack S  yuku ideal derinligin S katina toplar (or. 1,15).
                                Verilmezse URETIM VARSAYILANI kullanilir (1,05).
               --support N      asgari destek orani (varsayilan 0.80). YALNIZ OLCUM icin
+              --viewer DOSYA   br kipinde her senaryonun planini JSON olarak yaz.
+                               apps/algorithm-viewer/index.html bunu okur. Verilmezse
+                               HICBIR ek islem yapilmaz, olcum hizi degismez.
               --baseline DOSYA br kipinde referansla kiyasla; gerileme varsa hata koduyla cik
               --report DOSYA   br kipinde JSON rapor yolu (soak kipinde de gecerli)
             """);

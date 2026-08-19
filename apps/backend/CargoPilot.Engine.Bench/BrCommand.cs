@@ -38,6 +38,10 @@ public static class BrCommand
 
         var all = new List<decimal>();
         var setResults = new List<BrBaseline.SetResult>();
+
+        // Gorunum yalnizca istendiginde toplanir; kapali kosuda liste bos kalir
+        // ve tek bir ek islem yapilmaz.
+        var scenarios = options.ViewerPath is null ? null : new List<PlanExport.Scenario>();
         var waste = new List<WasteDiagnostics.Breakdown>();
         var spaces = new List<SpaceDiagnostics.Spaces>();
         var shape = new List<CorpusDiagnostics.Shape>();
@@ -86,6 +90,8 @@ public static class BrCommand
                 // Yayilma HER kosuda olculur: maliyeti yerlesim sayisinda
                 // dogrusaldir ve kismi yuk rejiminin tek kalite olcusudur.
                 spreads.Add(SpreadDiagnostics.Analyze(input, result));
+
+                scenarios?.Add(PlanExport.From(instance.Id, set, input, result));
 
                 if (!options.Verbose) continue;
 
@@ -147,6 +153,16 @@ public static class BrCommand
             options.BrLoadRatio);
 
         if (options.ReportPath is not null) BrBaseline.Write(options.ReportPath, report);
+
+        if (options.ViewerPath is not null && scenarios is not null)
+        {
+            PlanExport.Write(options.ViewerPath, new PlanExport.Bundle(
+                options.Sequencer.ToString(),
+                (double)options.BrLoadRatio,
+                options.Constraints.ToString(),
+                (double)Math.Round(Mean(all), 2),
+                scenarios));
+        }
 
         if (options.BaselinePath is null) return BenchOptions.ExitOk;
 
