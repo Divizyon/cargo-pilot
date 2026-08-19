@@ -3224,3 +3224,68 @@ etkisi küçülüyor) ve yükün yarısı araç genişliğine tam oturan paletle
 
 **Bu, BR sayısının kötü olduğu anlamına gelmiyor** — iki korpus iki farklı şeyi ölçüyor. BR
 literatür kıyası için, gerçekçi korpus üretim beklentisi için.
+
+---
+
+## 20 Ağustos 2026 — `L-2` dinamik sanal duvar: ölçüldü, **karar kullanıcıya bırakıldı**
+
+### Önce üç ölçüm geçersizliği daha
+
+`DR-66`'nın LIFO satırı iki ayrı sebeple yanlıştı ve teşhis üçüncü bir sebeple:
+
+1. **`GroupId` boştu.** `ComputeGroupZones` hem `GroupId` hem `UnloadingOrder` ister; `ConstraintCorpus`
+   yalnız ikincisini dolduruyordu. **Bölgeler hiçbir kıyas koşusunda kurulmamıştı.**
+2. **`ClusterGroups` kapalıydı.** Kapalıyken `ItemOrdering` her şeyi hacme göre karıştırır ve gruplar
+   bitişik kalmaz; LIFO'nun sıralama mekanizması ancak bitişikken çalışır (`R-C19`). Üretim
+   varsayılanı `true`, kıyas `false` koşuyordu.
+3. **Teşhis önceden hesaplanmış bantlarla sayıyordu.** Motor dinamik duvara geçince ihlal sayısı
+   "arttı" göründü — oysa ölçüt eskisiydi. Artık ölçü **sonuçtan türetiliyor**: bir kutu, kendisinden
+   daha geç inecek grupların ulaştığı en uzak noktadan önce başlıyorsa ihlaldir.
+
+Düzeltilmiş taban (gerçek korpus, 100 örnek, üretim ayarı):
+
+| | Kısıtsız | LIFO |
+|---|---|---|
+| Doluluk | %86,60 | **%83,36** *(−3,24; `DR-66` −1,62 diyordu)* |
+| BR1-BR7 | %84,48 | **%78,65** *(−5,83)* |
+
+### Denenen üç bölge modeli
+
+| Model | gerçek %100 | ihlal | gerçek %50 | ihlal | yayılma %50 | BR |
+|---|---|---|---|---|---|---|
+| **Eşit bölme** *(bugün)* | **%83,36** | 4.546 | %49,57 | **5** | ×1,857 | %78,65 |
+| Hacme orantılı | %82,82 | 12.487 | — | — | — | %80,89 |
+| **Dinamik duvar** (`R-C13`) | %82,86 | **3.342** | %49,57 | **0** | **×1,459** | **%80,25** |
+
+**Hacme orantılı reddedildi:** bant tam grubun hacmi kadar olunca paketleme verimi (~%85) yüzünden
+grup kendi bandına sığamıyor ve zorunlu taşıyor.
+
+**Dinamik duvar çoğu ölçüde daha iyi:** ihlal tam yükte −%26, yarım yükte **sıfır**; yarım yükte
+yayılma ×1,857 → ×1,459 ve dilim doluluğu %54,0 → %69,0; BR doluluğu +1,60. Bedeli gerçek korpusta
+tam yükte −0,50 puan.
+
+### `L-4` yeniden ölçüldü — `DR-57` değişmedi
+
+Dinamik duvarla birlikte `DepthSlack` yasağı kalkar mı diye bakıldı. Yarım yük, gerçek korpus:
+
+| | Yayılma | Dilim | Bölge ihlali |
+|---|---|---|---|
+| Bütçe kapalı | ×1,459 | %69,0 | **0** |
+| Bütçe açık | **×1,325** | **%76,2** | **1.774** |
+
+Sıkılık kazancı gerçek ama bedeli kısıt sadakati: bütçe yükü öne toplarken grupları üst üste
+bindiriyor. **`DR-57`'nin önceliği doğru** — boşaltma sırası iş kuralı, yoğunlaştırma tercih.
+
+### Neden birleştirilmedi
+
+Dinamik duvar **yedi testi kırıyor** ve bunlardan biri asıl soruyu ortaya koyuyor:
+`ModulBayraklariTests.LifoKapali_...` LIFO modülünü kapatmanın yerleşimi *değiştirmesini* bekliyor.
+Dinamik duvarda değiştirmiyor.
+
+Sebebi yapısal: dinamik duvar bir **muhafız**, bir **sürücü** değil. Grubu asla kısıtlamıyor,
+yalnızca geriye gitmesini engelliyor. Kümeleme zaten doğru sırayı ürettiği için çoğu senaryoda
+**hiçbir şey yapmıyor**. Eşit bölme ise grupları bantlara zorluyordu — daha güçlü ama daha pahalı
+ve daha çok ihlal üreten bir kural.
+
+Bu bir iş kuralı değişikliğidir: *bölge bir zorlayıcı mı yoksa bir güvenlik ağı mı?* Ölçüm hazır,
+karar ürün tarafında. Motor kodu **değiştirilmedi**; ölçüm düzeneği düzeltmeleri alındı.

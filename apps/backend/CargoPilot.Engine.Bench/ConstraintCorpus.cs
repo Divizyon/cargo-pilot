@@ -112,7 +112,14 @@ public static class ConstraintCorpus
             ? LoadingPlanOptimizationCriteria.Lifo
             : input.Criteria;
 
-        return input with { Items = items, Criteria = criteria };
+        // ClusterGroups da acilmali: kapaliyken ItemOrdering butun urunleri
+        // hacme gore karistirir ve GRUPLAR BITISIK KALMAZ. LIFO'nun siralama
+        // mekanizmasi (M1) ancak gruplar bitisikken calisir; R-C19 de bunu
+        // sart kosuyor. Uretim varsayilani zaten true (CreatePlanCommand),
+        // kiyas ise false kosuyordu -- yani olculen sey uretimdeki LIFO degildi.
+        var cluster = kind.HasFlag(Kind.Lifo) || input.ClusterGroups;
+
+        return input with { Items = items, Criteria = criteria, ClusterGroups = cluster };
     }
 
     /// <summary>Bayrak adini komut satiri degerinden cozer.</summary>
