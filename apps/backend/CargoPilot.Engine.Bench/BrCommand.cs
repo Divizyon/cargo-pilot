@@ -23,10 +23,18 @@ public static class BrCommand
         var sets = options.BrSet >= 0 ? [options.BrSet] : new[] { 1, 2, 3, 4, 5, 6, 7 };
 
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"BR · sequencer {options.Sequencer} · yonelim strict"));
+            $"BR · sequencer {options.Sequencer} · yonelim strict · yuk orani {options.BrLoadRatio:0.##}"));
         Console.WriteLine("uc yonelim bayragi da birebir eslendi (DR-42)");
+
+        // Sigan-yuk rejiminde doluluk bir kalite olcusu degildir (bkz.
+        // SpreadDiagnostics); okuyan kisi yanlis sutuna bakmasin diye soyleniyor.
+        if (options.BrLoadRatio < 1m)
+        {
+            Console.WriteLine("KISMI YUK: doluluk yukun buyuklugudur, kalite olcusu YAYILMA ve DILIM sutunlaridir");
+        }
+
         Console.WriteLine();
-        Console.WriteLine("kume  ornek  tip  kutu  hacim%  doluluk%  medyan%  en dusuk%  en yuksek%  medyan ms");
+        Console.WriteLine("kume  ornek  tip  kutu  hacim%  doluluk%  medyan%  en dusuk%  en yuksek%  yayilma  dilim%  duvar  medyan ms");
 
         var all = new List<decimal>();
         var setResults = new List<BrBaseline.SetResult>();
@@ -46,6 +54,7 @@ public static class BrCommand
 
             var fills = new List<decimal>(limit);
             var durations = new List<double>(limit);
+            var spreads = new List<SpreadDiagnostics.Report>(limit);
 
             for (var i = 0; i < limit; i++)
             {
@@ -68,6 +77,10 @@ public static class BrCommand
 
                 durations.Add(Stopwatch.GetElapsedTime(started).TotalMilliseconds);
                 fills.Add(result.FillRate * 100m);
+
+                // Yayilma HER kosuda olculur: maliyeti yerlesim sayisinda
+                // dogrusaldir ve kismi yuk rejiminin tek kalite olcusudur.
+                spreads.Add(SpreadDiagnostics.Analyze(input, result));
 
                 if (!options.Verbose) continue;
 
@@ -94,26 +107,39 @@ public static class BrCommand
                 catalog.Clear();
             }
 
+            var meanSpread = spreads.Count == 0 ? 1d : spreads.Average(s => s.SpreadRatio);
+            var meanSlice = spreads.Count == 0 ? 0d : spreads.Average(s => s.SliceUtilPercent);
+            var meanWalls = spreads.Count == 0 ? 0d : spreads.Average(s => s.WallCount);
+
             all.AddRange(fills);
-            setResults.Add(new BrBaseline.SetResult(set, limit, Math.Round(Mean(fills), 2)));
+            setResults.Add(new BrBaseline.SetResult(
+                set,
+                limit,
+                Math.Round(Mean(fills), 2),
+                Math.Round(meanSpread, 4),
+                Math.Round(meanSlice, 2)));
 
             var sample = instances[0];
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
                 $"BR{set,-3} {limit,6} {sample.Input.Items.Count,4} {sample.BoxCount,5} " +
                 $"{sample.BoxVolumeRatio * 100m,6:F1} {Mean(fills),9:F2} {Percentile(fills, 0.50),8:F2} " +
-                $"{fills.Min(),10:F2} {fills.Max(),11:F2} {PercentileD(durations, 0.50),10:F0}"));
+                $"{fills.Min(),10:F2} {fills.Max(),11:F2} {meanSpread,8:F3} {meanSlice,7:F1} " +
+                $"{meanWalls,6:F1} {PercentileD(durations, 0.50),10:F0}"));
         }
 
         Console.WriteLine();
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"BR1-BR7 ortalamasi: %{Mean(all):F2}  ({all.Count} ornek)"));
+            $"BR1-BR7 ortalamasi: %{Mean(all):F2}  ({all.Count} ornek)" +
+            $"  ·  yayilma x{setResults.Average(r => r.MeanSpreadRatio ?? 1d):F3}" +
+            $"  ·  dilim %{setResults.Average(r => r.MeanSliceUtilPercent ?? 0d):F1}"));
 
         var report = new BrBaseline.Report(
             "WallBuilder",
             options.Sequencer.ToString(),
             "Strict",
             Math.Round(Mean(all), 2),
-            setResults);
+            setResults,
+            options.BrLoadRatio);
 
         if (options.ReportPath is not null) BrBaseline.Write(options.ReportPath, report);
 
@@ -191,10 +217,62 @@ public static class BrCommand
     /// reddetme gerekcesi (DR-12) yalnizca YARIM DOLU araclarda gorunur; BR
     /// ornekleri neredeyse tam dolu oldugu icin orada sinanamaz.
     /// </summary>
+    /// <summary>
+    /// Ornegi hedef yuk oranina indirir: sonucun toplam kutu hacmi, ozgun
+    /// hacmin <paramref name="ratio"/> katini ASMAZ ve ona en yakin degerdir.
+    ///
+    /// Neden basit carpma yetmiyor: onceki surum <c>max(1, adet x oran)</c>
+    /// yapiyordu. BR15'te tip basina adet ~1 oldugundan her tip 1'de kaliyor ve
+    /// "%25 yuk" aslinda TAM YUK olarak kosuyordu — yani kismi rejim hic
+    /// olculmemis oluyordu.
+    ///
+    /// En buyuk artik yontemi kullanilir: once oransal taban, sonra artigi
+    /// buyuk olan tipten baslayarak birer birer eklenir. Boylece cok tipli
+    /// kumelerde tip CESITLILIGI korunur; adet dusurmek yerine tip basina bir
+    /// kutu birakmak, heterojenlik merdivenini bozmamak icin onemlidir.
+    ///
+    /// Rastgelelik yoktur: esitlikte tip sirasi karar verir (R-C02).
+    /// </summary>
     private static IReadOnlyList<OptimizationItemInput> Scale(
         IReadOnlyList<OptimizationItemInput> items,
         decimal ratio)
-        => [.. items.Select(i => i with { Quantity = Math.Max(1, (int)(i.Quantity * ratio)) })];
+    {
+        var unit = items.Select(i => i.Width * i.Height * i.Length).ToArray();
+        var goal = items.Select((i, k) => unit[k] * i.Quantity).Sum() * ratio;
+
+        var counts = new int[items.Count];
+        var used = 0m;
+
+        for (var k = 0; k < items.Count; k++)
+        {
+            counts[k] = (int)(items[k].Quantity * ratio);
+            used += counts[k] * unit[k];
+        }
+
+        var order = Enumerable.Range(0, items.Count)
+            .OrderByDescending(k => items[k].Quantity * ratio - counts[k])
+            .ThenBy(k => k)
+            .ToArray();
+
+        var added = true;
+        while (added)
+        {
+            added = false;
+            foreach (var k in order)
+            {
+                if (used + unit[k] > goal) continue;
+
+                counts[k]++;
+                used += unit[k];
+                added = true;
+            }
+        }
+
+        // Bos ornek anlamsiz olurdu; cok kucuk oranlarda en az bir kutu kalir.
+        if (counts.All(c => c == 0)) counts[0] = 1;
+
+        return [.. items.Select((i, k) => i with { Quantity = counts[k] }).Where(i => i.Quantity > 0)];
+    }
 
     private static decimal Mean(List<decimal> values)
         => values.Count == 0 ? 0m : values.Sum() / values.Count;

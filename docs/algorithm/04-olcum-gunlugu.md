@@ -2765,3 +2765,59 @@ açıldığında, değişmez testleri sayesinde görüldü. Kısıtlı korpus ol
 görünürdü — bundan sonra görünecek.
 
 173/36 test yeşil, kapı geçti (%83,63), motor kodu değişmedi.
+
+---
+
+## 19 Ağustos 2026 — `F8-0`: kısmi yük rejimi ilk kez ölçüldü
+
+Görsel testte çıkan dört kusur (`G-1`…`G-4`, [notlar](notlar/2026-08-19-gorsel-test-revize.md))
+tek bir kökte birleşti: **yük araca sığdığında doluluk bir kalite ölçüsü olmaktan çıkıyor.**
+Wäscher/Haußner/Schumann (2007) tipolojisinde bu iki ayrı problem sınıfıdır — taşan yük
+tek-sırt-çantası (SKP), sığan yük **açık boyut problemi** (3B şerit paketleme), ve orada amaç
+"kullanılan uzunluğu en aza indirmek"tir.
+
+BR korpusu **tamamen** taşan-yük rejimindedir. Yani üretim planlarımızın çoğunun bulunduğu rejim
+bugüne kadar hiç ölçülmedi.
+
+### Ne eklendi
+
+`SpreadDiagnostics` — iki ölçü:
+
+- **yayılma** = kullanılan uzunluk / ideal uzunluk (`hacim / (genişlik × yükseklik)`, aşağı sınır)
+- **dilim doluluğu** = kullanılan dilimin *içindeki* doluluk
+
+`--load-ratio` düzeltildi. Eskisi `max(1, adet × oran)` yapıyordu; BR15'te tip başına adet ~1
+olduğu için her tip 1'de kalıyor ve **"%25 yük" aslında tam yük olarak koşuyordu** — kısmi rejim
+hiç ölçülmemiş oluyordu. Yerine en büyük artık yöntemi: toplam hacim hedefi aşmıyor, tip
+çeşitliliği korunuyor.
+
+Kapı da genişledi: yayılma ayrı bir eşik (`±0,01`), ve **yük oranı yapılandırmanın parçası** —
+%25 koşusu artık tam yük referansıyla kıyaslanamıyor.
+
+### Ölçüm — static, 700 örnek/oran
+
+| Yük oranı | Yayılma | Dilim doluluğu | Duvar |
+|---|---|---|---|
+| %25 | **×1,812** | %57,0 | 2,7 |
+| %50 | ×1,457 | %69,3 | 4,5 |
+| %75 | ×1,287 | %77,8 | 6,3 |
+| %100 | ×1,182 | %84,7 | 6,6 |
+
+**Araç boşaldıkça yayılma büyüyor — istisnasız.** Ve heterojenlik bunu ağırlaştırıyor: %25 yükte
+BR1 ×1,613, BR7 ×2,009.
+
+Bu, arayüzde 16 plan üzerinde gözle görülen desenin 2100 örnekle doğrulanmış hâli.
+
+### Neden bugüne kadar görünmedi
+
+Tam yükte yayılma ile dilim doluluğu birbirinin tersidir (yük zaten aracın sonuna dayanır), yani
+`FillRate` her şeyi söyler. Kısmi yükte bağ kopar: bütün kutular yerleşir, doluluk sabittir,
+**yerleşimin biçimi hiçbir sayıya yansımaz.**
+
+`DR-57` F6-3'ü (duvar yüzü tam kaplama) tam da bu yüzden reddetmişti — ölçüm taşan yüktendi.
+`DR-47` ise daha o zaman "çeyrek yükte darboğaz kesit döşemesi" demişti. İki karar farklı
+rejimlerde alınmış, biri ötekinin alanına uygulanmıştı.
+
+Motor kodu **değişmedi**; tam yük kapısı %83,63 ile geçti, 173/173 test yeşil.
+
+Referanslar: `referans/br-wallbuilder-static-yuk{0.25,0.50,0.75}.json`.

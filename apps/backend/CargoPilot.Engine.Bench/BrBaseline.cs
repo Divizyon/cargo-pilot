@@ -30,14 +30,32 @@ public static class BrBaseline
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    public sealed record SetResult(int Set, int Instances, decimal MeanFillPercent);
+    /// <summary>
+    /// Izin verilen yayilma artisi. Doluluktan ayri bir pay gerekiyor cunku
+    /// yayilma bir ORAN'dir (kullanilan/ideal uzunluk) ve yuzde puani degildir.
+    /// Statik yol deterministik oldugu icin gercek pay yine sifirdir.
+    /// </summary>
+    private const double SpreadTolerance = 0.01d;
+
+    /// <summary>
+    /// Bir kumenin sonucu. Yayilma alanlari OPSIYONELDIR: tasan-yuk referanslari
+    /// bu olcu eklenmeden once yazildi ve onlari gecersiz kilmamak gerekiyor.
+    /// Iki tarafta da varsa kapiya girer, yoksa sessizce atlanir.
+    /// </summary>
+    public sealed record SetResult(
+        int Set,
+        int Instances,
+        decimal MeanFillPercent,
+        double? MeanSpreadRatio = null,
+        double? MeanSliceUtilPercent = null);
 
     public sealed record Report(
         string Strategy,
         string Sequencer,
         string Orientation,
         decimal MeanFillPercent,
-        IReadOnlyList<SetResult> Sets);
+        IReadOnlyList<SetResult> Sets,
+        decimal? LoadRatio = null);
 
     public static void Write(string path, Report report)
     {
@@ -108,6 +126,28 @@ public static class BrBaseline
                 Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
                     $"iyilesme BR{set.Set}: %{reference.MeanFillPercent:F2} -> %{set.MeanFillPercent:F2} (+{delta:F2} puan)."));
             }
+
+            // Yayilma AYRI bir kapidir: sigan-yuk rejiminde doluluk sabittir ve
+            // hicbir gerilemeyi gostermez, kotulesme yalnizca burada gorunur.
+            if (reference.MeanSpreadRatio is not { } expectedSpread
+                || set.MeanSpreadRatio is not { } actualSpread)
+            {
+                continue;
+            }
+
+            var spreadDelta = actualSpread - expectedSpread;
+            if (spreadDelta > SpreadTolerance)
+            {
+                Console.Error.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                    $"GERILEME BR{set.Set} yayilma: x{expectedSpread:F3} -> x{actualSpread:F3} (+{spreadDelta:F3})."));
+                ok = false;
+            }
+            else if (spreadDelta < -SpreadTolerance)
+            {
+                improved = true;
+                Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                    $"iyilesme BR{set.Set} yayilma: x{expectedSpread:F3} -> x{actualSpread:F3} ({spreadDelta:F3})."));
+            }
         }
 
         if (improved)
@@ -127,16 +167,24 @@ public static class BrBaseline
     /// </summary>
     private static bool Comparable(Report expected, Report actual)
     {
+        // Yuk orani da yapilandirmanin parcasidir: %25 kosusunu tam yuk
+        // referansiyla kiyaslamak sessizce baska bir seyi olcerdi. Alan
+        // eklenmeden once yazilmis referanslar tam yuktur.
+        var expectedRatio = expected.LoadRatio ?? 1m;
+        var actualRatio = actual.LoadRatio ?? 1m;
+
         if (expected.Strategy == actual.Strategy
             && expected.Sequencer == actual.Sequencer
-            && expected.Orientation == actual.Orientation)
+            && expected.Orientation == actual.Orientation
+            && expectedRatio == actualRatio)
         {
             return true;
         }
 
-        Console.Error.WriteLine(
-            $"referans baska bir yapilandirmaya ait: {expected.Strategy}/{expected.Sequencer}/{expected.Orientation} " +
-            $"!= {actual.Strategy}/{actual.Sequencer}/{actual.Orientation}.");
+        Console.Error.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"referans baska bir yapilandirmaya ait: " +
+            $"{expected.Strategy}/{expected.Sequencer}/{expected.Orientation}/yuk {expectedRatio:0.##} " +
+            $"!= {actual.Strategy}/{actual.Sequencer}/{actual.Orientation}/yuk {actualRatio:0.##}."));
 
         return false;
     }
