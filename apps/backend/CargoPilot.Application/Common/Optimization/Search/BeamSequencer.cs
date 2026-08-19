@@ -80,8 +80,24 @@ internal static class BeamSequencer
         new(0m, true),
     ];
 
-    /// <summary>Bir parcada kac farkli "siradaki urun" denenir.</summary>
-    private const int ItemChoices = 4;
+    /// <summary>
+    /// Bir parcada kac farkli "siradaki urun" denenir.
+    ///
+    /// OLCULDU (beam, 56 ornek; tam yuk dolulugu / %25 yuk yayilmasi):
+    ///   4  → %91,15 / x1,276      8  → %91,30 / x1,259
+    ///   12 → %91,25 / x1,261      16 → %91,31 / x1,259
+    ///
+    /// Sekizde doyuyor; 12 ve 16 ayni yere geliyor. Kucuk olani secildi cunku
+    /// her ek secim dal sayisini buyutur ve iteratif genisletmeye daha az tur
+    /// birakir.
+    ///
+    /// Neden dortten sekize cikildi: G-3 (kesitte olu seritler) puanlama
+    /// tarafindan cozulemiyor — L(b) knapsack kaybi uc bicimde de kaybettirdi
+    /// (F8-3) ve VCS ustelleri iki rejimde de DUZ cikti (hacim usteli 3→1,
+    /// kayip usteli 2→4: %84,47-84,49 arasi). Kaldirac puanlama degil KARAR
+    /// UZAYI; bu olcum onu dogruluyor.
+    /// </summary>
+    private const int ItemChoices = 8;
 
     /// <summary>
     /// Siradaki urun kararini dallandirmak icin sira listesini yeniden kurar:

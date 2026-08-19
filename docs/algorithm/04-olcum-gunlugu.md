@@ -3050,3 +3050,71 @@ kombinasyonunu **arama** kararına açmak (ilk sütun genişliğini dallandırma
 karar uzayını değiştirmek.
 
 Motor kodu değişmedi; taban %84,26 ile doğrulandı.
+
+---
+
+## 20 Ağustos 2026 — `G-3`: kaldıraç puanlamada değil **karar uzayında**
+
+`F8-3` (`L(b)` knapsack kaybı) reddedilmişti. Geriye "kesitte ölü şeritler nasıl azalır" sorusu
+kalmıştı. Önce ikinci bir puanlama denemesi yapıldı, sonra karar uzayı denendi.
+
+### Puanlama tarafı kapandı — ikinci kanıt
+
+`G-3`'ün somut vakasında (73 cm artığa 55'lik kutu konup 18 cm ölü kalması) ikili kayıp terimi
+o adayı **zaten cezalandırıyor**: `T003`'ün en kısa kenarı 55, artık 18 < 55, yani tam kayıp
+sayılıyor. Buna rağmen seçiliyor çünkü hacim terimi (`^3`) farkı kapatıyor — `T003` 0,41 m³,
+`T002` 0,118 m³.
+
+Öyleyse üstelleri değiştirmek çözer mi? Tarandı (static, 175 örnek — tam yük dolulukları ve
+%25 yük yayılmaları):
+
+| VCS (hacim,kayıp,temas,kutu) | Tam yük | %25 yayılma · dilim |
+|---|---|---|
+| 3,2,0.5,0.5 *(bugün)* | %84,48 | ×1,494 · %67,8 |
+| 2,2,0.5,0.5 | %84,48 | ×1,495 · %67,8 |
+| 1,2,0.5,0.5 | %84,49 | ×1,496 · %67,9 |
+| 3,4,0.5,0.5 | %84,49 | ×1,499 · %67,7 |
+| 2,4,0.5,0.5 | %84,48 | ×1,502 · %67,6 |
+| 1,4,0.5,0.5 | %84,47 | ×1,506 · %67,4 |
+
+**Altısı da düz.** Hacim ustelini 3'ten 1'e indirmek bile hiçbir şeyi değiştirmiyor. `DR-53`
+bunu taşan yükte ölçmüştü; artık kısmi yükte de doğrulandı.
+
+İki bağımsız kanıt oldu: `F8-3` (`L(b)` üç biçimde de kaybettiriyor) ve bu tarama.
+**`G-3` puanlama fonksiyonuyla çözülemez.**
+
+### Karar uzayı — kaldıraç burada
+
+Beam her parçada "sıradaki ürün hangisi" diye dallanıyor ve bu, boş bir duvarda fiilen "ilk
+sütunun genişliği ne olsun" sorusudur — yani `G-3`'ün tam kendisi. Aday sayısı dörttü.
+
+| `ItemChoices` | Tam yük | %25 yayılma · dilim |
+|---|---|---|
+| 4 *(önce)* | %91,15 | ×1,276 · %78,5 |
+| **8** | **%91,30** | **×1,259 · %79,6** |
+| 12 | %91,25 | ×1,261 · %79,5 |
+| 16 | %91,31 | ×1,259 · %79,6 |
+
+Sekizde doyuyor. Küçük olan seçildi: her ek seçim dal sayısını büyütür ve iteratif genişletmeye
+daha az tur bırakır.
+
+### Sonuç — bütün rejimlerde
+
+| Yük | Yayılma önce | sonra | Dilim önce | sonra |
+|---|---|---|---|---|
+| %25 | ×1,276 | **×1,259** | %78,5 | **%79,6** |
+| %50 | ×1,196 | **×1,187** | %83,7 | **%84,3** |
+| %75 | ×1,162 | **×1,157** | %86,1 | **%86,5** |
+| %100 | ×1,094 | ×1,093 | %91,4 | %91,5 |
+
+Doluluk (tam yük, beam): **%91,15 → %91,30.** Gürültü bandı ±0,05 (`DR-61`), yani gerçek.
+
+Static yol dokunulmadı — `ItemChoices` yalnızca beam'e ait; kapı %84,26 ile değişmeden geçti.
+177/177 test yeşil.
+
+### Ders
+
+`G-3` üç kez denendi: `L(b)` knapsack (ret), VCS üsteli taraması (düz), aday sayısı (**kabul**).
+Üçünün ortak dersi, `DR-43`'ün çoktan söylediği şeydi: *"kalan açık sıralayıcıda değil, blok karar
+uzayında."* Puanlamayı iyileştirmeye harcanan iki deneme, o cümleyi ciddiye alsaydık
+gerekmeyebilirdi.
