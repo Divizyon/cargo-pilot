@@ -2629,3 +2629,68 @@ Bu ölçülmedi ve açık borçtur. Muhtemel çözüm: paralellik derecesini ist
 motor çağrılarını bir kuyruğa almak.
 
 173/36/228 yeşil, 17 snapshot sabit, statik yol etkilenmedi (paralellik yalnız beam'de), kapı geçti.
+
+---
+
+## Eşzamanlılık borcu kapandı — **ölçüldü: düşüş gerçek ama taban hâlâ GRASP'ın üstünde**
+
+`DR-64` paralel dal değerlendirmeyi getirirken bir borç bırakmıştı: ölçüm **tek istek** üzerinden
+yapılmıştı, oysa üretimde her plan isteği bütün çekirdekleri istiyor.
+
+Ölçüm canlı ortamda yapıldı. Senaryo bilinçli olarak **taşan** bir yük (A aracı, %115 hedef,
+176 kutu): orada arama gerçekten fark yaratıyor, yani kayıp görünür olur. Her şeyin sığdığı bir
+senaryoda hepsi aynı sonucu verirdi.
+
+### Eşzamanlı istek sayısına göre
+
+| Eş zamanlı istek | Ortalama süre | **Doluluk** |
+|---|---|---|
+| 1 | 4,09 sn | **%87,01** |
+| 4 | 4,12 sn | %84,69 |
+| 8 | 4,17 sn | **%82,21** |
+| 16 | 4,20 sn | %82,21 |
+
+**Düşüş gerçek: 4,8 puan**, ve sekizde plato yapıyor. **Süre sabit** — çünkü bütçe duvar saatidir;
+motor aynı iki saniyede daha az dal değerlendiriyor, daha uzun sürmüyor.
+
+### Ama plato taban çizgisi değil
+
+Aynı senaryoda üç sıralayıcı:
+
+| | Doluluk |
+|---|---|
+| Static | %67,66 |
+| GRASP (tek istek) | %80,57 |
+| **Beam, 8+ eş zamanlı** | **%82,21** |
+| **Beam, tek istek** | **%87,01** |
+
+Beam **tam yük altında bile** yüksüz GRASP'ı geçiyor. Yani eşzamanlılık kaybı gerçek ama
+üretim varsayılanını beam yapma kararını (`DR-56`) değiştirmiyor.
+
+### Paralellik derecesini kısmak işe yaramadı
+
+`MaxDegreeOfParallelism = 4` denendi:
+
+| Eş zamanlı | 20 çekirdek | **4 ile sınırlı** |
+|---|---|---|
+| 1 | %87,01 | **%82,21** |
+| 8 | %82,21 | %82,21 |
+
+**Strictly kötü:** tek istekte 4,8 puan kaybettiriyor, yüklü durumda hiçbir şey kazandırmıyor.
+Geri alındı.
+
+Sebep: düşüş bir **çizelgeleme** sorunu değil, paylaşılan CPU'nun kendisi. Sekiz istek aynı anda
+koşuyorsa her birine düşen hesap gücü sekizde bir olur; paralellik derecesini kısmak bunu
+değiştirmez, yalnız yüksüz durumu da bozar.
+
+### Gerçek çözüm kodda değil
+
+Kayıp kapasiteyle ilgili, algoritmayla değil. Üç yol var ve üçü de bu oturumun kapsamı dışında:
+
+1. **Daha çok çekirdek** — doğrudan orantılı.
+2. **Motor çağrılarını kuyruğa almak** — her istek sırayla tam güç alır; gecikme artar, doluluk
+   korunur.
+3. **Asenkron plan üretimi** — istek hızlı bir taban planla döner, arka planda derinleşir. Beam
+   zaten **anytime** (`DR-60`), yani bu desene hazır.
+
+Ölçülmüş eğri elde: kaç eşzamanlı istekte ne kaybedildiği biliniyor. Karar kapasite planlamasıdır.
