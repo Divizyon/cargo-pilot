@@ -2443,3 +2443,52 @@ giden kümelerde kazanıldı (BR1 +0,21, BR7 +0,12). Yapısal fayda daha önemli
 Tam destekli literatür çıpası %94,2 ama örnek başına 240-320 saniyeyle; bizimki 2 saniye.
 
 173/36/228 yeşil, 17 snapshot sabit, kapı geçti.
+
+---
+
+## (blok, boşluk) aksiyon uzayı — **reddedildi**, ve beam'in gürültü bandı düzeltildi
+
+### Denenen
+
+Araştırmanın F-1'inin uygulanmamış yarısı. Beam bugüne kadar yalnız **"sıradaki ürün"** üzerinde
+dallanıyordu; boşluk ve yönelim seçimini tamamen yerleştirici yapıyordu (bütün adayları VCS ile
+puanlayıp en iyisini alarak).
+
+`DecoderKeys.CandidateRank` eklendi: aramanın **ikinci ve üçüncü en iyi** adayı da denemesi. Bu,
+dallanmayı fiilen *(blok, boşluk)* çiftine çıkarıyor — literatürdeki BSG'nin aksiyon uzayı budur.
+`TryPlace` en iyi tek adayı tutmak yerine ilk `rank+1` tanesini sıralı tutuyor.
+
+`rank = 0` ile statik yol **bit birebir** korundu (kapı geçti, 173 test yeşil).
+
+### Ölçüm
+
+| Yapılandırma | 2 sn | 8 sn |
+|---|---|---|
+| Ranksız (3 varyant) | **%90,04** | **%90,69** |
+| Rank 0,1 (4 varyant) | %90,04 | %90,64 |
+| Rank 0,1,2 (5 varyant) | %89,98 | — |
+
+**Hiçbir bütçede kazandırmıyor.** Dört kat bütçede bile nötr-hafif negatif. Geri alındı.
+
+**Neden:** VCS'in en iyi adayı zaten iyi ve ikinci/üçüncü en iyi genelde *yapısal olarak farklı bir
+karar* değil — aynı boşlukta komşu bir yönelim. Yani rank, beklenen çeşitliliği getirmiyor; buna
+karşılık varyant sayısını artırarak aynı bütçede daha az tur koşulmasına yol açıyor. Ayrıca
+`TryPlace` başına küçük bir dizi ayırıyordu; sıfır kazanç için ölçülebilir bir maliyet.
+
+### Düzeltme: beam'in gürültü bandı ±0,01 değil ~±0,05
+
+Geri alma sonrası **aynı kod** üç kez koşuldu: %89,98 · %89,98 · %89,97. Oysa aynı kod birkaç saat
+önce %90,04 · %90,03 vermişti. Kod değişmedi (`git status` temiz), değişen makine yükü — beam'in
+bütçesi duvar saatidir, yani saniyede kaç dal değerlendirildiği yüke bağlıdır. O sırada beş Docker
+konteyneri (backend, frontend, iki MSSQL, MinIO) ayaktaydı.
+
+**Bunun geriye dönük etkisi var ve kaydedilmeli:**
+
+- `DR-59` (`CS(b)`, +0,55) — bandın çok üstünde, **sağlam**.
+- `DR-58` (`L(b)`, −0,12) — bandın sınırında; ret kararı yine de doğru çünkü kazanç da yoktu.
+- `DR-60` (iteratif genişletme, +0,09) — **bandın içinde.** Doluluk kazancı kanıtlanmış sayılamaz.
+  Kararın asıl gerekçesi zaten doluluk değil **yapısaldı**: arama anytime oldu ve her küme bütçeyi
+  dolduruyor. O gerekçe ayakta; puan iddiası geri çekiliyor.
+
+Bundan sonra beam ölçümlerinde **0,1 puandan küçük farklar gürültü sayılacak.** Static ölçümler
+etkilenmiyor — orası saf hesap, bit kararlı.

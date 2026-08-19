@@ -14,7 +14,7 @@ sıralayıcı · korpus · yönelim** ile ölçüldüğü belirtilmelidir; yoksa
 
 ## Tek satırda
 
-**Duvar örücü + ileri bakışlı ışın araması, BR1-BR7: %90,04.** Greedy'nin (%75,23) 12,5 puan üstünde, literatürün en
+**Duvar örücü + ileri bakışlı ışın araması, BR1-BR7: ~%90.** Greedy'nin (%75,23) 12,5 puan üstünde, literatürün en
 iyilerinin (~%94-95, ama örnek başına 240-320 saniyeyle) ~7 puan altında. Kayıp neredeyse eşit
 bölünüyor: yarısı duvar kesitinde kalan **kenar şeritleri**, yarısı yığının üstündeki **ölü hava**.
 Yığının içi masif.
@@ -34,7 +34,7 @@ oldu; tek resmî sayı var, eski `strict`/`free` ikiliği kaldırıldı.
 | Duvar örücü + GRASP, yönelim eşlemesi hatalıyken | %86,23 | 1,1-2,0 sn |
 | Duvar örücü + GRASP, sözlükbilimsel aday seçimi | %87,73 | 1,3-2,0 sn |
 | Duvar örücü + GRASP — *kıyas referansı* | %88,34 | 1,3-2,0 sn |
-| Duvar örücü + **beam** — *üretim varsayılanı* | **%90,04** | 2,0 sn (anytime) |
+| Duvar örücü + **beam** — *üretim varsayılanı* | **%89,97-90,04** | 2,0 sn (anytime) |
 | Literatürün en iyileri (CLTRS, ID-GLTS, BSG-VCS, mp-BRKGA) | ~%94-95 | örnek başına ~240-320 sn |
 
 Literatür kıyası **eşit süreli değildir** — onlar örnek başına dakikalar harcıyor, biz 2 saniye.
@@ -102,7 +102,10 @@ duvar disiplininden vazgeçiyor** (GRASP'ta kutuların %45'i hiçbir duvarda de�
 
 ## Ölçüm güvenilirliği
 
-- **Gürültü bandı ±0,01 puan** (aynı yapılandırma 4 koşu). 0,1 puandan büyük fark gerçektir.
+- **Static gürültüsüzdür** — saf hesap, aynı girdi bit birebir aynı sonuç. Her fark gerçektir.
+- **Beam'in gürültü bandı ~±0,05 puan** (`DR-61`). Bütçesi duvar saati olduğu için saniyede kaç dal
+  değerlendirildiği makine yüküne bağlı; aynı kod farklı zamanlarda %89,97-%90,04 verdi. **Beam'de
+  0,1 puandan küçük farklar gürültü sayılır.**
 - Static yol **saf hesaptır**; her makinede bit birebir aynı. CI kapısı bu yüzden yalnız static
   ölçer, toleransı (0,05 puan) yalnızca JSON yuvarlamasına karşıdır.
 - GRASP'ın bütçesi **duvar saatidir**; sonucu makineye bağlıdır, elle ölçülür ve
