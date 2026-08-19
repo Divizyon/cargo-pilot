@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Models;
+﻿using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Common.Optimization;
@@ -52,9 +52,9 @@ internal static class PlacementValidator
 
     // ── Support ───────────────────────────────────────────────────────────────
     //
-    // %80 zemin desteği kuralının TEK kaynağı. Zemindeki kutu (y == 0) ve sıfır
+    // Zemin desteği kuralının TEK kaynağı. Zemindeki kutu (y == 0) ve sıfır
     // taban alanı her zaman desteklidir. Yalnızca üst yüzeyi tam olarak aday
-    // tabanına denk gelen kutular destek sayılır; eşik 0.80'dir.
+    // tabanına denk gelen kutular destek sayılır; eşik <see cref="SupportThreshold"/>.
 
     /// <summary>Aday pozisyon zeminde mi ya da altındaki kutulardan yeterli destek alıyor mu?</summary>
     internal static bool HasSupport(
@@ -68,7 +68,8 @@ internal static class PlacementValidator
     /// POLITIKA (docs/algorithm/02-kararlar.md DR-16): kimse olcup "%80 olmali" demedi.
     /// Olcum bu kuralin en buyuk tikac oldugunu gosterdi — yerlesemeyen
     /// kutularin %72,7'si bir bosluga sigiyor ama yalnizca %3,2'si orada destek
-    /// buluyor.
+    /// buluyor. Esik 19 Agustos 2026'da 0,60'a indirildi; gerekce
+    /// <see cref="SupportThreshold"/> uzerindedir.
     ///
     /// Parametrelesme, esigi DEGISTIRMEK icin degil OLCMEK icin: uretim
     /// varsayilani <see cref="SupportThreshold"/>'da durur ve hicbir cagri yolu
@@ -81,8 +82,28 @@ internal static class PlacementValidator
         decimal threshold)
         => SupportRatio(placed, x, y, z, width, length) >= threshold;
 
-    /// <summary>Asgari destek orani. Esik burada tek yerde durur.</summary>
-    internal const decimal SupportThreshold = 0.80m;
+    /// <summary>
+    /// Asgari destek orani. Esik burada tek yerde durur.
+    ///
+    /// 19 Agustos 2026'da %80'den %60'a INDIRILDI. Karar olcumle alindi
+    /// (G-5): aday uretimi bosluk kosesinden destekli uc noktalara
+    /// genisletildikten SONRA bile, bir bosluga sigan yerlesemeyen kutularin
+    /// hicbiri %80 destek bulamiyordu ("sigan+destekli %0,0"). Yani kalan tek
+    /// tikac esikti.
+    ///
+    /// Olculdu (static, BR1-BR7, 175 ornek):
+    ///   0,80  %83,91  ·  ortalama destek %98,8  ·  azami tasma 13 cm
+    ///   0,70  %84,25  ·  ortalama destek %97,9  ·  azami tasma 23 cm
+    ///   0,60  %84,48  ·  ortalama destek %97,2  ·  azami tasma 29 cm
+    ///
+    /// Esigi dusurmek plani gevsetmiyor: ortalama destek %97'nin ustunde
+    /// kaliyor, kutularin yalnizca %6,9'u %80'in altina iniyor. Bedeli azami
+    /// tasmanin 13 cm'den 29 cm'ye cikmasi.
+    ///
+    /// Esik bir FIZIK KANUNU DEGIL, bir POLITIKADIR (DR-16) ve bu yuzden karar
+    /// musteriye soruldu; 0,60 secildi. Degistirmeden once yeniden sorulmali.
+    /// </summary>
+    internal const decimal SupportThreshold = 0.60m;
 
     /// <summary>Girdi bir esik tasimiyorsa yururlukteki deger.</summary>
     internal static decimal ThresholdOf(OptimizationInput input)

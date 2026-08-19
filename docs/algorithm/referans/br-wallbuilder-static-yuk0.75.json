@@ -2,56 +2,56 @@
   "Strategy": "WallBuilder",
   "Sequencer": "Static",
   "Orientation": "Strict",
-  "MeanFillPercent": 74.23,
+  "MeanFillPercent": 74.35,
   "Sets": [
     {
       "Set": 1,
       "Instances": 100,
-      "MeanFillPercent": 74.13,
-      "MeanSpreadRatio": 1.2643,
-      "MeanSliceUtilPercent": 79.33
+      "MeanFillPercent": 74.20,
+      "MeanSpreadRatio": 1.2596,
+      "MeanSliceUtilPercent": 79.62
     },
     {
       "Set": 2,
       "Instances": 100,
-      "MeanFillPercent": 74.27,
-      "MeanSpreadRatio": 1.2696,
-      "MeanSliceUtilPercent": 78.91
+      "MeanFillPercent": 74.35,
+      "MeanSpreadRatio": 1.263,
+      "MeanSliceUtilPercent": 79.33
     },
     {
       "Set": 3,
       "Instances": 100,
-      "MeanFillPercent": 74.41,
-      "MeanSpreadRatio": 1.2706,
-      "MeanSliceUtilPercent": 78.84
+      "MeanFillPercent": 74.47,
+      "MeanSpreadRatio": 1.2664,
+      "MeanSliceUtilPercent": 79.1
     },
     {
       "Set": 4,
       "Instances": 100,
-      "MeanFillPercent": 74.26,
-      "MeanSpreadRatio": 1.286,
-      "MeanSliceUtilPercent": 77.87
+      "MeanFillPercent": 74.42,
+      "MeanSpreadRatio": 1.2829,
+      "MeanSliceUtilPercent": 78.05
     },
     {
       "Set": 5,
       "Instances": 100,
-      "MeanFillPercent": 74.18,
-      "MeanSpreadRatio": 1.2874,
-      "MeanSliceUtilPercent": 77.78
+      "MeanFillPercent": 74.37,
+      "MeanSpreadRatio": 1.2784,
+      "MeanSliceUtilPercent": 78.33
     },
     {
       "Set": 6,
       "Instances": 100,
-      "MeanFillPercent": 74.20,
-      "MeanSpreadRatio": 1.3059,
-      "MeanSliceUtilPercent": 76.63
+      "MeanFillPercent": 74.30,
+      "MeanSpreadRatio": 1.3003,
+      "MeanSliceUtilPercent": 76.96
     },
     {
       "Set": 7,
       "Instances": 100,
-      "MeanFillPercent": 74.18,
-      "MeanSpreadRatio": 1.309,
-      "MeanSliceUtilPercent": 76.45
+      "MeanFillPercent": 74.37,
+      "MeanSpreadRatio": 1.3008,
+      "MeanSliceUtilPercent": 76.94
     }
   ],
   "LoadRatio": 0.75

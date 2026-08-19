@@ -2865,3 +2865,66 @@ bisection) kapatmalı.
 
 Static yol dokunulmadı: tam yük kapısı %83,63, %25 kapısı ×1,812 — ikisi de değişmeden geçti.
 173/173 test yeşil.
+
+---
+
+## 19 Ağustos 2026 — `G-5`: aday konum üretimi ve destek eşiği
+
+Kullanıcı görsel testte kenarda boşluk görüp "sığacak ürün var ama konmuyor" dedi ve
+`%80 destek kuralıysa 60'a indirebiliriz` diye önerdi. Ölçüm önce **başka bir yeri** gösterdi.
+
+### Teşhis — aday konum boşluk başına tekti
+
+`BR15 %100` planında 27 yerleşemeyen kalemin her biri için son yerleşimde her aday konum ve 6
+yönelim tarandı: **21'inin bugünkü %80 eşiğini zaten geçen bir konumu vardı.** Örnek
+`BR15-T026 → (0, 108, 318)`, %87,7 destek, sıfır çakışma — motor o noktayı hiç denememişti.
+
+Kök neden `WallBuilderPlacement`: her boşluk için **tek** aday konum üretiliyordu, boşluğun köşesi.
+Köşe desteksizse boşluk tamamen eleniyordu. Literatürdeki adı *corner point* yerine *extreme
+point* aday üretimi (Crainic, Perboli & Tadei).
+
+Aynı kusur teşhiste de vardı: `SpaceDiagnostics` desteği yalnız köşede sınadığı için
+"sığan+destekli %0,1" diyor ve kusuru gizliyordu.
+
+### İki düzeltme
+
+1. **Destekli uç noktalar** — köşe desteksizse alttaki destek kutularının kenarlarına hizalı
+   konumlar denenir. Köşe zaten destekliyse hiçbir şey değişmez.
+2. **Son geçiş** — ana döngü tek yönlüydü; yerleşemeyen kutu bir daha denenmiyordu. Artık defterin
+   son hâliyle, ilerleme durana kadar yeniden denenir.
+
+Ölçüldü (static, tam yük): %83,63 → **%83,77**. BR15: %79,32 → **%79,92**.
+"Sığan ama yerleşemeyen" BR15'te **%44,1 → %28,2**.
+
+### Sonra eşik — ve kullanıcı haklı çıktı
+
+Düzeltilmiş teşhisle bakınca kalan %28'in **tamamı** destek kapısında kalıyordu
+(`sığan+destekli %0,0`). Yani aday üretimi artık tıkaç değildi; sıra eşiğe gelmişti.
+
+`G-5` sonrası yeniden tarandı (static, BR1-BR7, 175 örnek):
+
+| Eşik | Doluluk | %80 altı kutu | %70 altı | Azami taşma |
+|---|---|---|---|---|
+| 0,80 | %83,91 | %0,0 | %0,0 | 13 cm |
+| 0,70 | %84,25 | %4,7 | %0,0 | 23 cm |
+| **0,60** | **%84,48** | %6,9 | %3,0 | 29 cm |
+
+`DR-16` eşiğin "fizik kanunu değil **politika**" olduğunu ve "müşteri kararı sayı olmadan
+verilemez" dediğini kaydetmişti. Sayılar sunuldu, **0,60 seçildi.**
+
+Eşik plan bütününü gevşetmiyor: ortalama destek %97,2'de kalıyor, kutuların yalnız %6,9'u %80'in
+altına iniyor. Bedeli azami taşmanın 13 → 29 cm çıkması.
+
+### Toplam — bugünün üç adımı
+
+| Yapılandırma | Başlangıç | `F8-1` | `G-5` | **Eşik 0,60** |
+|---|---|---|---|---|
+| **Static, tam yük** | %83,63 | %83,63 | %83,77 | **%84,26** |
+| **Beam, tam yük** | %90,71 | %90,75 | — | **%91,15** |
+| Static %25 · yayılma | ×1,812 | — | ×1,785 | **×1,710** |
+| Static %50 · yayılma | ×1,457 | — | ×1,447 | **×1,414** |
+| **Beam %25 · yayılma** | ×1,767 | **×1,326** | — | — |
+| BR15 static | %79,32 | — | %79,92 | **%81,38** |
+
+Dört static referans tazelendi. On yedi snapshot'ın **yalnız biri** değişti ve orada kutu sayısı
+aynı, konumlar daha sıkı (iki kutu z = 200'den z = 80'e geldi). 173/36/228 test yeşil.

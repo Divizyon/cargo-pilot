@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 
@@ -11,15 +11,23 @@ namespace CargoPilot.Engine.Tests.Golden;
 /// Hesaplar üretim kodundan (<c>PlacementValidator</c>) çağrılmaz, bilinçli
 /// olarak bağımsız yazılır: doğrulanacak kuralı doğrulanan koddan okumak, kural
 /// bozulduğunda testi de birlikte bozardı. Eşik ve karşılaştırma operatörü
-/// üretimdekiyle birebir aynıdır (<c>&gt;= 0.80</c>).
+/// üretimdekiyle birebir aynıdır (<c>&gt;= 0.60</c>).
 ///
 /// Sahne sözleşmesi: santimetre, X=genişlik, Y=yükseklik, Z=uzunluk; kutu
 /// konumu bottom-left-rear köşesidir.
 /// </summary>
 internal static class PhysicalInvariants
 {
-    /// <summary>PlacementValidator.HasSupport ile aynı eşik.</summary>
-    public const decimal SupportThreshold = 0.80m;
+    /// <summary>
+    /// PlacementValidator.HasSupport ile aynı eşik — ama oradan OKUNMAZ, elle
+    /// yazılır (bkz. sınıf başlığı). Üretimdeki eşik değişirse bu testler kırılır
+    /// ve bu istenen davranıştır: eşik bir politika kararıdır, sessizce
+    /// kaymamalıdır.
+    ///
+    /// 19 Ağustos 2026: %80 → %60. Karar ölçümle alındı ve müşteriye soruldu;
+    /// gerekçe <c>PlacementValidator.SupportThreshold</c> üzerindedir.
+    /// </summary>
+    public const decimal SupportThreshold = 0.60m;
 
     /// <summary>Hata mesajında en fazla kaç havada kalan kutunun ayrıntısı yazılır.</summary>
     private const int FloatingBoxReportLimit = 5;

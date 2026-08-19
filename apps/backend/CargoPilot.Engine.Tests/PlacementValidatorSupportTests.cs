@@ -1,10 +1,10 @@
-using CargoPilot.Application.Common.Optimization;
+﻿using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Engine.Tests;
 
 /// <summary>
-/// <c>PlacementValidator.HasSupport</c> içindeki %80 zemin desteği kuralının
+/// <c>PlacementValidator.HasSupport</c> içindeki %60 zemin desteği kuralının
 /// sınır davranışını doğrular. Aday kutu her testte 100x100 taban alanına
 /// sahiptir, dolayısıyla destekleyen kutunun genişliği doğrudan destek
 /// yüzdesidir.
@@ -19,30 +19,30 @@ public sealed class PlacementValidatorSupportTests
     private const decimal SupportHeight = 50m;
 
     [Fact]
-    public void Destek_YuzdeYetmisDokuz_AdayReddedilir()
+    public void Destek_YuzdeElliDokuz_AdayReddedilir()
     {
-        var placed = new List<PlacedBox> { SupportBox(x: 0m, width: 79m) };
+        var placed = new List<PlacedBox> { SupportBox(x: 0m, width: 59m) };
 
         Assert.False(HasSupportAtSecondLayer(placed));
     }
 
     [Fact]
-    public void Destek_YuzdeSeksenBir_AdayKabulEdilir()
+    public void Destek_YuzdeAltmisBir_AdayKabulEdilir()
     {
-        var placed = new List<PlacedBox> { SupportBox(x: 0m, width: 81m) };
+        var placed = new List<PlacedBox> { SupportBox(x: 0m, width: 61m) };
 
         Assert.True(HasSupportAtSecondLayer(placed));
     }
 
     /// <summary>
-    /// Tam sınır: üretim kodundaki karşılaştırma <c>&gt;= 0.80m</c> olduğu için
-    /// %80 destekli aday kabul edilir. Test kuralı belgelemek içindir, eşiği
+    /// Tam sınır: üretim kodundaki karşılaştırma <c>&gt;= 0.60m</c> olduğu için
+    /// %60 destekli aday kabul edilir. Test kuralı belgelemek içindir, eşiği
     /// değiştirmek için değil.
     /// </summary>
     [Fact]
-    public void Destek_TamYuzdeSeksen_SinirDahil_AdayKabulEdilir()
+    public void Destek_TamYuzdeAltmis_SinirDahil_AdayKabulEdilir()
     {
-        var placed = new List<PlacedBox> { SupportBox(x: 0m, width: 80m) };
+        var placed = new List<PlacedBox> { SupportBox(x: 0m, width: 60m) };
 
         Assert.True(HasSupportAtSecondLayer(placed));
     }

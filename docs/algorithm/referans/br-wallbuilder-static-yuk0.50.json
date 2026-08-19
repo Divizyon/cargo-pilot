@@ -8,50 +8,50 @@
       "Set": 1,
       "Instances": 100,
       "MeanFillPercent": 49.66,
-      "MeanSpreadRatio": 1.3913,
-      "MeanSliceUtilPercent": 72.6
+      "MeanSpreadRatio": 1.3761,
+      "MeanSliceUtilPercent": 73.3
     },
     {
       "Set": 2,
       "Instances": 100,
       "MeanFillPercent": 49.60,
-      "MeanSpreadRatio": 1.4038,
-      "MeanSliceUtilPercent": 71.95
+      "MeanSpreadRatio": 1.3855,
+      "MeanSliceUtilPercent": 72.8
     },
     {
       "Set": 3,
       "Instances": 100,
       "MeanFillPercent": 49.61,
-      "MeanSpreadRatio": 1.4282,
-      "MeanSliceUtilPercent": 70.59
+      "MeanSpreadRatio": 1.3871,
+      "MeanSliceUtilPercent": 72.59
     },
     {
       "Set": 4,
       "Instances": 100,
       "MeanFillPercent": 49.62,
-      "MeanSpreadRatio": 1.4484,
-      "MeanSliceUtilPercent": 69.68
+      "MeanSpreadRatio": 1.4269,
+      "MeanSliceUtilPercent": 70.64
     },
     {
       "Set": 5,
       "Instances": 100,
       "MeanFillPercent": 49.59,
-      "MeanSpreadRatio": 1.4367,
-      "MeanSliceUtilPercent": 70.14
+      "MeanSpreadRatio": 1.4184,
+      "MeanSliceUtilPercent": 71
     },
     {
       "Set": 6,
       "Instances": 100,
       "MeanFillPercent": 49.64,
-      "MeanSpreadRatio": 1.5028,
-      "MeanSliceUtilPercent": 67.15
+      "MeanSpreadRatio": 1.4461,
+      "MeanSliceUtilPercent": 69.67
     },
     {
       "Set": 7,
       "Instances": 100,
       "MeanFillPercent": 49.62,
-      "MeanSpreadRatio": 1.5201,
-      "MeanSliceUtilPercent": 66.41
+      "MeanSpreadRatio": 1.4595,
+      "MeanSliceUtilPercent": 69.07
     }
   ],
   "LoadRatio": 0.50
