@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Models;
+﻿using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Common.Optimization.WallBuilder;
@@ -829,7 +829,19 @@ internal static class WallBuilderPlacement
                 // iterasyondan gidiyordu. Ciktinin degismedigi olculdu; blok ve
                 // bilesik blok defterin disina yerlestirdigi icin ORADA kontrol
                 // duruyor.
-                if (!PlacementValidator.HasSupport(placements, x, y, z, width, length, supportThreshold)) continue;
+                // Kose desteksizse pes ETME: bosluk icinde, ALTTAKI destek
+                // kutularinin kenarlarina hizali konumlar denenir (G-5).
+                if (!PlacementValidator.HasSupport(placements, x, y, z, width, length, supportThreshold))
+                {
+                    (x, z) = SupportAligned(placements, space, x, y, z, width, length, zFloor, supportThreshold);
+
+                    if (z + length > space.MaxZ) continue;
+                    if (zLimit.HasValue && z + length > zLimit.Value) continue;
+                    if (x < 0m || x + width > input.VehicleWidth) continue;
+                    if (z + length > input.VehicleLength) continue;
+
+                    if (!PlacementValidator.HasSupport(placements, x, y, z, width, length, supportThreshold)) continue;
+                }
                 if (PlacementValidator.ViolatesStackability(placements, x, y, z, width, length,
                     input.Criteria == LoadingPlanOptimizationCriteria.Lifo ? item.UnloadingOrder : null)) continue;
                 if (PlacementValidator.ViolatesStackCount(placements, x, y, z, width, length)) continue;
@@ -928,6 +940,94 @@ internal static class WallBuilderPlacement
         return bestInZone is not null
             ? new Attempt(bestInZone, InZone: true, blockedByFragility)
             : new Attempt(best, InZone: false, blockedByFragility);
+    }
+
+    /// <summary>
+    /// Aday konum sayisinin ust siniri, eksen basina. Konumlar destek kutusu
+    /// kenarlarindan dogar; tipik olarak bir bosluğun altinda birkac kutu olur,
+    /// yani sinir nadiren baglar. Sicak dongude sinirsiz birakmak, arama
+    /// butcesi duvar saati oldugu icin dogrudan iterasyondan giderdi.
+    /// </summary>
+    private const int SupportAlignedPerAxis = 6;
+
+    /// <summary>
+    /// Bosluk icinde, ALTTAKI destek kutularinin kenarlarina hizali ilk YETERLI
+    /// DESTEKLI taban konumu; yoksa gelen konum aynen doner.
+    ///
+    /// Neden gerekiyor: aday konum bugune kadar bosluk basina TEKTI — bosluğun
+    /// kosesi. Kose desteksizse butun bosluk eleniyordu, yirmi santim ilerisi
+    /// tam destekli olsa bile. Olculdu (BR15, %100 yuk): yerlesemeyen 27
+    /// kalemin 21'inin son yerlesimde %80 esigini ZATEN gecen bir konumu vardi
+    /// ve motor o noktayi hic denememisti. Ornek: BR15-T026 icin (0, 108, 318),
+    /// %87,7 destek, sifir cakisma.
+    ///
+    /// Literaturdeki adi kose noktasi yerine UC NOKTA (extreme point) aday
+    /// uretimidir (Crainic, Perboli &amp; Tadei, CIRRELT-2007-41).
+    ///
+    /// Konumlar bosluğun ICINDE kalir; boylece cagiran taraftaki "cakisma
+    /// kontrolu gereksiz" degismezi korunur (bkz. ayni dosyadaki gerekce).
+    ///
+    /// Tarama <c>z</c> artan, sonra <c>x</c> artan sirada gider ve esigi gecen
+    /// ILK konumda durur: <c>z</c> onceligi yukleme yonuyle ayni taraftadir ve
+    /// sabit sira determinizmi (R-C02) korur.
+    /// </summary>
+    private static (decimal X, decimal Z) SupportAligned(
+        List<PlacedBox> placements,
+        FreeSpace space,
+        decimal x, decimal y, decimal z,
+        decimal width, decimal length,
+        decimal zFloor,
+        decimal threshold)
+    {
+        // Zeminde destek zaten tamdir; buraya dusulmez ama ucuz bir korumadir.
+        if (y <= 0m) return (x, z);
+
+        var minX = space.X;
+        var maxX = space.MaxX - width;
+        var minZ = space.Z < zFloor ? zFloor : space.Z;
+        var maxZ = space.MaxZ - length;
+
+        if (maxX < minX || maxZ < minZ) return (x, z);
+
+        var xs = new SortedSet<decimal>();
+        var zs = new SortedSet<decimal>();
+
+        foreach (var box in placements)
+        {
+            if (box.Y + box.Height != y) continue;
+
+            // Yalnizca bu bosluğun ayak izine giren kutular destek olabilir.
+            if (box.X >= space.MaxX || box.X + box.Width <= space.X) continue;
+            if (box.Z >= space.MaxZ || box.Z + box.Length <= space.Z) continue;
+
+            Offer(xs, box.X, minX, maxX);
+            Offer(xs, box.X + box.Width - width, minX, maxX);
+            Offer(zs, box.Z, minZ, maxZ);
+            Offer(zs, box.Z + box.Length - length, minZ, maxZ);
+        }
+
+        if (xs.Count == 0 || zs.Count == 0) return (x, z);
+
+        foreach (var candidateZ in zs)
+        {
+            foreach (var candidateX in xs)
+            {
+                if (candidateX == x && candidateZ == z) continue;
+
+                if (PlacementValidator.SupportRatio(placements, candidateX, y, candidateZ, width, length) >= threshold)
+                {
+                    return (candidateX, candidateZ);
+                }
+            }
+        }
+
+        return (x, z);
+
+        static void Offer(SortedSet<decimal> into, decimal value, decimal min, decimal max)
+        {
+            if (value < min || value > max) return;
+            if (into.Count < SupportAlignedPerAxis) into.Add(value);
+        }
     }
 
     /// <summary>
