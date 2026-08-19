@@ -144,6 +144,67 @@ internal static class PlacementValidator
     internal static bool HasSupportFor(PlacedBox box, List<PlacedBox> others) =>
         HasSupport(others, box.X, box.Y, box.Z, box.Width, box.Length);
 
+    // ── Boşaltma yolu (LIFO) ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Kutu, kendi iniş sırası geldiğinde HÂLÂ ARAÇTA OLAN bir kutuyu oynatmadan
+    /// kapıya çıkabiliyor mu?
+    ///
+    /// Kural sahadan gelir: gruplar uzayda **iç içe geçebilir**, önemli olan bant
+    /// değil çıkarılabilirliktir. Bir grup inerken kendisinden daha erken inecek
+    /// gruplar araçtan çoktan gitmiştir; engel olabilecek tek şey daha GEÇ
+    /// inecek grupların kutularıdır.
+    ///
+    /// Yol, kutunun ayak izinin kapıya doğru (<c>+z</c>) süpürdüğü koridordur.
+    /// Daha geç inecek bir kutu bu koridoru kesiyorsa aday reddedilir.
+    ///
+    /// Dikey eksen bu kuralın konusu değildir; üstteki yük
+    /// <see cref="ViolatesStackability"/>'nin LIFO dalında zaten korunur.
+    ///
+    /// Önceki model bölgeye dayanıyordu: araç uzunluğu gruplara bölünüyor ve her
+    /// grup kendi bandında kalmaya zorlanıyordu. Ölçüldü ve iki yönden kötüydü —
+    /// bant dar kalınca kutular zorunlu olarak taşıyor, geniş kalınca kural hiç
+    /// bağlamıyordu. Bu kural bandı tamamen kaldırır ve doğrudan operasyonel
+    /// gereksinimi ifade eder.
+    ///
+    /// Adayın iniş sırası <c>order</c> ile verilir; küçük değer önce iner.
+    /// </summary>
+    internal static bool ViolatesUnloadPath(
+        List<PlacedBox> placed,
+        decimal x, decimal y, decimal z,
+        decimal width, decimal height, decimal length,
+        int? order)
+    {
+        if (order is not { } mine) return false;
+
+        var doorSide = z + length;
+
+        foreach (var box in placed)
+        {
+            if (box.UnloadingOrder is not { } other || other == mine) continue;
+
+            // Koridor kutunun ayak izidir; yanından geçen kutu engel değildir.
+            if (box.X >= x + width || box.X + box.Width <= x) continue;
+            if (box.Y >= y + height || box.Y + box.Height <= y) continue;
+
+            // Kural İKİ YÖNLÜDÜR ve öyle olmak zorundadır: aday, kendisinden
+            // daha geç inecek bir kutunun ARKASINDA kalamayacağı gibi, daha
+            // erken inecek bir kutunun ÖNÜNÜ de kapatamaz. Tek yönlü sürüm
+            // ölçüldü ve yüz kırk beş ihlal bıraktı — sonradan konan kutu,
+            // önce konmuş bir kutunun yolunu kesiyordu.
+            if (other > mine)
+            {
+                if (box.Z + box.Length > doorSide) return true;
+            }
+            else if (doorSide > box.Z + box.Length)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // ── Stack ─────────────────────────────────────────────────────────────────
     //
     // İstif kuralları: istiflenebilirlik (+ LIFO iniş sırası), azami istif adedi

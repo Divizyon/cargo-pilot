@@ -36,38 +36,6 @@ public static class ConstraintDiagnostics
         var itemsById = input.Items.ToDictionary(i => i.ItemId);
         var placed = DiagnosticPlacements.From(input, result);
 
-        // Bolge ihlali SONUCTAN turetilir, onceden hesaplanmis bantlardan degil.
-        // Sebep: motor dinamik sanal duvar kullaniyor (R-C13) ve bantlari
-        // yuklemenin kendisi belirliyor. Teshisi ComputeGroupZones'a baglamak,
-        // motorun uygulamadigi bir kurali olcmek olurdu — bir kez yasandi:
-        // dinamik duvar acildiginda ihlal sayisi "artmis" gorundu, oysa olcut
-        // eskisiydi.
-        //
-        // Kural sanal duvarin tanimidir: erken inecek grup kapiya daha yakin
-        // durmali, yani ondan SONRA inecek hicbir grubun onune gecmemeli.
-        // Bir kutu, kendisinden daha gec inecek gruplarin ulastigi en uzak
-        // noktadan once basliyorsa ihlaldir.
-        var frontier = new Dictionary<int, decimal>();
-        foreach (var box in DiagnosticPlacements.From(input, result))
-        {
-            if (!itemsById.TryGetValue(box.ItemId, out var spec)) continue;
-            if (spec.UnloadingOrder is not { } order) continue;
-
-            var end = box.Z + box.Length;
-            if (!frontier.TryGetValue(order, out var far) || end > far) frontier[order] = end;
-        }
-
-        decimal RequiredStart(int order)
-        {
-            var need = 0m;
-            foreach (var (other, far) in frontier)
-            {
-                if (other > order && far > need) need = far;
-            }
-
-            return need;
-        }
-
         var zone = 0;
         var fragility = 0;
         var stack = 0;
@@ -83,8 +51,15 @@ public static class ConstraintDiagnostics
 
             if (hasConstraint) constrained++;
 
-            // LIFO: kutu, kendisinden daha gec inecek gruplarin onune gecemez.
-            if (item.UnloadingOrder is { } order && box.Z < RequiredStart(order)) zone++;
+            // LIFO: kutu, kendi inis sirasi geldiginde HALA ARACTA OLAN bir
+            // kutuyu oynatmadan kapiya cikabilmeli. Olcut motorun kendi
+            // kuralidir; teshis ile motor ayni tanimi paylasmazsa olculen sey
+            // motorun uygulamadigi bir kural olur (bir kez yasandi).
+            if (PlacementValidator.ViolatesUnloadPath(
+                placed, box.X, box.Y, box.Z, box.Width, box.Height, box.Length, item.UnloadingOrder))
+            {
+                zone++;
+            }
 
             // Kirilgan kutunun ustunde hicbir kutu olamaz.
             if (item.FragilityType == FragilityType.Fragile && CountAbove(placed, box) > 0) fragility++;

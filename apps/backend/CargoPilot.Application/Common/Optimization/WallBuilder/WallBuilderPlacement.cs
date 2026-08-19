@@ -84,8 +84,16 @@ internal static class WallBuilderPlacement
         var unplaced = state.Unplaced;
         var ledger = state.Ledger;
         var totalWeight = state.TotalWeight;
-        var groupZones = LifoPlacement.ComputeGroupZones(
-            [.. instances.Select(i => i.Item)], input.VehicleLength, modules.UseLifo);
+        // LIFO'nun uzaysal kurali artik BANT degil CIKARILABILIRLIKTIR
+        // (PlacementValidator.ViolatesUnloadPath). Gruplar uzayda ic ice
+        // gecebilir; onemli olan bir grup inerken hala aracta olan hicbir
+        // kutunun oynamak zorunda kalmamasidir.
+        //
+        // Bant modeli olculdu ve iki yonden de kotuydu: dar bant kutulari
+        // zorunlu tasitiyor, genis bant hic baglamiyordu. Sozluk bos birakilinca
+        // yerlestirici LIFO disi yolla ayni davranir ve kural tek yerden,
+        // sert kapi olarak uygulanir.
+        var groupZones = new Dictionary<int, (decimal ZStart, decimal ZEnd)>();
 
         // Kalan kutularin en kucuk kenari: bundan dar bosluk hicbir kutuyu alamaz.
         // Tek seferde hesaplanir; kutular yerlestikce kucumsemek daha cok bosluk
@@ -638,6 +646,9 @@ internal static class WallBuilderPlacement
             if (PlacementValidator.HasOverlap(placements, x, top, z, width, height, length)) break;
             if (!PlacementValidator.HasSupport(placements, x, top, z, width, length,
                 PlacementValidator.ThresholdOf(input))) break;
+            if (OptimizationModules.Resolve(input).UseLifo
+                    && PlacementValidator.ViolatesUnloadPath(
+                placements, x, top, z, width, height, length, item.UnloadingOrder)) break;
             if (PlacementValidator.ViolatesStackability(placements, x, top, z, width, length,
                 input.Criteria == LoadingPlanOptimizationCriteria.Lifo ? item.UnloadingOrder : null)) break;
             if (PlacementValidator.ViolatesStackCount(placements, x, top, z, width, length)) break;
@@ -723,6 +734,9 @@ internal static class WallBuilderPlacement
                 if (PlacementValidator.HasOverlap(placements, x, top, z, width, height, length)) continue;
                 if (!PlacementValidator.HasSupport(placements, x, top, z, width, length,
                     PlacementValidator.ThresholdOf(input))) continue;
+                if (OptimizationModules.Resolve(input).UseLifo
+                    && PlacementValidator.ViolatesUnloadPath(
+                    placements, x, top, z, width, height, length, item.UnloadingOrder)) continue;
                 if (PlacementValidator.ViolatesStackability(placements, x, top, z, width, length,
                     input.Criteria == LoadingPlanOptimizationCriteria.Lifo ? item.UnloadingOrder : null)) continue;
                 if (PlacementValidator.ViolatesStackCount(placements, x, top, z, width, length)) continue;
@@ -992,6 +1006,9 @@ internal static class WallBuilderPlacement
                 }
                 if (PlacementValidator.ViolatesStackability(placements, x, y, z, width, length,
                     input.Criteria == LoadingPlanOptimizationCriteria.Lifo ? item.UnloadingOrder : null)) continue;
+                if (OptimizationModules.Resolve(input).UseLifo
+                    && PlacementValidator.ViolatesUnloadPath(
+                    placements, x, y, z, width, height, length, item.UnloadingOrder)) continue;
                 if (PlacementValidator.ViolatesStackCount(placements, x, y, z, width, length)) continue;
                 if (PlacementValidator.ViolatesStackWeight(placements, x, y, z, width, length, item.Weight)) continue;
                 if (PlacementValidator.ViolatesFragility(placements, x, y, z, width, length))

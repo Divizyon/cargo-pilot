@@ -3289,3 +3289,57 @@ ve daha çok ihlal üreten bir kural.
 
 Bu bir iş kuralı değişikliğidir: *bölge bir zorlayıcı mı yoksa bir güvenlik ağı mı?* Ölçüm hazır,
 karar ürün tarafında. Motor kodu **değiştirilmedi**; ölçüm düzeneği düzeltmeleri alındı.
+
+---
+
+## 20 Ağustos 2026 — LIFO'nun uzaysal kuralı **banttan çıkarılabilirliğe** geçti
+
+Kullanıcı kuralı şöyle koydu:
+
+> Gruplar iç içe olabilir; sadece grup inerken **hiçbir kutu hareket etmeden** çıkarılabilmeli.
+
+Bu, bant modelinden temelde farklı ve fizikselcesi bu. Bant hiçbir zaman operasyonel gereksinimi
+ifade etmiyordu: **bandın içinde kalan bir kutu da pekâlâ başka bir kutunun arkasında sıkışmış
+olabilir.**
+
+### Yeni kural
+
+`PlacementValidator.ViolatesUnloadPath` — kutunun ayak izinin kapıya doğru (`+z`) süpürdüğü
+koridoru, **daha geç inecek** bir kutu kesiyorsa aday reddedilir.
+
+Kural **iki yönlüdür** ve öyle olmak zorunda: aday, daha geç inecek bir kutunun arkasında
+kalamayacağı gibi, daha erken inecek bir kutunun önünü de kapatamaz. Tek yönlü sürüm ölçüldü ve
+**145 ihlal** bıraktı — sonradan konan kutu, önce konmuş bir kutunun yolunu kesiyordu.
+
+Üç yerde uygulanır (aday seçimi, blok yükseltme, bileşik blok); teşhis ve fiziksel değişmez aynı
+tanımı paylaşır.
+
+### Ölçüm — aynı ölçütle, gerçek korpus 100 örnek
+
+| Model | %100 yük | ihlal | %50 yük | ihlal | yayılma %50 | BR1-BR7 |
+|---|---|---|---|---|---|---|
+| **Bant (bugüne kadar)** | %83,36 | **5.148** | %49,57 | 15 | ×1,857 | %78,65 |
+| **Çıkarılabilirlik** | %80,92 | **0** | %48,49 | **0** | ×1,454 | %76,45 |
+
+**Bant modeli 5.148 kutuyu başka kutuları oynatmadan çıkarılamaz hâlde bırakıyordu.** Yeni kural
+bunu sıfırlıyor. Bedeli **−2,44 puan** (gerçek korpus) ve **−2,20 puan** (BR).
+
+Bu bir doluluk/doğruluk takası değil, bir **hata düzeltmesi**: eski planların yirmide biri sahada
+uygulanamıyordu.
+
+Yayılma da düzeliyor (×1,857 → ×1,454): bant yükü araç boyunca dağıtıyordu, artık dağıtmıyor.
+
+### Yan bulgular
+
+- **`R-C13` hacme orantılı bölme reddedildi:** bant tam grubun hacmi kadar olunca paketleme verimi
+  (~%85) yüzünden grup kendi bandına sığamıyor. %82,82 · 12.487 ihlal.
+- **`DR-57` yeniden ölçüldü, değişmedi:** `DepthSlack` LIFO'da hâlâ kapalı. Bütçe yükü öne
+  toplarken grupları üst üste bindiriyor (yarım yükte ihlal 0 → 1.774).
+
+### Borç
+
+Kuralın **gerçekten bağladığı bir birim senaryo yok.** Bağlaması için bir grubun ötekinin üstünden
+köprü kurup arkada cep bırakması gerekiyor (`CepYerlesimiTests` geometrisi). Korpus ölçümünde kural
+belirgin biçimde bağlıyor (5.148 → 0) ama birim düzeyinde kilitlenmedi.
+
+177/36/228 test yeşil; static kapı %84,26 ile değişmeden geçti (LIFO kapalı olduğu için etkilenmez).

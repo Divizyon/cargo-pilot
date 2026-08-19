@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Models;
+﻿using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Domain.Enums;
 
@@ -32,29 +32,45 @@ public sealed class GroupZoneTests
             $"unloadingOrder=2, 3'ten kapiya daha yakin olmali. Z: 2={zByOrder[2]}, 3={zByOrder[3]}");
     }
 
+    /// <summary>
+    /// LIFO'nun uzaysal kurali BANT degil CIKARILABILIRLIKTIR: her kutu, kendi
+    /// inis sirasi geldiginde hala aracta olan hicbir kutuyu oynatmadan kapiya
+    /// cikabilmelidir. Gruplar uzayda ic ice gecebilir.
+    ///
+    /// Bant modeli olculdu ve birakildi: dar bant kutulari zorunlu tasitiyor,
+    /// genis bant hic baglamiyordu. Ustelik bant ICINDE kalan bir kutu da pekala
+    /// baska bir kutunun arkasinda sikismis olabilirdi -- yani bant, operasyonel
+    /// gereksinimi hic ifade etmiyordu.
+    /// </summary>
     [Fact]
-    public void Lifo_HerGrup_KendiBolgesininSinirlariIcindeKalir()
+    public void Lifo_HerKutu_BosaltmaSirasiGeldiginde_Cikarilabilir()
     {
         var (result, itemsByOrder, input) = RunWithThreeGroups();
 
-        var zones = LifoPlacement.ComputeGroupZones(
-            input.Items,
-            input.VehicleLength,
-            OptimizationModules.Resolve(input).UseLifo);
+        Assert.True(itemsByOrder.Count >= 2, "Senaryo cok gruplu degil; kural hic sinanmiyor.");
 
-        Assert.NotEmpty(zones);
+        var orderByItemId = input.Items
+            .Where(i => i.UnloadingOrder.HasValue)
+            .ToDictionary(i => i.ItemId, i => i.UnloadingOrder!.Value);
 
-        foreach (var (unloadingOrder, itemId) in itemsByOrder)
+        foreach (var box in result.Placements)
         {
-            // Bolge sinirlari uretim fonksiyonundan okunur, testte ikinci kez
-            // yazilmaz: formul degistiginde test eski kurala gore olcup sahte
-            // ihlal ya da sahte basari raporlardi (denetim S-63).
-            var (zoneStart, zoneEnd) = zones[unloadingOrder];
-            var placement = SinglePlacement(result, itemId);
+            if (!orderByItemId.TryGetValue(box.ItemId, out var mine)) continue;
 
-            Assert.True(placement.Z >= zoneStart && placement.Z + placement.Length <= zoneEnd,
-                $"unloadingOrder={unloadingOrder} bolgesi [{zoneStart},{zoneEnd}] disinda: " +
-                $"Z={placement.Z}, uzunluk={placement.Length}");
+            var doorSide = box.Z + box.Length;
+
+            foreach (var other in result.Placements)
+            {
+                if (!orderByItemId.TryGetValue(other.ItemId, out var theirs) || theirs == mine) continue;
+                if (other.X >= box.X + box.Width || other.X + other.Width <= box.X) continue;
+                if (other.Y >= box.Y + box.Height || other.Y + other.Height <= box.Y) continue;
+
+                var otherDoorSide = other.Z + other.Length;
+                var blocks = theirs > mine ? otherDoorSide > doorSide : doorSide > otherDoorSide;
+
+                Assert.False(blocks,
+                    $"sira {mine} @({box.X},{box.Y},{box.Z}) onunde sira {theirs} @({other.X},{other.Y},{other.Z})");
+            }
         }
     }
 

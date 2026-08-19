@@ -82,6 +82,60 @@ internal static class PhysicalInvariants
         AssertWeightCapacity(scenario, input, result);
         AssertQuantityConservation(scenario, input, result);
         AssertFragileTopsFree(scenario, input, result);
+        AssertUnloadPath(scenario, input, result);
+    }
+
+    /// <summary>
+    /// (f) LIFO: her kutu, kendi iniş sırası geldiğinde HÂLÂ ARAÇTA OLAN hiçbir
+    /// kutuyu oynatmadan kapıya çıkabilmeli.
+    ///
+    /// Gruplar uzayda iç içe geçebilir — kural bant değil çıkarılabilirliktir.
+    /// Bir kutunun yolu, ayak izinin kapıya doğru (<c>+z</c>) süpürdüğü koridordur;
+    /// o koridoru daha geç inecek bir kutu kesiyorsa plan sahada uygulanamaz.
+    ///
+    /// Hesap üretim kodundan çağrılmaz, bilinçli olarak bağımsız yazılır
+    /// (bkz. sınıf başlığı).
+    /// </summary>
+    private static void AssertUnloadPath(string scenario, OptimizationInput input, OptimizationResult result)
+    {
+        // Kural yalnızca LIFO kriterinde yürürlüktedir; motor da aynı koşula
+        // bakar. Kullanıcı iniş sırası verip başka bir kriter seçtiyse boşaltma
+        // sırası bir tercih değildir ve plan bu kurala göre denetlenemez.
+        if (input.Criteria != LoadingPlanOptimizationCriteria.Lifo) return;
+
+        var order = input.Items
+            .Where(i => i.UnloadingOrder.HasValue)
+            .GroupBy(i => i.ItemId)
+            .ToDictionary(g => g.Key, g => g.First().UnloadingOrder!.Value);
+
+        if (order.Count == 0) return;
+
+        var blocked = new List<string>();
+
+        foreach (var box in result.Placements)
+        {
+            if (!order.TryGetValue(box.ItemId, out var mine)) continue;
+
+            var doorSide = box.Z + box.Length;
+
+            foreach (var other in result.Placements)
+            {
+                if (!order.TryGetValue(other.ItemId, out var theirs) || theirs == mine) continue;
+                if (other.X >= box.X + box.Width || other.X + other.Width <= box.X) continue;
+                if (other.Y >= box.Y + box.Height || other.Y + other.Height <= box.Y) continue;
+
+                var otherDoorSide = other.Z + other.Length;
+                var blocks = theirs > mine ? otherDoorSide > doorSide : doorSide > otherDoorSide;
+                if (!blocks) continue;
+
+                blocked.Add(string.Create(CultureInfo.InvariantCulture,
+                    $"sira {mine} @({box.X},{box.Y},{box.Z}) onunde sira {theirs} @({other.X},{other.Y},{other.Z})"));
+                break;
+            }
+        }
+
+        Assert.True(blocked.Count == 0, string.Create(CultureInfo.InvariantCulture,
+            $"[{scenario}] {blocked.Count} kutu bosaltma yolunda engelli: {string.Join(" | ", blocked.Take(FloatingBoxReportLimit))}"));
     }
 
     /// <summary>(a) Hiçbir kutu çifti çakışmaz.</summary>

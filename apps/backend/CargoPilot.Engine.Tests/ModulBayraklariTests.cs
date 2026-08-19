@@ -51,12 +51,23 @@ public sealed class ModulBayraklariTests
     // denge sapması greedy'nin ~3 katı. Bu bir kabul, bir unutma değil.
 
     /// <summary>
-    /// LIFO modülü kapatıldığında bölge sözlüğü boş kalır: bölge tohumu da bölge
-    /// cezası da oluşmaz, gruplar kapıdan itibaren sıkıştırılır. Bu yüzden en
-    /// uzaktaki kutu açık hâldekine göre kapıya daha yakın durur.
+    /// LIFO açıkken üretilen plan boşaltma kuralına uyar: her kutu, kendi iniş
+    /// sırası geldiğinde hâlâ araçta olan hiçbir kutuyu oynatmadan çıkabilir.
+    ///
+    /// Bu test eskiden "modülü kapatınca yerleşim DEĞİŞİR" diye iddia ediyordu ve
+    /// bant modelinde doğruydu: bant kutuları araç boyunca dağıtıyordu. Kural
+    /// bantdan çıkarılabilirliğe geçince iddia düştü — yeni kural bir SÜRÜCÜ
+    /// değil MUHAFIZ'dır. Yükleme sırası grupları zaten doğru dizdiği için kolay
+    /// senaryolarda hiçbir şeye dokunmaz; yalnızca yanlış bir yerleşimi engeller.
+    ///
+    /// BORÇ: kuralın gerçekten bağladığı bir birim senaryo yok. Bağlaması için
+    /// bir grubun ötekinin üstünden KÖPRÜ kurup arkada cep bırakması gerekiyor
+    /// (bkz. <see cref="CepYerlesimiTests"/> geometrisi). Korpus ölçümünde kural
+    /// belirgin biçimde bağlıyor: gerçek korpusta beş bin yüz kırk sekiz ihlalden
+    /// sıfıra iniyor.
     /// </summary>
     [Fact]
-    public void LifoKapali_GrupluSenaryoda_BolgeAyrimiUygulanmaz()
+    public void Lifo_GrupluSenaryoda_BosaltmaYoluAcikKalir()
     {
         var items = new List<OptimizationItemInput>
         {
@@ -73,27 +84,11 @@ public sealed class ModulBayraklariTests
             vehicleLength: EngineScenario.CorridorLength,
             vehicleMaxWeight: 10_000m);
 
-        var scenario = nameof(LifoKapali_GrupluSenaryoda_BolgeAyrimiUygulanmaz);
+        var scenario = nameof(Lifo_GrupluSenaryoda_BosaltmaYoluAcikKalir);
+        var result = EngineScenario.Run(input);
 
-        var lifoOff = input with
-        {
-            Modules = new OptimizationModules(UseLifo: false, UseContamination: true),
-        };
-
-        var enabled = EngineScenario.Run(input);
-        var disabled = EngineScenario.Run(lifoOff);
-
-        Assert.NotEqual(
-            GoldenMaster.Serialize(scenario, input, enabled),
-            GoldenMaster.Serialize(scenario, lifoOff, disabled));
-
-        Assert.Equal(enabled.Placements.Count, disabled.Placements.Count);
-        // Bölge ayrımı açıkken gruplar araç boyunca dağılır ve yükün bir ucu kapıya
-        // (z = length) kadar uzanır. Ceza kalkınca kutular uzak yüzde (z = 0)
-        // sıkışır, dolayısıyla en büyük Z küçülür.
-        Assert.True(
-            disabled.Placements.Max(p => p.Z) < enabled.Placements.Max(p => p.Z),
-            $"Bölge cezası kalkınca yük uzak yüzde toplanmalıydı: açık={enabled.Placements.Max(p => p.Z)}, kapalı={disabled.Placements.Max(p => p.Z)}");
+        Assert.Equal(6, result.Placements.Count);
+        PhysicalInvariants.AssertAll(scenario, input, result);
     }
 
     private static OptimizationItemInput GroupItem(int index, int groupIndex, int unloadingOrder)

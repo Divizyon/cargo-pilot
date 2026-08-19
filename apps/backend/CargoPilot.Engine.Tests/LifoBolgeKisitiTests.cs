@@ -1,15 +1,21 @@
-using CargoPilot.Application.Common.Models;
-using CargoPilot.Application.Common.Optimization;
+﻿using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 using CargoPilot.Engine.Tests.Golden;
 
 namespace CargoPilot.Engine.Tests;
 
 /// <summary>
-/// LIFO grup bölgesinin SERT kısıt olduğunu kilitler: bölge içinde geçerli bir
-/// aday varsa motor bölge dışına yerleşemez. Golden master senaryolarının hepsi
-/// tek katmanlı olduğu için bölge-yerçekimi çatışması orada hiç tetiklenmiyor;
-/// bu iki senaryo çatışmayı bilerek üretir.
+/// LIFO'nun uzaysal kuralını kilitler: her kutu, kendi iniş sırası geldiğinde
+/// hâlâ araçta olan hiçbir kutuyu oynatmadan kapıya çıkabilmelidir.
+///
+/// Kural eskiden BANT'tı — araç uzunluğu gruplara bölünüyor ve her grup kendi
+/// bandında kalmaya zorlanıyordu. Ölçüldü ve iki yönden de kötüydü: dar bant
+/// kutuları zorunlu taşıtıyor, geniş bant hiç bağlamıyordu. Üstelik bandın
+/// kendisi operasyonel gereksinimi ifade etmiyordu — bant içinde kalan bir kutu
+/// da pekâlâ başka bir kutunun arkasında sıkışmış olabilir.
+///
+/// Golden master senaryolarının hepsi tek katmanlı olduğu için katman çatışması
+/// orada hiç tetiklenmiyor; bu senaryolar onu bilerek üretir.
 ///
 /// Koordinat sözleşmesi (docs/COORDINATE_STANDARD.md): uzak yüz Z=0,
 /// referans kapı Z=VehicleLength.
@@ -41,7 +47,7 @@ public sealed class LifoBolgeKisitiTests
         var input = Vehicle(items);
         var result = EngineScenario.Run(input);
 
-        AssertAllPlacementsInsideZone(input, result);
+        AssertUnloadable(nameof(LifoBolgeKisitiTests), input, result);
 
         // Kapasite paritesi: sert kısıt kutu kaybettirmemeli.
         Assert.Equal(8, result.Placements.Count);
@@ -66,7 +72,7 @@ public sealed class LifoBolgeKisitiTests
         var input = Vehicle(items);
         var result = EngineScenario.Run(input);
 
-        AssertAllPlacementsInsideZone(input, result);
+        AssertUnloadable(nameof(LifoBolgeKisitiTests), input, result);
 
         Assert.Equal(5, result.Placements.Count);
         Assert.Equal(0.2125m, result.FillRate);
@@ -96,7 +102,7 @@ public sealed class LifoBolgeKisitiTests
         var input = Vehicle(items, fillFromMaxX: true, vehicleLength: 300m);
         var result = EngineScenario.Run(input);
 
-        AssertAllPlacementsInsideZone(input, result);
+        AssertUnloadable(nameof(LifoBolgeKisitiTests), input, result);
 
         Assert.Equal(6, result.Placements.Count);
     }
@@ -119,7 +125,7 @@ public sealed class LifoBolgeKisitiTests
         var input = Vehicle(items, vehicleLength: 300m);
         var result = EngineScenario.Run(input);
 
-        AssertAllPlacementsInsideZone(input, result);
+        AssertUnloadable(nameof(LifoBolgeKisitiTests), input, result);
 
         Assert.Equal(6, result.Placements.Count);
     }
@@ -194,39 +200,30 @@ public sealed class LifoBolgeKisitiTests
             fillFromMaxX: fillFromMaxX);
 
     /// <summary>
-    /// Bölge sınırlarını ve "içeride mi" yüklemini motorun kendi kodundan alır:
-    /// <see cref="LifoPlacement.ComputeGroupZones"/> ve
-    /// <see cref="LifoPlacement.IsInsideZone"/>. Formül testte ikinci kez
-    /// yazılmaz; aksi hâlde üretim kodu değiştiğinde test eski kurala göre
-    /// ölçüp sahte ihlal ya da sahte başarı raporlar.
+    /// LIFO'nun uzaysal kuralı BANT değil ÇIKARILABİLİRLİKTİR: her kutu, kendi
+    /// iniş sırası geldiğinde hâlâ araçta olan hiçbir kutuyu oynatmadan kapıya
+    /// çıkabilmelidir. Gruplar uzayda iç içe geçebilir.
+    ///
+    /// Denetim <see cref="PhysicalInvariants"/>'a devredilir; kural orada
+    /// üretim kodundan bağımsız yazılmıştır, dolayısıyla motor kuralı bozarsa
+    /// test de birlikte bozulmaz.
+    ///
+    /// Kapsama güvencesi burada durur: senaryo gerçekten çok gruplu değilse
+    /// denetim sessizce geçerdi.
     /// </summary>
-    private static void AssertAllPlacementsInsideZone(
+    private static void AssertUnloadable(
+        string scenario,
         OptimizationInput input,
         OptimizationResult result)
     {
-        var zones = LifoPlacement.ComputeGroupZones(
-            input.Items,
-            input.VehicleLength,
-            OptimizationModules.Resolve(input).UseLifo);
+        var orders = result.Placements
+            .Select(p => input.Items.First(i => i.ItemId == p.ItemId).UnloadingOrder)
+            .Where(o => o.HasValue)
+            .Distinct()
+            .ToList();
 
-        // Bölge hiç kurulmazsa aşağıdaki döngü sessizce geçerdi; senaryonun
-        // gerçekten bölgeli olduğu burada sabitlenir.
-        Assert.NotEmpty(zones);
+        Assert.True(orders.Count >= 2, "Senaryo çok gruplu değil; LIFO kuralı hiç sınanmıyor.");
 
-        var orderByItemId = input.Items.ToDictionary(i => i.ItemId, i => i.UnloadingOrder!.Value);
-        var ihlaller = new List<string>();
-
-        foreach (var p in result.Placements)
-        {
-            var zone = zones[orderByItemId[p.ItemId]];
-
-            if (!LifoPlacement.IsInsideZone(zone.ZStart, zone.ZEnd, p.Z, p.Length))
-                ihlaller.Add($"Z={p.Z} L={p.Length} bölge=[{zone.ZStart},{zone.ZEnd})");
-        }
-
-        Assert.True(
-            ihlaller.Count == 0,
-            $"Bölge dışına taşan yerleşim: {ihlaller.Count}/{result.Placements.Count}{Environment.NewLine}"
-            + string.Join(Environment.NewLine, ihlaller));
+        PhysicalInvariants.AssertAll(scenario, input, result);
     }
 }
