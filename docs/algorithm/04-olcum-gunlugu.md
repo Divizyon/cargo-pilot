@@ -2821,3 +2821,47 @@ rejimlerde alınmış, biri ötekinin alanına uygulanmıştı.
 Motor kodu **değişmedi**; tam yük kapısı %83,63 ile geçti, 173/173 test yeşil.
 
 Referanslar: `referans/br-wallbuilder-static-yuk{0.25,0.50,0.75}.json`.
+
+---
+
+## 19 Ağustos 2026 — `F8-1`: leksikografik amaç · kısmi yükte yayılma çöktü
+
+`F8-0` sorunu ölçtü, bu onu düzeltiyor. Amaç fonksiyonu artık **leksikografiktir**:
+
+1. yerleşen hacim (bugünkü amaç)
+2. eşitse **kullanılan uzunluk** (`max(z + length)`) — küçük olan kazanır
+
+Uygulandığı yer yalnızca arama katmanı (`BeamSequencer`): hem "en iyi" takibi hem de ışında
+tutulacak dalların sıralaması. **Yerleştirici değişmedi.**
+
+### Ölçüm — beam, 56 örnek/oran
+
+| Yük | Yayılma önce | **sonra** | Dilim önce | **sonra** | Doluluk |
+|---|---|---|---|---|---|
+| %25 | ×1,767 | **×1,326** | %58,4 | **%75,7** | %24,73 → %24,73 |
+| %50 | ×1,478 | **×1,209** | %68,3 | **%82,9** | %49,60 → %49,60 |
+| %75 | ×1,280 | **×1,171** | %78,3 | **%85,5** | %74,44 → %74,44 |
+| %100 | ×1,100 | ×1,099 | %91,0 | %91,0 | %90,71 → %90,75 |
+
+**Kısmi yükte kazanç büyük:** %25'te yayılma 0,44 puan düştü, dilim doluluğu **17,3 puan** arttı.
+Doluluk hiçbir oranda değişmedi — zaten değişemezdi, bütün kutular yerleşiyor. Kazanç tam da
+ölçemediğimiz yerdeydi.
+
+**Tam yükte davranış değişmedi:** ×1,100 → ×1,099, doluluk %90,71 → %90,75 (beam gürültü bandı
+±0,05, `DR-61`). Leksikografik tasarımın vaat ettiği buydu: taşan yükte doluluklar birbirinden
+farklıdır, birinci anahtar kararı verir, uzunluk ancak beraberlikte konuşur.
+
+### Neden bu kadar etkili
+
+Kısmi yükte her dal aynı doluluğu üretiyordu; arama tabanı aynen döndürüyordu (`G-2`). Şimdi
+beraberlik bozuluyor ve "cebi doldur" dalı "yeni duvar aç" dalını deviriyor. Yerleştiricinin
+kabiliyeti zaten vardı — eksik olan onu tercih ettirecek ölçüttü.
+
+### Kalan
+
+Araştırmanın hedefi %25 yükte < 1,30; **×1,326 ile kıl payı üstündeyiz.** Kullanıcının kabul
+ölçütü %75 için ×1,17; **×1,171 ile tutturuldu.** Kalan mesafeyi `F8-2` (referans uzunluk +
+bisection) kapatmalı.
+
+Static yol dokunulmadı: tam yük kapısı %83,63, %25 kapısı ×1,812 — ikisi de değişmeden geçti.
+173/173 test yeşil.

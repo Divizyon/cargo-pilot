@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Models;
+﻿using CargoPilot.Application.Common.Models;
 using CargoPilot.Application.Common.Optimization.WallBuilder;
 
 namespace CargoPilot.Application.Common.Optimization.Search;
@@ -145,6 +145,43 @@ internal static class BeamSequencer
             .Select(p => p.Key)];
     }
 
+    /// <summary>
+    /// Yerlesimin ulastigi en uzak <c>z</c>. Yukun arac uzunlugunun ne kadarini
+    /// kapladigini soyler; leksikografik amacin ikinci anahtaridir.
+    /// </summary>
+    private static decimal Reach(OptimizationResult result)
+    {
+        var reach = 0m;
+
+        foreach (var box in result.Placements)
+        {
+            var end = box.Z + box.Length;
+            if (end > reach) reach = end;
+        }
+
+        return reach;
+    }
+
+    /// <summary>
+    /// LEKSIKOGRAFIK amac: once yerlesen hacim, esitse KULLANILAN UZUNLUK.
+    ///
+    /// Neden gerekiyordu: doluluk yalnizca TASAN yukte ayirt edicidir. Yuk araca
+    /// sigdiginda butun kutular yerlesir ve doluluk, yerlesimin bicimi ne olursa
+    /// olsun ayni cikar — arama bu rejimde tamamen kor kalir ve tabanini aynen
+    /// dondurur. Olculdu (F8-0, 700 ornek/oran): %25 yukte yayilma x1,81, yani
+    /// yuk gerekenin neredeyse iki kati uzunluga dagiliyor.
+    ///
+    /// Wascher, Haussner &amp; Schumann (2007) tipolojisinde bu iki ayri problem
+    /// sinifidir: tasan yuk tek-sirt-cantasi (SKP), sigan yuk ACIK BOYUT
+    /// problemidir (3B serit paketleme) ve orada amac kullanilan uzunlugu en aza
+    /// indirmektir. Leksikografik sira iki sinifi tek fonksiyonda birlestirir.
+    ///
+    /// Tasan yukte davranis DEGISMEZ: orada doluluklar birbirinden farklidir ve
+    /// birinci anahtar kararı verir; uzunluk ancak beraberlikte konusur.
+    /// </summary>
+    private static bool Better(decimal fill, decimal reach, decimal bestFill, decimal bestReach)
+        => fill > bestFill || (fill == bestFill && reach < bestReach);
+
     internal static OptimizationResult Run(OptimizationInput input, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(input);
@@ -163,6 +200,7 @@ internal static class BeamSequencer
         // Taban: bugunku davranis. Arama bunun altina inemez (R-C16/R-C21).
         var baseline = WallBuilderPlacement.Run(input, instances, DecoderKeys.Neutral, cancellationToken);
         var best = baseline;
+        var bestReach = Reach(baseline);
 
         // Kosu kimligi (DR-26): planin hangi aramadan ciktigi kaydedilir, yoksa
         // determinizm sozlesmesi (R-C02) kullanilamaz.
@@ -184,7 +222,9 @@ internal static class BeamSequencer
         return best with
         {
             SearchStats = new SearchStats(
-                levels, evaluations, history, best.FillRate > baseline.FillRate, clock.ElapsedMilliseconds),
+                levels, evaluations, history,
+                Better(best.FillRate, bestReach, baseline.FillRate, Reach(baseline)),
+                clock.ElapsedMilliseconds),
         };
 
         // Tek bir isin kosusu: bos aractan baslar, plani parca parca kurar.
@@ -202,7 +242,7 @@ internal static class BeamSequencer
             if (clock.ElapsedMilliseconds >= budget.MaxDurationMs) break;
 
             var target = placed + segment;
-            var branches = new List<(PlacementState State, List<SequencedItem> Order, decimal Fill)>(
+            var branches = new List<(PlacementState State, List<SequencedItem> Order, decimal Fill, decimal Reach)>(
                 beam.Count * Variants.Length * ItemChoices);
 
             // Sure kontrolu ISIN DURUMU granulaligindedir. Daha ince yapmak
@@ -224,7 +264,7 @@ internal static class BeamSequencer
                 // toplanir — yani paralellik degerlendirme sirasini degistirir,
                 // sonucu degistirmez (R-C02).
                 var slots = new (PlacementState State, List<SequencedItem> Order, decimal Fill,
-                    OptimizationResult Completed)?[choices.Count * Variants.Length];
+                    OptimizationResult Completed, decimal Reach)?[choices.Count * Variants.Length];
 
                 Parallel.For(0, slots.Length, new ParallelOptions
                 {
@@ -247,7 +287,7 @@ internal static class BeamSequencer
                     var completed = WallBuilderPlacement.Run(
                         input, preferred, variant, advanced.Clone(), cancellationToken).Result;
 
-                    slots[slot] = (advanced, preferred, completed.FillRate, completed);
+                    slots[slot] = (advanced, preferred, completed.FillRate, completed, Reach(completed));
                 });
 
                 foreach (var slot in slots)
@@ -255,9 +295,14 @@ internal static class BeamSequencer
                     if (slot is not { } result) continue;
 
                     evaluations++;
-                    if (result.Completed.FillRate > best.FillRate) best = result.Completed;
 
-                    branches.Add((result.State, result.Order, result.Fill));
+                    if (Better(result.Completed.FillRate, result.Reach, best.FillRate, bestReach))
+                    {
+                        best = result.Completed;
+                        bestReach = result.Reach;
+                    }
+
+                    branches.Add((result.State, result.Order, result.Fill, result.Reach));
                 }
             }
 
@@ -270,7 +315,13 @@ internal static class BeamSequencer
             levels++;
             history.Add((double)best.FillRate);
 
-            branches.Sort(static (a, b) => b.Fill.CompareTo(a.Fill));
+            // Isinda tutulacak dallar da ayni leksikografik sirayla secilir:
+            // esit dolulukta daha KISA yerlesim ureten dal once gelir.
+            branches.Sort(static (a, b) =>
+            {
+                var byFill = b.Fill.CompareTo(a.Fill);
+                return byFill != 0 ? byFill : a.Reach.CompareTo(b.Reach);
+            });
 
             beam.Clear();
             for (var i = 0; i < branches.Count && i < width; i++)

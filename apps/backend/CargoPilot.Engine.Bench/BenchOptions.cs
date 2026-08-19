@@ -191,7 +191,7 @@ public sealed record BenchOptions(
               --verbose        Senaryo bazinda satir bas
               --duration-min N soak kipinde kosu suresi, dakika (varsayilan 5)
               --report DOSYA   soak kipinde JSON rapor yolu
-              --sequencer S    static | gwca | ga | grasp (varsayilan static)
+              --sequencer S    static | beam | grasp | ga | gwca (varsayilan static)
               --search-ms N    arama butcesi, ms (varsayilan 2000)
               --population N   populasyon (varsayilan 20)
               --iterations N   azami iterasyon (varsayilan 40)
@@ -200,8 +200,9 @@ public sealed record BenchOptions(
               --set N          br kipinde tek kume (0-15). Verilmezse BR1-BR7 kosar.
                                BR0 tek tipli, BR8-BR15 guclu heterojen (30-100 tip);
                                ikisi de varsayilan kosuya girmez, sayiyi kiyaslanamaz yapardi.
-              --load-ratio R   br kipinde her urunun adedini R ile carpar (varsayilan 1).
-                               Kismi doluluk sinamak icin: 0,5 yarim yuk demektir.
+              --load-ratio R   br kipinde yuku ozgun hacmin R katina indirir (varsayilan 1).
+                               Kismi yuk rejimini olcer; orada doluluk degil YAYILMA
+                               ve DILIM DOLULUGU kalite olcusudur (bkz. SpreadDiagnostics).
               --vcs A,B,C,D    VCS ustelleri: hacim,kayip,temas,kutu (or. 1,2,0.5,1).
                                Verilmezse dordu de 1 (kalibre edilmemis taban).
               --constraints K  br kipinde kisit ekler: none | lifo | fragile | stack | all.
@@ -243,7 +244,7 @@ public sealed record BenchOptions(
             "gwca" => SequencerKind.Gwca,
             "ga" => SequencerKind.Ga,
             "grasp" => SequencerKind.Grasp,
-            _ => throw new ArgumentException($"{flag} static | gwca | ga | grasp bekliyor.", nameof(flag)),
+            _ => throw new ArgumentException($"{flag} static | beam | grasp | ga | gwca bekliyor.", nameof(flag)),
         };
 
     private static decimal ParseDecimal(string? value, string flag)
