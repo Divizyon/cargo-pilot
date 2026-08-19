@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -55,7 +55,8 @@ public static class BrBaseline
         string Orientation,
         decimal MeanFillPercent,
         IReadOnlyList<SetResult> Sets,
-        decimal? LoadRatio = null);
+        decimal? LoadRatio = null,
+        string? Corpus = null);
 
     public static void Write(string path, Report report)
     {
@@ -173,18 +174,24 @@ public static class BrBaseline
         var expectedRatio = expected.LoadRatio ?? 1m;
         var actualRatio = actual.LoadRatio ?? 1m;
 
+        // Korpus da yapilandirmanin parcasi: gercek korpus sayilarini BR
+        // referansiyla kiyaslamak sessizce baska bir seyi olcerdi.
+        var expectedCorpus = expected.Corpus ?? "br";
+        var actualCorpus = actual.Corpus ?? "br";
+
         if (expected.Strategy == actual.Strategy
             && expected.Sequencer == actual.Sequencer
             && expected.Orientation == actual.Orientation
-            && expectedRatio == actualRatio)
+            && expectedRatio == actualRatio
+            && expectedCorpus == actualCorpus)
         {
             return true;
         }
 
         Console.Error.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"referans baska bir yapilandirmaya ait: " +
-            $"{expected.Strategy}/{expected.Sequencer}/{expected.Orientation}/yuk {expectedRatio:0.##} " +
-            $"!= {actual.Strategy}/{actual.Sequencer}/{actual.Orientation}/yuk {actualRatio:0.##}."));
+            $"{expected.Strategy}/{expected.Sequencer}/{expected.Orientation}/{expectedCorpus}/yuk {expectedRatio:0.##} " +
+            $"!= {actual.Strategy}/{actual.Sequencer}/{actual.Orientation}/{actualCorpus}/yuk {actualRatio:0.##}."));
 
         return false;
     }

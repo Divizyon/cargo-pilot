@@ -3118,3 +3118,68 @@ Static yol dokunulmadı — `ItemChoices` yalnızca beam'e ait; kapı %84,26 ile
 Üçünün ortak dersi, `DR-43`'ün çoktan söylediği şeydi: *"kalan açık sıralayıcıda değil, blok karar
 uzayında."* Puanlamayı iyileştirmeye harcanan iki deneme, o cümleyi ciddiye alsaydık
 gerekmeyebilirdi.
+
+---
+
+## 20 Ağustos 2026 — `GercekCorpus`: gerçek yükte nerede olduğumuz ilk kez ölçüldü
+
+[Gerçek veri analizi](notlar/2026-08-20-gercek-veri-ne-soyluyor.md) BR korpusunun gerçek dünyayla
+örtüşmediğini göstermişti. Ham ROADEF instance'ları elimizde yok; elimizdeki **ölçülmüş dağılım
+tabloları** var (30 instance, 1,3 milyon parça). Korpus bunlardan örneklenerek üretildi.
+
+**Gerçek instance değil, gerçek şekil:** 13,5 m dorse (13500×2440×2900), paletli ambalaj
+(1200×1000, 1600×1200…), araç başına 4,0 ürün tipi, ve **gerçek ağırlık limiti** (24 t).
+
+### Sonuç — manşetimiz gerçek yükte 5-9 puan düşüyor
+
+| Yol | BR1-BR7 | **Gerçek dağılım** | Fark |
+|---|---|---|---|
+| Static | %84,26 | **%75,59** | **−8,67** |
+| Beam | %91,30 | **%86,02** | **−5,28** |
+
+Yayılma: static ×1,293 · beam ×1,135. Dilim doluluğu: %78,4 · %88,5.
+
+### Üç bulgu
+
+**1. Ağırlık gerçekten bağlıyor — ilk kez.** Yerleşemeyen kutuların **%41,1'i ağırlık limitinden**
+düşüyor (`WeightLimitExceeded`), %58,9'u yer yokluğundan. BR korpusunda bu oran **sıfır**dı, çünkü
+limit 1.000.000 kg konmuştu.
+
+Bunun anlamı: ağırlık bağladığında **hangi kutuyu yükleyeceğin** bir seçim hâline geliyor —
+yoğunluğu düşük olanı tercih etmek doluluğu artırır. Motorda böyle bir tercih **hiç yok**; ağırlık
+yalnızca bir sert kapı.
+
+**2. Beam gerçek yükte daha da değerli.** Kazancı BR'de +7,0 puan, gerçek dağılımda **+10,4**.
+Bu, `notlar/2026-08-20`'de kurduğum hipotezi **çürütüyor**: "gerçek yük az tipli, `DR-63`'e göre az
+tipli yükte arama doymuş, dolayısıyla beam'in gerçek katkısı küçük olabilir" demiştim. Ölçüm tersini
+söylüyor. Sebebi muhtemelen kutu sayısı: gerçek senaryoda 60 kutu ve az tip var ama **kutular büyük**,
+yani her karar pahalı — arama orada kazanıyor.
+
+**3. Boşluk doldurma fırsatı gerçek yükte çok daha büyük.** BR'de "sığan + destekli" oranı %0,0
+idi; gerçek dağılımda **%20,0**. Paletler düz platform kuruyor, dolayısıyla kalan boşlukların
+tabanı havada değil. Yani `G-5`'te açtığımız yol gerçek yükte çok daha fazla iş görecek.
+
+### En kötü senaryo bir uyarı
+
+`gercek-087` **%18,31**. Tek bir senaryoda doluluk beşte bire iniyor. Görüntüleyicide açıp bakmak
+lazım; büyük olasılıkla çok ağır bir palet tipi seçildi ve ağırlık limiti hemen doldu.
+
+### Kullanımı
+
+```bash
+dotnet run --project apps/backend/CargoPilot.Engine.Bench -c Release -- \
+    br --corpus gercek --max-scenarios 100 --viewer apps/algorithm-viewer/gercek.json
+```
+
+Üretim deterministiktir (`R-C02`): aynı tohum aynı korpusu verir. Kapı da korpusu yapılandırmanın
+parçası sayar — gerçek korpus sayıları BR referansıyla kıyaslanamaz.
+
+### İki varsayım, açıkça
+
+- **Yönelim:** paletli yük devrilmez varsayıldı (`NoVertical`). Gerçek veride bu `Forced
+  orientation` alanındadır ve özetlerde yok.
+- **Tip sayısı:** 2-6 arası düzgün dağılım (ortalama 4,0). Gerçek ortalama 3,98; instance başına
+  dağılım özetlerde yok.
+
+İlk sürümde tip sayısı **iki düzgün sayının çarpımıyla** üretilmişti ve dağılım aşağı kaymıştı
+(medyan 2). Düzeltildi; medyan artık 4.

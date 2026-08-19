@@ -31,7 +31,8 @@ public sealed record BenchOptions(
     string? BaselinePath,
     decimal? SupportThreshold,
     int Stall,
-    string? ViewerPath)
+    string? ViewerPath,
+    string Corpus)
 {
     public const int ExitOk = 0;
     public const int ExitFailed = 1;
@@ -44,6 +45,7 @@ public sealed record BenchOptions(
         ArgumentNullException.ThrowIfNull(args);
 
         string? viewerPath = null;
+        var corpus = "br";
         var seedFrom = 1;
         var seedTo = 1;
         var count = 30;
@@ -139,6 +141,14 @@ public sealed record BenchOptions(
                 case "--set":
                     brSet = ParseInt(value, arg);
                     break;
+                case "--corpus":
+                    corpus = (value ?? "br").ToLowerInvariant() switch
+                    {
+                        "br" => "br",
+                        "gercek" or "real" => "gercek",
+                        _ => throw new ArgumentException($"{arg} br | gercek bekliyor."),
+                    };
+                    break;
                 case "--viewer":
                     viewerPath = value;
                     break;
@@ -172,7 +182,8 @@ public sealed record BenchOptions(
             baselinePath,
             supportThreshold,
             Math.Max(1, stall),
-            viewerPath);
+            viewerPath,
+            corpus);
     }
 
     public static int PrintUsage()
@@ -217,6 +228,10 @@ public sealed record BenchOptions(
               --depth-slack S  yuku ideal derinligin S katina toplar (or. 1,15).
                                Verilmezse URETIM VARSAYILANI kullanilir (1,05).
               --support N      asgari destek orani (varsayilan 0.80). YALNIZ OLCUM icin
+              --corpus K       br | gercek (varsayilan br). "gercek", ROADEF/EURO 2022
+                               (Renault) DAGILIMINDAN uretilmis korpustur: 13,5 m
+                               dorse, paletli ambalaj, arac basina ~4 tip ve GERCEK
+                               agirlik limiti. Gercek instance degil, gercek SEKIL.
               --viewer DOSYA   br kipinde her senaryonun planini JSON olarak yaz.
                                apps/algorithm-viewer/index.html bunu okur. Verilmezse
                                HICBIR ek islem yapilmaz, olcum hizi degismez.

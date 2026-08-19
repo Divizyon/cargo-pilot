@@ -16,6 +16,8 @@
   <ItemGroup>
     <!-- OR-Library BR1-BR7 kiyas verisi; kosum aninda okunur. -->
     <None Update="data\*.txt" CopyToOutputDirectory="PreserveNewest" />
+    <!-- ROADEF/EURO 2022 (Renault) dagilim tablolari; gercekci korpus bunlardan uretilir. -->
+    <None Update="data\roadef\*.csv" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

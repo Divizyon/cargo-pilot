@@ -20,11 +20,25 @@ public static class BrCommand
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        var sets = options.BrSet >= 0 ? [options.BrSet] : new[] { 1, 2, 3, 4, 5, 6, 7 };
+        var real = options.Corpus == "gercek";
+
+        int[] sets;
+        if (real) sets = [0];
+        else if (options.BrSet >= 0) sets = [options.BrSet];
+        else sets = [1, 2, 3, 4, 5, 6, 7];
 
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"BR · sequencer {options.Sequencer} · yonelim strict · yuk orani {options.BrLoadRatio:0.##}"));
-        Console.WriteLine("uc yonelim bayragi da birebir eslendi (DR-42)");
+            $"{(real ? "GERCEK DAGILIM" : "BR")} · sequencer {options.Sequencer} · yonelim strict · yuk orani {options.BrLoadRatio:0.##}"));
+
+        if (real)
+        {
+            Console.WriteLine("ROADEF/EURO 2022 (Renault) dagilimindan uretildi — gercek INSTANCE degil, gercek SEKIL");
+            Console.WriteLine("13,5 m dorse · paletli ambalaj · arac basina ~4 tip · GERCEK agirlik limiti");
+        }
+        else
+        {
+            Console.WriteLine("uc yonelim bayragi da birebir eslendi (DR-42)");
+        }
 
         // Sigan-yuk rejiminde doluluk bir kalite olcusu degildir (bkz.
         // SpreadDiagnostics); okuyan kisi yanlis sutuna bakmasin diye soyleniyor.
@@ -53,7 +67,12 @@ public static class BrCommand
 
         foreach (var set in sets)
         {
-            var instances = BrCorpus.Load(set);
+            // Gercek korpusta yuk orani uretim asamasinda uygulanir, yani
+            // asagidaki olcekleme atlanir. BR'de ise hazir veriden kirpilir.
+            var wanted = options.MaxScenarios > 0 ? options.MaxScenarios : 100;
+            var instances = real
+                ? GercekCorpus.Load(wanted, options.BrLoadRatio, seed: 20260820)
+                : BrCorpus.Load(set);
             var limit = options.MaxScenarios > 0 ? Math.Min(options.MaxScenarios, instances.Count) : instances.Count;
 
             var fills = new List<decimal>(limit);
@@ -64,7 +83,7 @@ public static class BrCommand
             {
                 var instance = instances[i];
                 var constrained = ConstraintCorpus.Apply(instance.Input, options.Constraints);
-                var scaled = options.BrLoadRatio < 1m
+                var scaled = !real && options.BrLoadRatio < 1m
                     ? constrained with { Items = Scale(constrained.Items, options.BrLoadRatio) }
                     : constrained;
                 var input = scaled with
@@ -132,7 +151,7 @@ public static class BrCommand
 
             var sample = instances[0];
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                $"BR{set,-3} {limit,6} {sample.Input.Items.Count,4} {sample.BoxCount,5} " +
+                $"{(real ? "GR " : "BR" + set),-5} {limit,6} {sample.Input.Items.Count,4} {sample.BoxCount,5} " +
                 $"{sample.BoxVolumeRatio * 100m,6:F1} {Mean(fills),9:F2} {Percentile(fills, 0.50),8:F2} " +
                 $"{fills.Min(),10:F2} {fills.Max(),11:F2} {meanSpread,8:F3} {meanSlice,7:F1} " +
                 $"{meanWalls,6:F1} {PercentileD(durations, 0.50),10:F0}"));
@@ -140,7 +159,7 @@ public static class BrCommand
 
         Console.WriteLine();
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"BR1-BR7 ortalamasi: %{Mean(all):F2}  ({all.Count} ornek)" +
+            $"{(real ? "GERCEK" : "BR1-BR7")} ortalamasi: %{Mean(all):F2}  ({all.Count} ornek)" +
             $"  ·  yayilma x{setResults.Average(r => r.MeanSpreadRatio ?? 1d):F3}" +
             $"  ·  dilim %{setResults.Average(r => r.MeanSliceUtilPercent ?? 0d):F1}"));
 
@@ -150,7 +169,8 @@ public static class BrCommand
             "Strict",
             Math.Round(Mean(all), 2),
             setResults,
-            options.BrLoadRatio);
+            options.BrLoadRatio,
+            options.Corpus);
 
         if (options.ReportPath is not null) BrBaseline.Write(options.ReportPath, report);
 
