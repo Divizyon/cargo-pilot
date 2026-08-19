@@ -1,4 +1,4 @@
-using CargoPilot.Application.Common.Models;
+﻿using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Engine.Bench;
@@ -80,8 +80,20 @@ public static class ConstraintCorpus
                 ? MaxStack
                 : item.MaxStackCount;
 
+            // GroupId de doldurulmali: ComputeGroupZones HEM GroupId HEM
+            // UnloadingOrder ister, biri eksikse bolge sozlugu BOS doner.
+            // Ilk surumde yalniz UnloadingOrder yaziliyordu, dolayisiyla LIFO
+            // BOLGELERI hicbir kiyas kosusunda kurulmadi: olculen "LIFO
+            // maliyeti" yalnizca siralama kriterinin ve dikey istif kuralinin
+            // maliyetiydi, bolge kisitinin degil. Ihlal sayisinin sifir cikmasi
+            // da bir guvence degil, bolgelerin hic var olmamasiydi.
+            var group = kind.HasFlag(Kind.Lifo)
+                ? BenchCatalog.StableId($"lifo-group-{unloading}")
+                : item.GroupId;
+
             items.Add(item with
             {
+                GroupId = group,
                 UnloadingOrder = unloading,
                 FragilityType = fragile ? FragilityType.Fragile : item.FragilityType,
                 MaxStackCount = stackCount,
