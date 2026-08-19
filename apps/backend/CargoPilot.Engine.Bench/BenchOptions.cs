@@ -209,7 +209,7 @@ public sealed record BenchOptions(
                                Veri degismez, yalniz kisit alanlari doldurulur;
                                boylece kisitli/kisitsiz kosu birebir kiyaslanir.
               --depth-slack S  yuku ideal derinligin S katina toplar (or. 1,15).
-                               Verilmezse sinir yok (bugunku davranis).
+                               Verilmezse URETIM VARSAYILANI kullanilir (1,05).
               --support N      asgari destek orani (varsayilan 0.80). YALNIZ OLCUM icin
               --baseline DOSYA br kipinde referansla kiyasla; gerileme varsa hata koduyla cik
               --report DOSYA   br kipinde JSON rapor yolu (soak kipinde de gecerli)

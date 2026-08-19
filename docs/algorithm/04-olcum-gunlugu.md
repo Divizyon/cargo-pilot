@@ -2928,3 +2928,72 @@ altına iniyor. Bedeli azami taşmanın 13 → 29 cm çıkması.
 
 Dört static referans tazelendi. On yedi snapshot'ın **yalnız biri** değişti ve orada kutu sayısı
 aynı, konumlar daha sıkı (iki kutu z = 200'den z = 80'e geldi). 173/36/228 test yeşil.
+
+---
+
+## 19 Ağustos 2026 — `F8-2` ilk deneme: kıyas üretimi ölçmüyormuş; yerel gevşetme **reddedildi**
+
+`G-4`'ün notunda "`DepthSlack` gevşemesine taban koyulmalı, bugün sınırsız gevşiyor" yazmıştım.
+Uygulandı ve ölçüldü — ama önce başka bir şey çıktı.
+
+### Kıyas koşusu derinlik bütçesi **olmadan** ölçüyormuş
+
+`BrCommand` her koşuda `DepthSlack = options.DepthSlack` yazıyordu ve bayrağın varsayılanı
+`null`'dı. Yani:
+
+| | `DepthSlack` |
+|---|---|
+| Üretim (API) | **1,05** (`OptimizationInput` varsayılanı, `DR-57`) |
+| Kıyas koşusu | **null — bütçe yok** |
+
+Kıyas, üretimin çalıştırdığından **başka bir motoru** ölçüyordu. `F8-0` ve `F8-1`'in kısmi yük
+sayıları da bu yüzden üretimi yansıtmıyordu.
+
+Düzeltildi: bayrak verilmezse üretim varsayılanı korunuyor. Static taban belirgin değişti:
+
+| Yük | Bütçesiz *(eski ölçüm)* | **Bütçeli — üretim gerçeği** |
+|---|---|---|
+| %25 | ×1,710 · dilim %60,4 | **×1,512 · dilim %67,2** |
+| %50 | ×1,414 · dilim %71,3 | **×1,341 · dilim %75,0** |
+| %75 | ×1,279 · dilim %78,3 | **×1,263 · dilim %79,3** |
+| %100 | ×1,175 · dilim %85,2 | ×1,175 · dilim %85,2 |
+
+**Bu, bugün yakalanan üçüncü ölçüm geçersizliği.** İlki `DR-66`'da LIFO'nun hiç ateşlenmemesi,
+ikincisi `G-5`'te teşhisin motorla aynı kusuru paylaşması, üçüncüsü bu. Üçünün de deseni aynı:
+*ölçüm düzeneği, ölçtüğünü sandığı şeyi ölçmüyordu.*
+
+### Yerel gevşetme — ölçüldü, **kazanç sıfır**
+
+Değişiklik: hedef derinlik bir kutu için gevşediğinde, o kutu yerleştikten sonra **eski değerine
+dönsün** (önceden kalıcıydı; tek zor kutu bütçeyi sonraki bütün kutulara açıyordu).
+
+Bütçe açıkken kalıcı ve yerel gevşetme karşılaştırıldı:
+
+| Yük | Kalıcı *(eski)* | Yerel *(yeni)* |
+|---|---|---|
+| %25 | ×1,512 · %67,2 | ×1,512 · %67,1 |
+| %50 | ×1,341 · %75,0 | ×1,340 · %75,1 |
+
+Fark yok. **Değişiklik geri alındı** — motorun en sıcak döngüsüne ölçülen değeri sıfır olan kod
+girmez.
+
+Neden işe yaramadı: gevşeme nadiren tetikleniyor ve tetiklendiğinde bir adımda araç boyuna
+sıçrıyor; kalıcı ya da yerel olması sonucu değiştirmiyor.
+
+### Beam etkilenmedi — ve bu `F8-2`'nin gerekçesini zayıflatıyor
+
+| Yük | Beam, bütçesiz | Beam, bütçeli |
+|---|---|---|
+| %25 | ×1,278 | ×1,276 |
+| %50 | ×1,196 | ×1,196 |
+| %75 | ×1,162 | ×1,162 |
+| %100 | ×1,094 | ×1,094 |
+
+Üretim yolunda derinlik bütçesi **fiilen etkisiz**: `F8-1`'in leksikografik amacı zaten uzunluğu
+küçültüyor ve bütçenin ekleyecek bir şeyi kalmıyor.
+
+Araştırmanın 2. önceliği (`DepthSlack` → referans uzunluk + bisection) bu yüzden **yeniden
+değerlendirilmeli**: mekanizmanın düzeltilmesi değil, gereksiz hâle gelip gelmediği sorusu öne
+çıktı. Bisection hâlâ denenmedi.
+
+Motor kodu değişmedi. Dört static referans tazelendi.

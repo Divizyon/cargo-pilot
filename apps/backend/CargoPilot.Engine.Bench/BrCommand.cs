@@ -68,7 +68,12 @@ public static class BrCommand
                     Sequencer = options.Sequencer,
                     SearchBudget = new SearchBudget(options.Iterations, options.Population, options.SearchMs, options.Stall),
                     SupportThreshold = options.SupportThreshold,
-                    DepthSlack = options.DepthSlack,
+                    // Bayrak verilmezse URETIM VARSAYILANI korunur (1,05).
+                    // Onceden burada kosulsuz options.DepthSlack yaziliyordu ve
+                    // varsayilani null'di: kiyas kosusu derinlik butcesi OLMADAN
+                    // olcuyor, uretim ise butceyle calisiyordu. Iki farkli seyi
+                    // olcmek, tam da bu oturumda tekrar tekrar yakalanan hata.
+                    DepthSlack = options.DepthSlack ?? scaled.DepthSlack,
                     VcsWeights = options.VcsWeights,
                 };
 
