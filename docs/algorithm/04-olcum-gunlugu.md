@@ -2997,3 +2997,56 @@ değerlendirilmeli**: mekanizmanın düzeltilmesi değil, gereksiz hâle gelip g
 çıktı. Bisection hâlâ denenmedi.
 
 Motor kodu değişmedi. Dört static referans tazelendi.
+
+---
+
+## 19 Ağustos 2026 — `F8-3` **reddedildi**: `L(b)` knapsack kaybı üç biçimde de kaybettiriyor
+
+Araştırmanın 3. önceliği: aday değerlendirmedeki kayıp terimini ikiliden (`hiç kutu girmez`)
+knapsack tabanlı `L(b)`'ye çevir — "girer ama kötü böler" durumu nicelensin (`G-3`).
+
+`DR-52` bunu bir kez reddetmişti ama **taşan yük rejiminde**. Araştırma haklı olarak "kısmi yükte
+ölçülmedi" dedi. Ölçüldü — sonuç değişmedi.
+
+### Kurulan düzenek
+
+`DimensionReach`: sınırsız sırt çantası DP'si ile "bir eksende `r` cm artığın ne kadarı kutu
+ölçülerinin toplamıyla doldurulabilir" tablosu. Maliyeti düşük — iç döngü ilk isabette kırılıyor,
+koşu başına birkaç bin işlem.
+
+### Üç biçim de denendi
+
+| Biçim | BR1-BR7 (700) | BR15 (20) | %25 yayılma |
+|---|---|---|---|
+| **Taban — ikili kayıp** | **%84,26** | **%81,38** | **×1,512 · %67,2** |
+| Dilim soyma + knapsack, tüm tipler | %84,32 | %80,71 | ×1,521 · %66,9 |
+| Dilim soyma + knapsack, **kalan** tipler | %84,32 | %80,69 | — |
+| Kaynaktaki çarpım biçimi (`V(s) − Π(b+max)`) | %84,30 | %80,89 | ×1,519 · %67,0 |
+
+Üçü de aynı yöne gidiyor: BR1-BR7'de **+0,04…+0,06**, BR15'te **−0,49…−0,69**, kısmi yükte yayılma
+biraz kötü. Kayıp üsteli de tarandı (0,5 / 1 / 2 / 3): BR15 %80,71-80,76 arasında düz — kalibrasyon
+kurtarmıyor.
+
+### Neden — bir hipotez
+
+İkili sürüm, "ölü" eşiği olarak **adayın kendi en kısa kenarını** kullanıyor
+(`itemMin`; parametre adı `smallestRemainingSide` dese de geçilen değer bu). Yani eşik aday
+büyüdükçe büyüyor: büyük bir blok, kendi ölçüsüne göre garip bir artık bırakırsa ağır ceza alıyor.
+
+Knapsack sürümü bu **kendi ölçeğine göre** davranışı kaybediyor ve mutlak bir ölçüye geçiyor.
+Çok tipli yükte (BR15) ölçü kümesi yoğunlaştığı için neredeyse her artık "doldurulabilir" çıkıyor,
+terim düzleşiyor ve ayırt etmeyi bırakıyor. Kalan tiplerle kurmak da bunu değiştirmedi (%80,69).
+
+Yani ikili sürümün "kabalığı" bir kusur değil, **kendini ölçekleyen bir sezgisel** olarak
+çalışıyormuş.
+
+### Sonuç
+
+Değişiklik tamamen geri alındı; `DimensionReach` silindi. `L(b)` artık **iki rejimde de** ölçüldü
+ve ikisinde de kaybettirdi — kapatılmış sayılmalı.
+
+`G-3` (kesitte ölü şeritler) hâlâ **açık**, ama çözümü kayıp terimi değil. Kalan aday: kesit
+kombinasyonunu **arama** kararına açmak (ilk sütun genişliğini dallandırmak), yani terimi değil
+karar uzayını değiştirmek.
+
+Motor kodu değişmedi; taban %84,26 ile doğrulandı.
