@@ -460,7 +460,7 @@ Araştırmanın **Öncelik 1**'i iki yarımdan oluşuyor ve ikisi aynı şey de�
 
 | Yarım | Ne öneriyor | Bizde durum |
 |---|---|---|
-| **1(i)** geometrik | Sütun geneli → doğrudan temas; köprüleme serbest | ✅ **ÖLÇÜLDÜ, kapandı.** Üretimde **+0,39 puan** (`K-1`). Köprü kurmak için komşu yığınların tam o yükseklikte %60 destek vermesi gerekiyor, gerçek yükte denk gelmiyor |
+| **1(i)** geometrik | Sütun geneli → doğrudan temas; köprüleme serbest | ✅ **KAPANDI — iki ayrı korpusta.** `K-1`'de (tip düzeyi) +0,39; `F9-0`'ın birim düzeyli korpusunda +0,18…+0,29. Kırılganları yüke dağıtmak köprüleme fırsatını artırmadı |
 | **1(ii)** kategorik→dereceli | Kırılgan = 0 kg yerine kırılgan = **düşük taşıma dayanımı** (lbs) | ⬜ **Denenmedi.** Bambaşka bir mekanizma: kırılganın üstüne *hafif* bir kutu konabilir |
 
 Yani araştırmanın *"kaybın çoğunu geri kazandırır"* iddiası **geometrik yarım için çürüdü**;
@@ -476,10 +476,10 @@ Araştırmanın üç sorusu bugün **ölçülemez**; düzenek düzeltilmeden ile
 
 | Borç | Bugünkü hâli | Yapılacak |
 |---|---|---|
-| Kırılgan payı ürün **TİPİ** düzeyinde | Bir tipin bütün birimleri birden kırılgan; "%5 kırılgan" ifade edilemiyor, eğri N ≥ 6'da düzleşiyor | Payı **birim** düzeyine indir; %5 / %10 / %20 / %33 eğrisi |
-| Ağırlık tavanı 1.000.000 kg | `R-A07` hiçbir koşuda bağlamıyor, Öncelik 4 ölçülemez | Gerçekçi senaryo: ~24-26 t brüt (aks: orta ~12 t, arka ~31,5 t) |
-| `MaxWeightOnTop` / `IsStackable=false` hiçbir korpusta yok | `DR-38`'in açık kalan yarısı | Suit'e alanı olan bir aile |
-| Suit'te kırılganlık ailesi yok | Görüntüleyicide gözle bakılamıyor | `SuiteCorpus`'a `kirilganlik` ailesi — sekme şeridi zaten veriden türüyor |
+| Kırılgan payı ürün **TİPİ** düzeyinde | Bir tipin bütün birimleri birden kırılgan; "%5 kırılgan" ifade edilemiyor, eğri N ≥ 6'da düzleşiyor | ✅ Payı **birim** düzeyine indir; %5 / %10 / %20 / %33 eğrisi |
+| Suit'te kırılganlık ailesi yok | Görüntüleyicide gözle bakılamıyor | ✅ `SuiteCorpus`'a `kirilganlik` ailesi (480 senaryo) — sekme şeridi zaten veriden türüyor |
+| Ağırlık tavanı 1.000.000 kg | `R-A07` hiçbir koşuda bağlamıyor, F9-5 ölçülemez | ✅ `--real-weight`: ROADEF tablosundaki gerçek kapasite (24-25 t) bağlar |
+| `MaxWeightOnTop` / `IsStackable=false` hiçbir korpusta yok | `DR-38`'in açık kalan yarısı | ⏭ **F9-3'e taşındı** — istif ekseninin korpus çalışması zaten orada; ikisini ayrı ayrı yapmak aynı dosyayı iki kez elden geçirmek olurdu |
 
 **Kapı:** düzenek değişikliği doluluğu değiştirmemeli; mevcut iki kapı bayt bayt aynı kalır.
 
@@ -496,6 +496,15 @@ Araştırmanın **Öncelik 2**'si. Krebs-Ehmke DBLF sıralaması: *"1. fragility
   **iki biçim de** ölçülür: kırılganlık birincil anahtar vs hacim birincil + kırılganlık eşitlik
   bozucu.
 - **Eşik:** üretim yolunda **+2 puandan az** kazandırırsa mekanizma kapanır, F9-2'ye geçilir.
+
+> ✅ **KABUL EDİLDİ — üretim varsayılanı.** Üretim yolunda (beam) %5 → +0,71 · %10 → **+2,78**
+> · %20 → **+5,20** · %33 → **+4,94**; eşik üç payda aşıldı. Static'te kazanç üç kat büyük
+> (+3,60…+17,06) — arama yerleştirme sezgisinin kazancını yutuyor (`DR-53`).
+>
+> Kural gevşetilmedi, ihlal sıfır kaldı; kırılgan kutu yokken sıralama anahtarı sabit olduğu için
+> davranış **birebir aynı** (ölçüldü ve testle kilitlendi). Bu yüzden `F9-2`'den farklı olarak
+> müşteri kararı gerektirmedi. Kısıtlı kapı referansı %50,50 → %50,55 tazelendi.
+> Ayrıntı ölçüm günlüğünde `F9-1`.
 
 #### F9-2 — Dereceli taşıma dayanımı *(Öncelik 1'in açık yarısı)*
 
@@ -522,6 +531,9 @@ sınır ürüne özgüdür ve çoğu üründe **yoktur**.
 - Senaryolar: tümü=2 (bugünkü) · karışık {1, 2, 3, 4, sınırsız} · kısıtsız.
 - **Eşik:** karışık dağılımda −13,69'un yarısından fazlası geri gelirse yeniden parametreleme
   kalıcılaşır ve `−13,69` bir korpus artefaktı olarak kayda geçer.
+- **F9-0'dan devralınan borç:** `MaxWeightOnTop` ve `IsStackable = false` hiçbir korpusta
+  ölçülmüyor (`DR-38`'in açık kalan yarısı). İkisi de istif ekseninde; aynı korpus çalışmasında
+  kapatılır.
 
 #### F9-4 — Ağırlık dengesi: onarım post-pass *(Öncelik 3)*
 

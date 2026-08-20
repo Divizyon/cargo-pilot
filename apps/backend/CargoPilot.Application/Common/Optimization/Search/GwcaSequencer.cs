@@ -45,7 +45,7 @@ internal static class GwcaSequencer
         // Sezgisel siralar populasyona girer ve BUTCE DISINDA degerlendirilir:
         // arama hicbir zaman tohumdan kotu bir sonuc donduremez (R-C21/DR-09),
         // bu yuzden en az bir tam degerlendirme garantilidir (RK-04).
-        var seeds = SeedOrderings(expanded, input.Criteria, input.ClusterGroups);
+        var seeds = SeedOrderings(expanded, input.Criteria, input.ClusterGroups, input.FragileLast);
         var population = new List<Individual>(budget.PopulationSize);
 
         foreach (var seed in seeds)
@@ -284,10 +284,11 @@ internal static class GwcaSequencer
     private static List<List<OptimizationItemInput>> SeedOrderings(
         List<OptimizationItemInput> expanded,
         LoadingPlanOptimizationCriteria criteria,
-        bool clusterGroups)
+        bool clusterGroups,
+        bool fragileLast)
         =>
         [
-            ItemOrdering.SortForGroupPlacement(expanded, criteria, clusterGroups),
+            ItemOrdering.SortForGroupPlacement(expanded, criteria, clusterGroups, fragileLast),
             [.. expanded.OrderByDescending(i => i.Width * i.Length).ThenBy(i => i.ItemId)],
             [.. expanded.OrderByDescending(i => i.Weight).ThenBy(i => i.ItemId)],
         ];

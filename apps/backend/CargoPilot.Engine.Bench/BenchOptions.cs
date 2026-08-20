@@ -35,7 +35,9 @@ public sealed record BenchOptions(
     string Corpus,
     int FragileEvery,
     bool FragilityContactOnly,
-    bool UnloadPathVisibilityOnly)
+    bool UnloadPathVisibilityOnly,
+    bool RealWeight,
+    bool FragileLast)
 {
     public const int ExitOk = 0;
     public const int ExitFailed = 1;
@@ -52,6 +54,8 @@ public sealed record BenchOptions(
         var fragileEvery = ConstraintCorpus.FragileEvery;
         var fragilityContactOnly = false;
         var visibilityOnly = false;
+        var realWeight = false;
+        var fragileLast = true;
         var seedFrom = 1;
         var seedTo = 1;
         var count = 30;
@@ -135,6 +139,12 @@ public sealed record BenchOptions(
                 case "--vcs":
                     vcsWeights = ParseVcs(value, arg);
                     break;
+                case "--no-fragile-last":
+                    fragileLast = false;
+                    break;
+                case "--real-weight":
+                    realWeight = true;
+                    break;
                 case "--lifo-visibility-only":
                     visibilityOnly = true;
                     break;
@@ -190,7 +200,7 @@ public sealed record BenchOptions(
             Math.Max(1, durationMinutes), reportPath,
             sequencer, Math.Max(1, searchMs), Math.Max(2, population), Math.Max(1, iterations),
             Math.Max(0, maxScenarios),
-            Math.Clamp(brSet, -1, 15),
+            Math.Clamp(brSet, -1, 200),
             Math.Clamp(brLoadRatio, 0.05m, 1m),
             depthSlack,
             constraints,
@@ -202,7 +212,9 @@ public sealed record BenchOptions(
             corpus,
             Math.Max(1, fragileEvery),
             fragilityContactOnly,
-            visibilityOnly);
+            visibilityOnly,
+            realWeight,
+            fragileLast);
     }
 
     public static int PrintUsage()
@@ -245,6 +257,8 @@ public sealed record BenchOptions(
               --fragile-every N  her N'inci tip kirilgan olur (varsayilan 3, yani ~%33).
               --fragility-contact-only  kirilganlik yorumu: sutun geneli yerine DOGRUDAN TEMAS.
               --lifo-visibility-only    LIFO yorumu: erisilebilirlik yerine GORUNURLUK (iyimser ust sinir).
+              --real-weight    suit kipinde arac agirlik tavani GERCEK kapasite olur (24-25 t).
+              --no-fragile-last  kirilgan siralamasini KAPATIR (F9-1 oncesi davranis; olcum icin).
                                Veri degismez, yalniz kisit alanlari doldurulur;
                                boylece kisitli/kisitsiz kosu birebir kiyaslanir.
               --depth-slack S  yuku ideal derinligin S katina toplar (or. 1,15).

@@ -60,6 +60,16 @@ namespace CargoPilot.Application.Common.Models;
 /// olctugu sey gevsetmenin UST SINIRI. Kural degisikligi is birimi onayi
 /// gerektirir; parametreleme OLCMEK icin, uretim yollari doldurmaz.
 /// </param>
+/// <param name="FragileLast">
+/// Kirilgan kutular siranin SONUNA alinsin mi. Varsayilan <c>false</c> = bugunku
+/// davranis (yalniz hacim-azalan). <c>true</c> ise kirilganlik BIRINCIL siralama
+/// anahtaridir (Krebs-Ehmke DBLF: "non-fragile first"); yerlestirme sirayla
+/// yukari ilerledigi icin kirilgan kutu yiginin TEPESINE duser ve muhurledigi
+/// sutun boslugu olu olmaktan cikar.
+///
+/// Kirilgan kutu yoksa anahtar sabittir ve siralama bugunkuyle BIREBIR aynidir.
+/// Alan OLCUM icindir (DR-16 deseni); uretim yollari doldurmaz.
+/// </param>
 /// <param name="DepthSlack">
 /// Yukun toplanacagi HEDEF DERINLIK payi. Hedef derinlik su sekilde bulunur:
 ///
@@ -114,6 +124,7 @@ public sealed record OptimizationInput(
     decimal? SupportThreshold = null,
     bool FragilityContactOnly = false,
     bool UnloadPathVisibilityOnly = false,
+    bool FragileLast = true,
     decimal? DepthSlack = 1.05m,
     (double Volume, double Waste, double Contact, double BoxCount)? VcsWeights = null)
 {

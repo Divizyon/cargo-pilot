@@ -62,7 +62,7 @@ internal static class SearchEvaluation
     {
         List<List<OptimizationItemInput>> orderings =
         [
-            ItemOrdering.SortForGroupPlacement(expanded, input.Criteria, input.ClusterGroups),
+            ItemOrdering.SortForGroupPlacement(expanded, input.Criteria, input.ClusterGroups, input.FragileLast),
             [.. expanded.OrderByDescending(i => i.Width * i.Length).ThenBy(i => i.ItemId)],
             [.. expanded.OrderByDescending(i => i.Weight).ThenBy(i => i.ItemId)],
         ];

@@ -28,8 +28,10 @@ public static class BrCommand
         // Yazsaydi grup atamasi tip duzeyine dusurulurdu ve olculen sey
         // suitin kurdugu senaryo olmazdi.
 
+        // --set suit kipinde de suzer: tek bir aileyi (or. KIR20 icin 120)
+        // yeniden olcmek icin 1680 senaryonun tamamini kosmak gerekmesin.
         int[] sets;
-        if (suite) sets = [.. SuiteCorpus.Sets];
+        if (suite) sets = options.BrSet >= 0 ? [options.BrSet] : [.. SuiteCorpus.Sets];
         else if (real) sets = [0];
         else if (options.BrSet >= 0) sets = [options.BrSet];
         else sets = [1, 2, 3, 4, 5, 6, 7];
@@ -88,7 +90,7 @@ public static class BrCommand
             // asagidaki olcekleme atlanir. BR'de ise hazir veriden kirpilir.
             var wanted = options.MaxScenarios > 0 ? options.MaxScenarios : 100;
             IReadOnlyList<BrCorpus.BrInstance> instances;
-            if (suite) instances = SuiteCorpus.Load(set, options.BrLoadRatio, seed: 20260820);
+            if (suite) instances = SuiteCorpus.Load(set, options.BrLoadRatio, seed: 20260820, options.RealWeight);
             else if (real) instances = GercekCorpus.Load(wanted, options.BrLoadRatio, seed: 20260820);
             else instances = BrCorpus.Load(set);
             var limit = options.MaxScenarios > 0 ? Math.Min(options.MaxScenarios, instances.Count) : instances.Count;
@@ -113,6 +115,7 @@ public static class BrCommand
                     SupportThreshold = options.SupportThreshold,
                     FragilityContactOnly = options.FragilityContactOnly,
                     UnloadPathVisibilityOnly = options.UnloadPathVisibilityOnly,
+                    FragileLast = options.FragileLast,
                     // Bayrak verilmezse URETIM VARSAYILANI korunur (1,05).
                     // Onceden burada kosulsuz options.DepthSlack yaziliyordu ve
                     // varsayilani null'di: kiyas kosusu derinlik butcesi OLMADAN

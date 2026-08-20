@@ -3650,3 +3650,106 @@ geometriden** doğuyor.
 
 > Sonuç: kırılganlığın −21,81 puanı fizik. Kazanç aranacaksa yerleştirme şemasında veya
 > sıralamada aranmalı; ikisi de hiç denenmedi.
+
+---
+
+## 20 Ağustos 2026 (gece) — `F9-0` düzenek · `F9-1` kırılgan sıralaması
+
+`F9` açıldı (yol haritası). İlk adım ölçüm düzeneğiydi ve **haklı çıktı**: `K-1`'in "uçurum"
+teşhisi bir düzenek artefaktıymış.
+
+### `F9-0` — kırılgan payı BİRİM düzeyine indi
+
+`ConstraintCorpus` kırılganlığı ürün **tipine** yazıyor; senaryo başına 2-6 tip olduğu için
+"yükün %5'i kırılgan" rejimi ifade EDİLEMİYORDU ve eğri "bir tane kırılgan tip var" durumunda
+düzleşiyordu. `SuiteCorpus`'a `kirilganlik` ailesi eklendi: pay tipin İÇİNDEN bölünüyor, yani aynı
+üründen bazı kutular kırılgan bazıları değil. 4 pay × 4 çeşitlilik kademesi × 30 = **480 senaryo**.
+
+Eğri artık **düzgün**, uçurum değil:
+
+| Kırılgan pay | — | %5 | %10 | %20 | %33 |
+|---|---|---|---|---|---|
+| **Static** | %86,32 | %78,15 | %74,16 | %65,24 | %55,05 |
+| maliyet | — | −8,17 | −12,16 | −21,08 | −31,27 |
+| **Beam (üretim)** | %90,06 | %85,55 | %83,25 | %79,16 | %70,74 |
+| maliyet | — | **−4,51** | **−6,81** | **−10,90** | **−19,32** |
+
+İhlal dört payda da **sıfır**. Kapıların ikisi de değişmeden geçti (%84,26 · %50,50).
+
+**`K-1`'in "tek kırılgan tip bile −37,95" bulgusu geri çekildi.** Maliyet payla neredeyse
+doğrusal; üretim yolunda yaklaşık **her yüzde puanı kırılgan yük ≈ 0,5 puan doluluk**.
+
+Yan bulgu: `--real-weight` eklendi — ROADEF tablosundaki gerçek kapasite (24-25 t) bağlanabiliyor.
+`R-A07`'nin maliyeti bugüne kadar hiç ölçülememişti çünkü tavan her koşuda 1.000.000 kg'dı.
+
+### `K-1` yeniden sınandı — sonuç DEĞİŞMEDİ
+
+Doğrudan-temas yorumu tip düzeyinde ölçülmüştü ve kırılganlar orada KÜMELENİYORDU; birim düzeyinde
+dağılınca köprüleme fırsatının artması beklenebilirdi. Ölçüldü, artmadı:
+
+| Pay | Sütun geneli | Doğrudan temas | Fark |
+|---|---|---|---|
+| %5 | %78,15 | %78,43 | +0,28 |
+| %10 | %74,16 | %74,45 | +0,29 |
+| %20 | %65,24 | %65,46 | +0,22 |
+| %33 | %55,05 | %55,23 | +0,18 |
+
+Araştırmanın **Öncelik 1(i)**'i böylece iki ayrı korpusta kapandı: kuralın geometrik katılığı
+maliyetin kaynağı değil.
+
+### `F9-1` — kırılgan sıralaması: **fazın en büyük kazancı**
+
+Krebs-Ehmke DBLF sıralaması (`--fragile-last`): kırılganlık **birincil** sıralama anahtarı,
+kırılgan olmayan önce. Yerleştirme sırayla yukarı ilerlediği için kırılgan kutu yığının tepesine
+düşüyor ve mühürlediği sütun boşluğu ölü olmaktan çıkıyor.
+
+| Pay | Taban (static) | **Fragile-last** | Kazanç |
+|---|---|---|---|
+| %5 | %78,15 · ×1,283 | **%81,75** · ×1,226 | **+3,60** |
+| %10 | %74,16 · ×1,363 | **%81,92** · ×1,220 | **+7,76** |
+| %20 | %65,24 · ×1,587 | **%80,01** · ×1,240 | **+14,77** |
+| %33 | %55,05 · ×2,033 | **%72,11** · ×1,374 | **+17,06** |
+
+**Üretim yolu (beam) — kararın verildiği yer:**
+
+| Pay | Taban | **Fragile-last** | Kazanç |
+|---|---|---|---|
+| %5 | %85,55 | %86,26 | +0,71 |
+| %10 | %83,25 | **%86,03** | **+2,78** |
+| %20 | %79,16 | **%84,36** | **+5,20** |
+| %33 | %70,74 | **%75,68** | **+4,94** |
+
+Eşik +2 puandı ve üç payda aşıldı; dördüncüsünde de kazanç pozitif. **Kural gevşetilmedi, ihlal
+sıfır kaldı** — değişen tek şey sıra.
+
+Static kazancı üretimdekinin üç katı; arama yerleştirme sezgisinin kazancını yutuyor (`DR-53`'ün
+"arama genelde yerleştirici kazançlarını yutar" gözlemi burada da geçerli).
+
+**Mekanizmanın asıl etkisi kazancın büyüklüğü değil ŞEKLİ:** taban payla düzenli düşerken
+(%85,55 → %70,74), fragile-last %5-%20 arasında %84-86 bandında kalıyor. Yani kırılganlık
+maliyeti paya **duyarsız** hâle geliyor; ancak %33'te tekrar bozuluyor çünkü orada kırılgan
+kutular tek bir tepe katına sığmıyor.
+
+**KABUL EDİLDİ ve üretim varsayılanı yapıldı** (`OptimizationInput.FragileLast = true`).
+Ölçüm için `--no-fragile-last` ile kapatılabilir. Gerekçe: kural değişikliği değil sıra
+değişikliği; hiçbir kısıt gevşemiyor, ihlal sıfır kalıyor ve kırılgan taşımayan yükte davranış
+birebir aynı. Bu yüzden müşteri kararı gerektirmiyor — `F9-2`'den (dereceli taşıma dayanımı)
+farkı tam olarak budur.
+
+**Kısıtlı kapı referansı tazelendi:** %50,50 → **%50,55** (BR3 +0,06 · BR5 +0,13 · BR7 +0,13),
+ihlal sıfır. Kısıtsız kapı %84,26 ile değişmedi.
+
+**İki test kırıldı ve kurgu düzeltildi.** `KirilganlikTests`'in iki senaryosu "kırılgan kutu
+zemine düşer ve üstünü mühürler" varsayımına dayanıyordu; sıralama değişince kırılgan tepeye
+çıktı ve **iki kutu da yerleşti**. Kırılan şey kural değil testin kurgusuydu — motor daha iyi bir
+plan üretiyordu. Senaryo, kırılganın altta kalmak zorunda olduğu bir kurguya çevrildi (iki kutu da
+kırılgan), böylece sıralamadan bağımsız hâle geldi. 182/36/227 yeşil.
+
+**Otomatik olarak nötr:** kırılgan kutu yoksa sıralama anahtarı sabittir ve `OrderBy` kararlı
+olduğu için sıra bugünküyle bire bir kalır. Ölçüldü — suit'in hacim ailesi (%86,32) ve LIFO4
+ailesi (%70,94) bayrakla **birebir aynı** çıktı.
+
+**BR `all` korpusunda kazanç yalnız +0,05** (%50,50 → %50,55) ve bunun sebebi aynı düzenek
+kusuru: orada kırılganlık tip düzeyinde, yani "kırılganı sona al" bütün tipleri yeniden diziyor ve
+hacim-azalan mantığı bozuyor. Birim düzeyinde ise aynı tipin kırılgan birimleri yukarı çıkıyor —
+kazanç oradan geliyor.

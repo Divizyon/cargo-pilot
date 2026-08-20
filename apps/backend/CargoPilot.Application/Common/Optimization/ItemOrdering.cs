@@ -30,7 +30,8 @@ internal static class ItemOrdering
     internal static List<OptimizationItemInput> SortForGroupPlacement(
         IEnumerable<OptimizationItemInput> expanded,
         LoadingPlanOptimizationCriteria criteria,
-        bool clusterGroups)
+        bool clusterGroups,
+        bool fragileLast = false)
     {
         var list = expanded.ToList();
 
@@ -38,7 +39,7 @@ internal static class ItemOrdering
 
         // Kümeleme kapalıysa veya grup yoksa: tüm ürünleri criteria-sort ile karıştır
         if (!hasGroups || !clusterGroups)
-            return ApplyCriteriaSort(list, criteria).ToList();
+            return ApplyCriteriaSort(list, criteria, fragileLast).ToList();
 
         // Kümeleme açık: gruplu ürünler önce (UnloadingOrder DESC), grupsuzlar sonda
         var grouped = list
@@ -46,8 +47,8 @@ internal static class ItemOrdering
             .GroupBy(i => (i.GroupId!.Value, i.UnloadingOrder ?? 0))
             .OrderByDescending(g => g.Key.Item2);
 
-        var sortedGrouped = grouped.SelectMany(g => ApplyCriteriaSort(g, criteria));
-        var ungrouped = ApplyCriteriaSort(list.Where(i => !i.GroupId.HasValue), criteria);
+        var sortedGrouped = grouped.SelectMany(g => ApplyCriteriaSort(g, criteria, fragileLast));
+        var ungrouped = ApplyCriteriaSort(list.Where(i => !i.GroupId.HasValue), criteria, fragileLast);
 
         return sortedGrouped.Concat(ungrouped).ToList();
     }
@@ -55,17 +56,38 @@ internal static class ItemOrdering
     /// <summary>
     /// Kriterin sıralama anahtarı: WeightBalance ağırlığa, diğerleri hacme göre
     /// azalan sırada dener. ItemId eşitlik bozucudur ve determinizmi sağlar.
+    ///
+    /// <paramref name="fragileLast"/> açıkken kırılganlık BİRİNCİL anahtar olur ve
+    /// kırılgan kutular sona kayar (Krebs-Ehmke DBLF sıralaması: *"1. fragility
+    /// flag (non-fragile first) 2. volume 3. length 4. width"*). Yerleştirme
+    /// sırayla yukarı doğru ilerlediği için bu, kırılganı yığının TEPESİNE taşır;
+    /// mühürlediği sütun boşluğu ölü olmaktan çıkar.
+    ///
+    /// Kırılgan kutu yoksa anahtar sabittir ve sıralama bugünküyle BİREBİR
+    /// aynıdır — yani kırılganlık taşımayan hiçbir yükte davranış değişmez.
     /// </summary>
     internal static IEnumerable<OptimizationItemInput> ApplyCriteriaSort(
         IEnumerable<OptimizationItemInput> items,
-        LoadingPlanOptimizationCriteria criteria)
-        => criteria switch
+        LoadingPlanOptimizationCriteria criteria,
+        bool fragileLast = false)
+    {
+        var ordered = criteria switch
         {
             LoadingPlanOptimizationCriteria.WeightBalance =>
-                items.OrderByDescending(i => i.Weight).ThenBy(i => i.ItemId),
-            LoadingPlanOptimizationCriteria.Lifo =>
-                items.OrderByDescending(i => i.Width * i.Height * i.Length).ThenBy(i => i.ItemId),
+                Order(items, fragileLast).ThenByDescending(i => i.Weight),
             _ =>
-                items.OrderByDescending(i => i.Width * i.Height * i.Length).ThenBy(i => i.ItemId),
+                Order(items, fragileLast).ThenByDescending(i => i.Width * i.Height * i.Length),
         };
+
+        return ordered.ThenBy(i => i.ItemId);
+    }
+
+    /// <summary>
+    /// Birincil anahtar. <paramref name="fragileLast"/> kapalıyken sabit sıfırdır
+    /// ve <c>OrderBy</c> KARARLI olduğu için sıra bugünküyle bire bir kalır;
+    /// golden-master davranışı bu yüzden bozulmaz.
+    /// </summary>
+    private static IOrderedEnumerable<OptimizationItemInput> Order(
+        IEnumerable<OptimizationItemInput> items, bool fragileLast)
+        => items.OrderBy(i => fragileLast && i.FragilityType == FragilityType.Fragile ? 1 : 0);
 }

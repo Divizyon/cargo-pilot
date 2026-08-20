@@ -36,7 +36,7 @@ internal static class WallBuilderPlacement
 
         return Run(
             input,
-            [.. ItemOrdering.SortForGroupPlacement(expanded, input.Criteria, input.ClusterGroups)
+            [.. ItemOrdering.SortForGroupPlacement(expanded, input.Criteria, input.ClusterGroups, input.FragileLast)
                 .Select(SequencedItem.Plain)],
             DecoderKeys.Neutral,
             cancellationToken);
@@ -423,7 +423,7 @@ internal static class WallBuilderPlacement
 
         var expanded = input.Items.SelectMany(i => Enumerable.Range(0, i.Quantity).Select(_ => i));
         var instances = ItemOrdering
-            .SortForGroupPlacement(expanded, input.Criteria, input.ClusterGroups)
+            .SortForGroupPlacement(expanded, input.Criteria, input.ClusterGroups, input.FragileLast)
             .Select(SequencedItem.Plain)
             .ToList();
 

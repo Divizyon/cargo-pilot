@@ -52,44 +52,81 @@ public static class SuiteCorpus
     /// <summary>LIFO tarafinda taranan bosaltma grubu sayilari.</summary>
     internal static readonly int[] GroupCounts = [2, 3, 4, 5, 6];
 
-    /// <summary>Suit kimlikleri; kume numarasi da bunlardan turer.</summary>
+    /// <summary>
+    /// Kirilganlik tarafinda taranan paylar, YUZDE ve BIRIM duzeyinde.
+    ///
+    /// Neden birim duzeyinde: <see cref="ConstraintCorpus"/> kirilganligi urun
+    /// TIPINE yaziyor ve bir tipin butun birimleri birden kirilgan oluyor.
+    /// Senaryo basina 2-6 tip oldugu icin "yukun %5'i kirilgan" o yolla ifade
+    /// EDILEMIYOR: pay seyreltildikce egri "bir tane kirilgan tip var"
+    /// durumunda duzlesiyor (olculdu, `K-1`). Suit payi tipin ICINDEN boler.
+    /// </summary>
+    internal static readonly int[] FragileShares = [5, 10, 20, 33];
+
+    /// <summary>Kirilganlik tarafinda pay x kademe basina senaryo.</summary>
+    private const int FragilePerCell = 30;
+
+    /// <summary>Kirilganlik kume numaralarinin tasindigi taban.</summary>
+    private const int FragileSetBase = 100;
+
+    /// <summary>Suit kimlikleri; gorunumdeki sekmeler bunlardan turer.</summary>
     internal const string Volume = "hacim";
     internal const string Lifo = "lifo";
+    internal const string Fragile = "kirilganlik";
 
     /// <summary>
-    /// Kume numarasi: 0 = hacim, 2..6 = o kadar gruplu LIFO. Grup sayisinin
-    /// kume numarasi olmasi bilincli — tabloya bakan kisi ek bir esleme
-    /// tablosuna ihtiyac duymasin.
+    /// Kume numarasi: 0 = hacim · 2..6 = o kadar gruplu LIFO · 100 + pay =
+    /// kirilganlik. Grup sayisinin ve payin kume numarasina gomulmesi bilincli —
+    /// tabloya bakan kisi ek bir esleme tablosuna ihtiyac duymasin.
     /// </summary>
-    internal static IReadOnlyList<int> Sets => [0, .. GroupCounts];
+    internal static IReadOnlyList<int> Sets =>
+        [0, .. GroupCounts, .. FragileShares.Select(share => FragileSetBase + share)];
 
     internal static string SetLabel(int set)
-        => set == 0 ? "HACIM" : string.Create(CultureInfo.InvariantCulture, $"LIFO{set}");
+    {
+        if (set == 0) return "HACIM";
+        if (set >= FragileSetBase) return string.Create(CultureInfo.InvariantCulture, $"KIR{set - FragileSetBase}");
+
+        return string.Create(CultureInfo.InvariantCulture, $"LIFO{set}");
+    }
 
     /// <summary>
     /// Bir kumenin senaryolari. <paramref name="set"/> 0 ise hacim tarafi,
     /// degilse o kadar gruplu LIFO tarafi.
     /// </summary>
-    public static IReadOnlyList<BrCorpus.BrInstance> Load(int set, decimal loadRatio, int seed)
+    public static IReadOnlyList<BrCorpus.BrInstance> Load(int set, decimal loadRatio, int seed, bool realWeight = false)
     {
-        var lifo = set > 0;
-        var perCell = lifo ? LifoPerCell : VolumePerLevel;
+        var fragileShare = set >= FragileSetBase ? set - FragileSetBase : 0;
+        var groups = set > 0 && set < FragileSetBase ? set : 0;
+
+        var perCell = VolumePerLevel;
+        if (groups > 0) perCell = LifoPerCell;
+        else if (fragileShare > 0) perCell = FragilePerCell;
+
         var instances = new List<BrCorpus.BrInstance>(perCell * Levels.Length);
 
         foreach (var level in Levels)
         {
             for (var n = 0; n < perCell; n++)
             {
-                var id = lifo
-                    ? string.Create(CultureInfo.InvariantCulture, $"lifo-g{set}-{level.Key}-{n + 1:D3}")
-                    : string.Create(CultureInfo.InvariantCulture, $"hacim-{level.Key}-{n + 1:D3}");
-
-                var instance = Build(id, level, lifo ? set : 0, loadRatio, Seed(seed, id));
+                var id = Id(level, groups, fragileShare, n);
+                var instance = Build(id, level, groups, fragileShare, loadRatio, Seed(seed, id), realWeight);
                 if (instance is not null) instances.Add(instance);
             }
         }
 
         return instances;
+    }
+
+    private static string Id(Level level, int groups, int fragileShare, int n)
+    {
+        if (groups > 0)
+            return string.Create(CultureInfo.InvariantCulture, $"lifo-g{groups}-{level.Key}-{n + 1:D3}");
+
+        if (fragileShare > 0)
+            return string.Create(CultureInfo.InvariantCulture, $"kir-{fragileShare}-{level.Key}-{n + 1:D3}");
+
+        return string.Create(CultureInfo.InvariantCulture, $"hacim-{level.Key}-{n + 1:D3}");
     }
 
     /// <summary>
@@ -106,11 +143,11 @@ public static class SuiteCorpus
     }
 
     private static BrCorpus.BrInstance? Build(
-        string id, Level level, int groups, decimal loadRatio, uint seed)
+        string id, Level level, int groups, int fragileShare, decimal loadRatio, uint seed, bool realWeight)
     {
         var rng = new GercekCorpus.Lcg(seed);
 
-        var (width, height, length) = GercekCorpus.Vehicle(rng);
+        var (width, height, length, capacityKg) = GercekCorpus.Vehicle(rng);
         var capacity = width * height * length;
         if (capacity <= 0m) return null;
 
@@ -142,6 +179,19 @@ public static class SuiteCorpus
         var items = new List<OptimizationItemInput>(shapes.Count * Math.Max(1, groups));
         var boxes = 0;
 
+        // Kirilgan pay BIRIM duzeyinde uygulanir ve artik pay tipler arasinda
+        // TASINIR: %5 payda tek bir tipin yuvarlamasi sifira dusse bile toplam
+        // oran korunur. Tip duzeyinde atama bunu yapamiyordu (bkz. FragileShares).
+        var fragileDebt = 0m;
+
+        // Iki eksen bugun ORTOGONALDIR: LIFO ailesinde kirilgan yok, kirilganlik
+        // ailesinde grup yok. Birlestirmek ayri bir aile olur ve ayri olculur;
+        // sessizce yarim uygulanmasin diye burada acikca duruyor.
+        if (groups > 1 && fragileShare > 0)
+        {
+            throw new ArgumentException("Suit korpusunda LIFO ve kirilganlik ayni ailede birlesmez.");
+        }
+
         for (var t = 0; t < shapes.Count; t++)
         {
             var shape = shapes[t];
@@ -149,7 +199,25 @@ public static class SuiteCorpus
 
             if (groups <= 1)
             {
-                items.Add(Item(id, t, group: null, shape.W, shape.H, shape.L, shape.Weight, shape.Quantity, shape.Real));
+                var fragileCount = 0;
+                if (fragileShare > 0)
+                {
+                    var want = (shape.Quantity * fragileShare / 100m) + fragileDebt;
+                    fragileCount = Math.Min(shape.Quantity, (int)want);
+                    fragileDebt = want - fragileCount;
+                }
+
+                if (fragileCount > 0)
+                {
+                    items.Add(Item(id, t, group: null, shape.W, shape.H, shape.L, shape.Weight, fragileCount, shape.Real, fragile: true));
+                }
+
+                var plain = shape.Quantity - fragileCount;
+                if (plain > 0)
+                {
+                    items.Add(Item(id, t, group: null, shape.W, shape.H, shape.L, shape.Weight, plain, shape.Real));
+                }
+
                 continue;
             }
 
@@ -175,9 +243,14 @@ public static class SuiteCorpus
             VehicleWidth: width,
             VehicleHeight: height,
             VehicleLength: length,
-            // Baglayici DEGIL: agirlik tirda dengeyi ilgilendirir, doluluk
-            // kaybettirmemelidir (urun karari, GercekCorpus ile ayni).
-            VehicleMaxWeight: 1_000_000m,
+            // Varsayilan olarak BAGLAYICI DEGIL: agirlik tirda dengeyi
+            // ilgilendirir, doluluk kaybettirmemelidir (urun karari,
+            // GercekCorpus ile ayni).
+            //
+            // --real-weight ile gercek kapasite (tabloda 24-25 t) baglanir.
+            // Bu bir OLCUM kipidir: R-A07'nin doluluk maliyeti bugune kadar
+            // hicbir kosuda olculemedi cunku tavan hicbir zaman baglamadi.
+            VehicleMaxWeight: realWeight ? capacityKg : 1_000_000m,
             Items: items,
             Criteria: groups > 1
                 ? LoadingPlanOptimizationCriteria.Lifo
@@ -188,14 +261,21 @@ public static class SuiteCorpus
             Modules: null,
             FillFromMaxX: false);
 
-        var label = groups > 1
-            ? string.Create(CultureInfo.InvariantCulture, $"{level.Name} · {level.Types} tip · {groups} grup")
-            : string.Create(CultureInfo.InvariantCulture, $"{level.Name} · {level.Types} tip");
+        var label = string.Create(CultureInfo.InvariantCulture, $"{level.Name} · {level.Types} tip");
+        var suite = Volume;
 
-        return new BrCorpus.BrInstance(
-            id, input, boxes, used / capacity,
-            Suite: groups > 1 ? Lifo : Volume,
-            Label: label);
+        if (groups > 1)
+        {
+            label += string.Create(CultureInfo.InvariantCulture, $" · {groups} grup");
+            suite = Lifo;
+        }
+        else if (fragileShare > 0)
+        {
+            label += string.Create(CultureInfo.InvariantCulture, $" · %{fragileShare} kırılgan");
+            suite = Fragile;
+        }
+
+        return new BrCorpus.BrInstance(id, input, boxes, used / capacity, suite, label);
     }
 
     /// <summary>
@@ -208,12 +288,14 @@ public static class SuiteCorpus
     /// </summary>
     private static OptimizationItemInput Item(
         string id, int type, int? group,
-        decimal width, decimal height, decimal length, decimal weight, int quantity, bool real)
+        decimal width, decimal height, decimal length, decimal weight, int quantity, bool real,
+        bool fragile = false)
     {
         var prefix = real ? "GR" : "RS";
+        var suffix = fragile ? "-K" : string.Empty;
         var code = group is { } g
-            ? string.Create(CultureInfo.InvariantCulture, $"{prefix}-{id}-{type + 1:D2}-g{g}")
-            : string.Create(CultureInfo.InvariantCulture, $"{prefix}-{id}-{type + 1:D2}");
+            ? string.Create(CultureInfo.InvariantCulture, $"{prefix}-{id}-{type + 1:D2}-g{g}{suffix}")
+            : string.Create(CultureInfo.InvariantCulture, $"{prefix}-{id}-{type + 1:D2}{suffix}");
 
         return new OptimizationItemInput(
             ItemId: BenchCatalog.StableId(code),
@@ -233,6 +315,6 @@ public static class SuiteCorpus
             UnloadingOrder: group,
             StackGroup: null,
             IncompatibleGroups: null,
-            FragilityType: FragilityType.NonFragile);
+            FragilityType: fragile ? FragilityType.Fragile : FragilityType.NonFragile);
     }
 }

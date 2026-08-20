@@ -21,19 +21,25 @@ public sealed class KirilganlikTests
     private const decimal BoxWeight = 10m;
 
     /// <summary>
-    /// Kırılgan kutu zeminde, üstünde tek katlık boşluk var. İkinci kutunun
-    /// yerleşebileceği başka nokta olmadığı için dışarıda kalır.
+    /// İki kutunun İKİSİ de kırılgan: hangisi önce yerleşirse yerleşsin,
+    /// ikincisi onun üstüne konamaz ve dışarıda kalır.
+    ///
+    /// Senaryo bilinçli olarak SIRALAMADAN BAĞIMSIZDIR. Önceki hâli "biri
+    /// kırılgan biri değil" idi ve kırılganın zemine düşeceğini varsayıyordu;
+    /// `F9-1` kırılganı sıranın sonuna alınca o varsayım çöktü ve test kırıldı.
+    /// Kırılan şey kural değil testin kurgusuydu: iki kutu da yerleşiyordu,
+    /// yani motor DAHA İYİ bir plan üretiyordu. Kuralın kendisi ancak
+    /// kırılganın altta kalmak zorunda olduğu bir kurguda sınanabilir.
     /// </summary>
     [Fact]
     public void KirilganUrununUstune_YukKonamaz()
     {
-        var result = EngineScenario.Run(ColumnInput(bottomFragility: FragilityType.Fragile));
+        var result = EngineScenario.Run(BothFragileInput());
 
-        Assert.Single(result.Placements);
-        Assert.Equal(EngineScenario.ItemId(1), result.Placements[0].ItemId);
+        var placed = Assert.Single(result.Placements);
+        Assert.Equal(0m, placed.Y);
 
         var unplaced = Assert.Single(result.UnplacedItems);
-        Assert.Equal(EngineScenario.ItemId(2), unplaced.ItemId);
         Assert.Equal(1, unplaced.Quantity);
     }
 
@@ -60,7 +66,7 @@ public sealed class KirilganlikTests
     [Fact]
     public void KirilganlikNedeniyleYerlesemeyenUrun_KirilganlikSebebiyleRaporlanir()
     {
-        var result = EngineScenario.Run(ColumnInput(bottomFragility: FragilityType.Fragile));
+        var result = EngineScenario.Run(BothFragileInput());
 
         var unplaced = Assert.Single(result.UnplacedItems);
         Assert.Equal(UnplacedReason.FragilityOrHandlingConstraint, unplaced.Reason);
@@ -114,6 +120,17 @@ public sealed class KirilganlikTests
         var unplaced = Assert.Single(result.UnplacedItems);
         Assert.Equal(UnplacedReason.InsufficientSpace, unplaced.Reason);
     }
+
+    /// <summary>
+    /// İki kırılgan kutu, iki katlık araç. Sıra ne olursa olsun ikincisi
+    /// birincinin üstüne konamaz; kural bu kurguda sıralamadan bağımsız sınanır.
+    /// </summary>
+    private static OptimizationInput BothFragileInput()
+        => ColumnInput(
+        [
+            ColumnBox(index: 1, fragilityType: FragilityType.Fragile),
+            ColumnBox(index: 2, fragilityType: FragilityType.Fragile),
+        ]);
 
     /// <summary>Alttaki kutunun kırılganlığı dışında her şeyi aynı olan iki kutuluk senaryo.</summary>
     private static OptimizationInput ColumnInput(FragilityType bottomFragility)

@@ -9,18 +9,28 @@ plana bakmak gerekiyordu; bugüne kadar bunun tek yolu elle senaryo kurup API'ye
 
 ## Kullanım
 
+> **`--viewer` yolu MUTLAK olmalı.** `dotnet run --project` çalışma dizinini proje klasörüne
+> çeker; göreli yol verirsen çıktı `apps/backend/CargoPilot.Engine.Bench/…` altına düşer.
+> Aşağıdaki örnekler `$PWD` kullanıyor ve depo kökünden koşulur.
+
 ```bash
-# Koşu + görünüm çıktısı (bayrak verilmezse hiçbir ek işlem yapılmaz)
+# BÜYÜK SUİT, üretim yapılandırması — bakılması gereken bu.
+# 600 hacim + 600 LIFO + 480 kırılganlık, üç sekme, ~56 dk
 dotnet run --project apps/backend/CargoPilot.Engine.Bench -c Release -- \
-    br --viewer apps/algorithm-viewer/kosu.json
+    br --corpus suite --sequencer beam --viewer "$PWD/apps/algorithm-viewer/suite-beam.json"
 
-# Üretim yapılandırması (beam) — örnek başına 2 sn, sabırlı ol
+# Aynısı statik yolla — saniyeler sürer ama ÜRETİM YOLU DEĞİLDİR.
+# Kapı içindir; plan kalitesine bakarken kullanma (`DR-69`)
 dotnet run --project apps/backend/CargoPilot.Engine.Bench -c Release -- \
-    br --sequencer beam --max-scenarios 10 --viewer apps/algorithm-viewer/beam.json
+    br --corpus suite --viewer "$PWD/apps/algorithm-viewer/suite-static.json"
 
-# Kısmi yük rejimi
+# Tek aile: --set 0 hacim · 2..6 LIFO grup sayısı · 105/110/120/133 kırılgan pay
 dotnet run --project apps/backend/CargoPilot.Engine.Bench -c Release -- \
-    br --load-ratio 0.25 --viewer apps/algorithm-viewer/ceyrek.json
+    br --corpus suite --sequencer beam --set 120 --viewer "$PWD/apps/algorithm-viewer/kir20.json"
+
+# BR korpusu, kısmi yük rejimi
+dotnet run --project apps/backend/CargoPilot.Engine.Bench -c Release -- \
+    br --load-ratio 0.25 --viewer "$PWD/apps/algorithm-viewer/ceyrek.json"
 ```
 
 Sonra `index.html` → dosyayı sürükle.
@@ -34,7 +44,7 @@ Sonra `index.html` → dosyayı sürükle.
 | **Kesit dilimi** | Kaydırıcı bir düzlem seçer; o düzlemin **tam** kesiti çizilir |
 | **Boşluklar** | 2B'de kap önce boşluk rengiyle boyanır, kutular üzerine çizilir — kesit kipinde kırmızı kalan **her piksel gerçekten boş hacimdir**. 3B'de kullanılmayan uzunluk saydam kırmızı bir dilim olarak görünür |
 | **Yükleme animasyonu** | Kutular **yerleştirme sırasıyla** belirir — algoritmanın aracı gerçekte nasıl doldurduğu |
-| **Test aileleri** | Sol üstte sekme şeridi: **Tümü · hacim · lifo**. Aileler veriden türer (`scenario.suite`), koda gömülü liste yok — yarın kırılganlık ailesi eklendiğinde şerit kendiliğinden büyür. Tek aileli eski dosyalarda şerit hiç görünmez |
+| **Test aileleri** | Sol üstte sekme şeridi: **Tümü · hacim · kirilganlik · lifo**. Aileler veriden türer (`scenario.suite`), koda gömülü liste yok — yeni bir aile eklendiğinde şerit kendiliğinden büyür. Tek aileli eski dosyalarda şerit hiç görünmez |
 | **Senaryo listesi** | Doluluğa veya yayılmaya göre sıralanır; her satırın altında etiketi (*"çok farklı · 8 tip · 4 grup"*). Arama hem kimlikte hem etikette çalışır |
 | **Git** | `#317` yaz, oraya atlar |
 
@@ -43,12 +53,16 @@ aile filtresi hesaba katılır), <kbd>boşluk</kbd> animasyonu oynatır.
 
 ## Suit ne içeriyor
 
-`--corpus suite` iki eksende tarar ve ikisi de tek dosyaya girer:
+`--corpus suite` üç aile üretir ve üçü de tek dosyaya girer:
 
-| | Kademe | Senaryo |
+| Aile | Kademe | Senaryo |
 |---|---|---|
 | **hacim** | aynı yük (1 tip) · az farklı (3) · çok farklı (8) · tamamen farklı (20) | 4 × 150 = **600** |
 | **lifo** | aynı dört kademe × **2, 3, 4, 5, 6 boşaltma grubu** | 5 × 4 × 30 = **600** |
+| **kirilganlik** | aynı dört kademe × **%5, %10, %20, %33 kırılgan** | 4 × 4 × 30 = **480** |
+
+Kırılgan pay **birim** düzeyindedir, ürün tipi düzeyinde değil: aynı üründen bazı kutular kırılgan,
+bazıları değil. Tip düzeyinde atama "%5 kırılgan" rejimini ifade edemiyordu (`F9-0`).
 
 Araç ölçüleri gerçek ROADEF/EURO 2022 tablosundan; yük yarı gerçek (`GR-*`) yarı rastgele (`RS-*`).
 LIFO gruplarının kutuları ürün **tipinin içinden** bölünür — gerçek multi-drop'ta bir boşaltma
@@ -57,7 +71,7 @@ noktası karışık yük alır.
 ## Ölçümü yavaşlatmaz
 
 `--viewer` verilmezse tek bir ek işlem yapılmaz — senaryo listesi hiç oluşturulmaz. Verilirse
-maliyet yalnızca JSON yazımıdır (700 senaryo ≈ 3,8 MB; 1200'lük suit ≈ 11 MB).
+maliyet yalnızca JSON yazımıdır (700 senaryo ≈ 3,8 MB; 1680'lik suit ≈ 15 MB).
 
 ## Koordinat sözleşmesi
 

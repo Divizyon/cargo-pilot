@@ -31,29 +31,39 @@ kadar sıkarsa arama o kadar değerli).
 Yayılma da aynı sırayı veriyor: kısıtsız ×1,086 · LIFO ×1,123 · istif ×1,289 · **kırılganlık
 ×1,424**. Kırılganlık yükü yukarı çıkaramadığı için ileri yayıyor.
 
-### Maliyet eğrisi düz değil — UÇURUM
+### Maliyet eğrisi — ~~UÇURUM~~ **DÜZGÜN** *(20 Ağu akşamı düzeltildi, `F9-0`)*
+
+> **Aşağıdaki ilk ölçüm bir DÜZENEK ARTEFAKTIYDI.** Kırılganlık ürün **tipi** düzeyinde
+> atanıyordu; senaryo başına 2-6 tip olduğu için pay seyreltildikçe "bir tane kırılgan tip var"
+> durumunda takılıp kalıyordu. Düzenek `F9-0`'da birim düzeyine indirildi ve eğri düzgün çıktı.
+
+**Doğru eğri — pay BİRİM düzeyinde** (suit korpusu, 480 senaryo, static):
+
+| Kırılgan pay | — | %5 | %10 | %20 | %33 |
+|---|---|---|---|---|---|
+| Doluluk | %86,32 | %78,15 | %74,16 | %65,24 | %55,05 |
+| **Maliyet** | — | **−8,17** | **−12,16** | **−21,08** | **−31,27** |
+| Yayılma | ×1,157 | ×1,283 | ×1,363 | ×1,587 | ×2,033 |
+
+Yaklaşık **her yüzde puanı kırılgan yük ≈ 0,9 puan doluluk**. Yani ilişki neredeyse doğrusal;
+"kapı bir kere açılınca bedelin çoğu ödeniyor" teşhisi **yanlıştı**.
+
+Yine de dikkat çekici olan şu: **yükün yalnızca %5'i kırılganken bile bedel −8,17 puan** — LIFO'nun
+tamamından (−3,79) iki kat büyük.
+
+<details><summary>Artefaktlı ilk ölçüm (kayıt için)</summary>
 
 Kırılgan payı `--fragile-every` ile tarandı (static, gerçek korpus):
 
 | Her N'inci tip kırılgan | 2 | 3 | 4 | 6 | 10 | 20 |
 |---|---|---|---|---|---|---|
-| Doluluk | %33,98 | %46,36 | %43,10 | **%48,65** | **%48,65** | **%48,65** |
-| Yayılma | ×3,069 | ×2,359 | ×2,527 | ×2,251 | ×2,251 | ×2,251 |
+| Doluluk | %33,98 | %46,36 | %43,10 | %48,65 | %48,65 | %48,65 |
 
-N ≥ 6'da eğri **düzleşiyor**, çünkü gerçek korpusta senaryo başına yalnızca 2-6 ürün tipi var:
-seyreltmeye devam etsen de **ilk tip her zaman kırılgan kalıyor**. Yani %48,65 bir taban değil,
-*"araçta bir tane kırılgan ürün tipi var"* durumunun ta kendisi.
+N ≥ 6'da düzleşiyordu çünkü ilk tip her zaman kırılgan kalıyordu; eğrinin monoton olmaması
+(N=4 < N=3) da **hangi tipin** kırılgan olduğunun belirleyici olmasındandı — hacmi büyük bir tip
+kırılgansa plan çöküyordu. İkisi de tip düzeyinde atamanın sonucuydu, kuralın değil.
 
-> **Bulgu: TEK BİR kırılgan tip bile −37,95 puan götürüyor** (%86,60 → %48,65, static).
-> Maliyet kırılgan payıyla orantılı değil; kapı bir kere açılınca bedelin çoğu ödeniyor.
-
-Eğrinin monoton olmaması da (N=4 → %43,10, N=3'ten kötü) aynı şeyi söylüyor: **kaç tipin**
-kırılgan olduğu değil, **hangi tipin** kırılgan olduğu belirleyici. Hacmi büyük bir tip kırılgansa
-plan çöküyor.
-
-**Not — bu korpusun ölçemediği şey:** kırılganlık ürün TİPİ düzeyinde atanıyor, bir tipin tüm
-birimleri birden kırılgan oluyor. "Yükün %5'i kırılgan" gibi bir rejim korpusta ifade edilemiyor.
-Gerçek sevkiyatta payın ne olduğunu bilmiyoruz — **araştırmanın ilk sorusu bu.**
+</details>
 
 ---
 
@@ -130,14 +140,20 @@ gidiyor.
 Kırılganlıkla ilgili tek eski kayıt `DR-27` (sekizinci kapı, `OPT-15`): aday kendi kırılganlık
 kısıtına karşı da sınanır hâle getirildi — bir **doğruluk düzeltmesiydi**, doluluk çalışması değil.
 
-Bugün (20 Ağu) iki şey ölçüldü ve ikisi de **kapandı**:
+Bugün (20 Ağu) üç şey ölçüldü:
 
 | Deneme | Sonuç |
 |---|---|
-| **Doğrudan-temas yorumu** (§2.2) | +0,18 puan. Yorum suçlu değil, geometri suçlu |
-| **Kırılgan payı taraması** (§1) | Eğri uçurum; tek tip bile −37,95. Pay ayarlamak çözüm değil |
+| **Doğrudan-temas yorumu** (§2.2) | **Kapandı.** +0,18…+0,39 — iki ayrı korpusta. Yorum suçlu değil |
+| **Kırılgan payı taraması** (§1) | Düzenek düzeltildi; eğri **düzgün** çıktı, uçurum değil |
+| **Kırılgan sıralaması** (`F9-1`) | ✅ **KABUL** — static: %5 → +3,60 · %10 → +7,76 · %20 → +14,77 · %33 → +17,06 |
 
-Geriye kalan yön: **yerleştirme şeması ve sıralama.** İkisi de hiç denenmedi.
+`F9-1` fazın en büyük kazancı ve **kural gevşetmiyor**: kırılganlık birincil sıralama anahtarı
+oluyor, kırılgan kutu yığının tepesine düşüyor, mühürlediği sütun boşluğu ölü olmaktan çıkıyor.
+İhlal sıfır kaldı; kırılgan kutu taşımayan yükte davranış birebir aynı.
+
+Geriye kalan yön: **yerleştirme şeması** (hiç denenmedi) ve **dereceli taşıma dayanımı** (`F9-2`,
+iş kuralı kararı).
 
 ### 2.5 Araştırmaya sorular
 

@@ -56,9 +56,21 @@ Gerçek korpus (ROADEF/EURO 2022 dağılımı, 100 senaryo, gerçek araç ölç�
 
 İhlal her yapılandırmada **sıfır** (boşaltma yolu · kırılganlık · istif), bağımsız doğrulayıcıyla.
 
-**Kırılganlık maliyeti kademeli değil, uçurum:** korpusta tek bir kırılgan ürün tipi bile static'te
-−37,95 puan götürüyor. Kuralın katı yorumu (sütun geneli) suçlu değil — doğrudan-temas yorumu
-üretimde yalnız **+0,39** kazandırıyor (`K-1`).
+### Kırılganlık — suit korpusu, pay BİRİM düzeyinde (`F9-0`)
+
+İlk ölçümdeki "uçurum" teşhisi tip düzeyinde atamadan doğan bir düzenek artefaktıydı; eğri düzgün.
+
+| Kırılgan pay | %5 | %10 | %20 | %33 |
+|---|---|---|---|---|
+| Taban (beam) | %85,55 | %83,25 | %79,16 | %70,74 |
+| **Kırılgan sıralamasıyla** (`F9-1`, üretim) | **%86,26** | **%86,03** | **%84,36** | **%75,68** |
+| Kazanç | +0,71 | +2,78 | +5,20 | +4,94 |
+
+`F9-1` kırılganlığı sıralamada birincil anahtar yapar (Krebs-Ehmke DBLF); kırılgan kutu yığının
+tepesine düşer. **Kural gevşetilmedi, ihlal sıfır**, kırılgan taşımayan yükte davranış birebir aynı.
+
+Kuralın katı yorumu (sütun geneli) suçlu değil — doğrudan-temas yorumu **iki ayrı korpusta**
++0,18…+0,39 kazandırıyor (`K-1`, `F9-0`).
 
 **Ölçülmeyenler:** araç ağırlık tavanı (korpuslarda 1.000.000 kg), `MaxWeightOnTop`,
 `IsStackable=false`, ağırlık dengesi. Sonuncusu üretim yolunda **hiç optimize edilmiyor**

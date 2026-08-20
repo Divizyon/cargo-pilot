@@ -151,12 +151,16 @@ public static class GercekCorpus
     /// Gercek dagilimdan bir arac olcusu (cm). Suite korpusu da bunu kullanir:
     /// arac olculeri BUTUN kosularda gercek tablodan gelsin diye tek kapi.
     /// </summary>
-    internal static (decimal Width, decimal Height, decimal Length) Vehicle(Lcg rng)
+    internal static (decimal Width, decimal Height, decimal Length, decimal MaxWeight) Vehicle(Lcg rng)
     {
         var trucks = _trucks ??= ReadTrucks();
         var truck = Pick(trucks, t => t.Share, trucks.Sum(t => t.Share), rng);
 
-        return (truck.Width, truck.Height, truck.Length);
+        // Gercek kapasite de DONER ama kullanmak cagirana kalir: varsayilan
+        // olarak agirlik baglayici degildir (urun karari). Olcum tarafi
+        // baglayici bir senaryo kurmak isterse veri burada duruyor —
+        // tablodaki degerler 24-25 t.
+        return (truck.Width, truck.Height, truck.Length, truck.MaxWeight);
     }
 
     /// <summary>
