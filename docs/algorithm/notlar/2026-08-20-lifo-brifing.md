@@ -49,9 +49,11 @@ Yayılma LIFO'yla bozuluyor: gerçek korpus ×1,151 → ×1,236.
 
 ## 4. Açık borç
 
-- **Ölü kod.** `LifoPlacement.ComputeGroupZones` ve `IsInsideZone` üretimde çağrılmıyor ama
-  plumbing duruyor (`zoneStart`/`zoneEnd` parametreleri, `bestInZone` kademesi, `TopUp`'taki bölge
-  kontrolü). Temizlenmeli.
+- ~~**Ölü kod.**~~ **Kapandı (20 Ağu).** Bölge plumbing'i tamamen kaldırıldı:
+  `ComputeGroupZones`, `IsInsideZone`, `zoneStart`/`zoneEnd`, `bestInZone` kademesi,
+  `Attempt.InZone` ve `TopUp`'taki bölge kontrolü. −262 satır. Her iki kapı da bayt bayt
+  aynı sonucu verdi (BR %84,26 · kısıtlı %50,44) — değişiklik davranış-nötrdü, beklendiği gibi:
+  sözlük zaten boştu, dolayısıyla `IsInsideZone` her zaman `true` dönüyordu.
 - **Çok katmanlı LIFO** korpusta hâlâ zayıf temsil ediliyor; `03-yol-haritasi.md` `SC-17` bunu
   tarif ediyor ama korpusa girmedi.
 

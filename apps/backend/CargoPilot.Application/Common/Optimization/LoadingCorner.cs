@@ -7,9 +7,6 @@ namespace CargoPilot.Application.Common.Optimization;
 /// Yukleme baslangic kosesini aracin kapi listesinden turetir
 /// (docs/COORDINATE_STANDARD.md §7).
 ///
-/// LIFO bolge ayrimi buraya bagli DEGILDIR: bolgeler kapi listesinden bagimsiz
-/// kurulur (LifoPlacement.ComputeGroupZones).
-///
 /// Kural: yukleme kapinin bulundugu yuzden baslamaz. Kutu kapinin onune
 /// yigilirsa operator kendi actigi kapidan iceri giremez, bu yuzden baslangic
 /// kosesi kapiya degmeyen kose olur ve doldurma kapiya dogru ilerler.

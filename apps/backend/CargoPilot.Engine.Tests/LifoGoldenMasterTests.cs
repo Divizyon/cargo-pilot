@@ -5,10 +5,14 @@ using CargoPilot.Engine.Tests.Golden;
 namespace CargoPilot.Engine.Tests;
 
 /// <summary>
-/// LIFO kriterinin mevcut davranışını kilitler: ComputeGroupZones bölge ayrımı,
-/// bölge tohumlaması ve "geç inen, erken inenin üstüne konamaz" istif kuralı.
+/// LIFO kriterinin mevcut davranışını kilitler: grup sıralaması (M1),
+/// "geç inen, erken inenin üstüne konamaz" dikey istif kuralı (M2) ve
+/// çıkarılabilirlik kapısı (M3, PlacementValidator.ViolatesUnloadPath).
+///
+/// Grupların z ekseninde ayrışması bir BÖLGE kuralından değil sıralamadan
+/// doğar: bölge (zone) modeli kaldırıldı (docs/algorithm/02-kararlar.md DR-67).
 /// Koordinat sözleşmesi (docs/COORDINATE_STANDARD.md): uzak yüz Z=0, referans
-/// kapı (TIR'da back door) Z=Length. İlk inecek grup kapıya en yakın bölgededir.
+/// kapı Z=Length. İlk inecek grup kapıya en yakın taraftadır.
 /// </summary>
 public sealed class LifoGoldenMasterTests
 {
@@ -39,8 +43,8 @@ public sealed class LifoGoldenMasterTests
     }
 
     /// <summary>
-    /// Grupsuz ürünler: ComputeGroupZones boş döner (GroupId ve UnloadingOrder
-    /// birlikte aranır), bölge cezası hiç uygulanmaz.
+    /// Grupsuz ürünler: UnloadingOrder taşımadıkları için çıkarılabilirlik
+    /// kapısı hiç bağlamaz — yerleşim LIFO dışı yolla aynıdır (DR-68).
     /// </summary>
     [Fact]
     public void Lifo_GrupsuzUrunler_BolgeUygulanmaz()

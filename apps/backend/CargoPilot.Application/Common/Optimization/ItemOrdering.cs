@@ -23,9 +23,9 @@ internal static class ItemOrdering
     // Grup yoksa mevcut criteria-based sıralama uygulanır.
     //
     // Aşağıdaki DESC sıra, LifoPlacement.CompareUnloadingOrder'da adlandırılan
-    // yön semantiğinin uygulamasıdır; aynı semantik LifoPlacement.ComputeGroupZones
-    // (bölge sırası) ve PlacementValidator.ViolatesStackability (dikey istif)
-    // içinde de geçerlidir. Karşılaştırma oraya delege edilmez: OrderByDescending
+    // yön semantiğinin uygulamasıdır; aynı semantik
+    // PlacementValidator.ViolatesStackability (dikey istif) ve
+    // PlacementValidator.ViolatesUnloadPath (çıkarılabilirlik) içinde de geçerlidir. Karşılaştırma oraya delege edilmez: OrderByDescending
     // ifadesi golden-master davranışını bire bir korumak için olduğu gibi bırakıldı.
     internal static List<OptimizationItemInput> SortForGroupPlacement(
         IEnumerable<OptimizationItemInput> expanded,

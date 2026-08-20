@@ -62,16 +62,12 @@ Motor tek bir klasörde: `apps/backend/CargoPilot.Application/Common/Optimizatio
 | `PlanResultBuilder.cs` | 59 | ortak | Yerleşim listesi → sonuç sözleşmesi: doluluk, ağırlık, CoG, denge sapması, sebepli yerleşemeyenler. **İki yerleştirici de buradan geçer**, metrikler tek yerde hesaplanır |
 | `LoadingCorner.cs` | 50 | ortak | Kapı listesinden başlangıç köşesi |
 | `DoorSetFactory.cs` | 37 | ortak | Eski `LoadingType` → kapı listesi köprüsü |
-| `SequencerSelection.cs` | 26 | ortak | Belirtilmemiş sequencer'ı çözer: duvar örücü → GRASP, greedy → Static (`DR-24`) |
+| `SequencerSelection.cs` | 33 | ortak | Belirtilmemiş sequencer'ı çözer (`DR-24`) |
+| `OptimizationEngine.cs` | 69 | çekirdek | Sequencer dallanması (tek nokta) |
+| `LifoPlacement.cs` | 31 | ortak | Boşaltma sırası yön semantiği (tek karşılaştırma). Bölge modeli `DR-67` ile kaldırıldı |
 
-### Greedy yol — bugünkü üretim varsayılanı
-
-| Dosya | Satır | Sınıf | Rol |
-| --- | --- | --- | --- |
-| `OptimizationEngine.cs` | 299 | çekirdek | Strateji dallanması (tek nokta) + greedy döngü, extreme-point taraması, iki kademeli seçim |
-| `BalanceScoring.cs` | 220 | bayraklı (`UseWeightBalance`) | CoG cezası + takas tabanlı ikinci geçiş |
-| `LifoPlacement.cs` | 131 | bayraklı (`UseLifo`) | Grup bölgeleri, bölge cezası, `IsInsideZone` |
-| `VolumeScoring.cs` | 55 | bayraklı (`UseVolume`) | Uzunluk + genişlik terimleri (yön farkında) |
+> Greedy yerleştirici ve ona ait üç puanlama modülü (`BalanceScoring`, `VolumeScoring`,
+> `LifoPlacement`'ın bölge yarısı) kaldırıldı (`DR-39`, `DR-67`).
 
 ### Duvar örücü — `WallBuilder/`
 
@@ -191,11 +187,6 @@ Bölge terimi iki kademeli seçim sayesinde sert kısıt gibi davranır; katsay�
 - Boşaltma sırası atanmamış ürün **serbesttir**: ne kısıtlanır ne kısıtlar (`DR-68`).
 - Dikey eksen bu kuralın konusu değildir; üstteki yük `ViolatesStackability`'nin LIFO dalındadır.
 - Modül `UseLifo` ile açılır; kapalıyken kural hiç uygulanmaz.
-
-> **Açık borç — ölü kod.** `LifoPlacement.ComputeGroupZones` ve `IsInsideZone` üretimde artık
-> çağrılmıyor (`WallBuilderPlacement` boş bir sözlük geçiriyor), ama plumbing duruyor:
-> `zoneStart`/`zoneEnd` parametreleri, `bestInZone` kademesi, `TopUp`'taki bölge kontrolü.
-> Temizlenmeli; bugün yalnız kafa karıştırıyor.
 
 ## A7. Artifact özetleri
 
