@@ -610,14 +610,14 @@ internal static class WallBuilderPlacement
             if (PlacementValidator.ViolatesStackability(placements, x, top, z, width, length,
                 input.Criteria == LoadingPlanOptimizationCriteria.Lifo ? item.UnloadingOrder : null)) break;
             if (PlacementValidator.ViolatesStackCount(placements, x, top, z, width, length)) break;
-            if (PlacementValidator.ViolatesStackWeight(placements, x, top, z, width, length, item.Weight)) break;
-            if (PlacementValidator.ViolatesFragility(placements, x, top, z, width, length, input.FragilityContactOnly)) break;
+            if (PlacementValidator.ViolatesStackWeight(placements, x, top, z, width, length, item.Weight, input.FragilityLoadBearing)) break;
+            if (PlacementValidator.ViolatesFragility(placements, x, top, z, width, length, input.FragilityContactOnly, input.FragilityLoadBearing is not null)) break;
 
             // Blok, ana dongunun aday taramasini atlar; sekizinci kapi burada da
             // sorulmak zorunda (OPT-15).
             if (PlacementValidator.ViolatesLoadAbove(placements, x, top, z, width, height, length,
                 item.IsStackable, item.FragilityType, item.MaxStackCount, item.MaxWeightOnTop,
-                    input.FragilityContactOnly)) break;
+                    input.FragilityContactOnly, input.FragilityLoadBearing)) break;
 
             placements.Add(Create(item, x, top, z, width, height, length, baseBox.Rotation));
             totalWeight += item.Weight;
@@ -694,11 +694,11 @@ internal static class WallBuilderPlacement
                 if (PlacementValidator.ViolatesStackability(placements, x, top, z, width, length,
                     input.Criteria == LoadingPlanOptimizationCriteria.Lifo ? item.UnloadingOrder : null)) continue;
                 if (PlacementValidator.ViolatesStackCount(placements, x, top, z, width, length)) continue;
-                if (PlacementValidator.ViolatesStackWeight(placements, x, top, z, width, length, item.Weight)) continue;
-                if (PlacementValidator.ViolatesFragility(placements, x, top, z, width, length, input.FragilityContactOnly)) continue;
+                if (PlacementValidator.ViolatesStackWeight(placements, x, top, z, width, length, item.Weight, input.FragilityLoadBearing)) continue;
+                if (PlacementValidator.ViolatesFragility(placements, x, top, z, width, length, input.FragilityContactOnly, input.FragilityLoadBearing is not null)) continue;
                 if (PlacementValidator.ViolatesLoadAbove(placements, x, top, z, width, height, length,
                     item.IsStackable, item.FragilityType, item.MaxStackCount, item.MaxWeightOnTop,
-                    input.FragilityContactOnly)) continue;
+                    input.FragilityContactOnly, input.FragilityLoadBearing)) continue;
 
                 placements.Add(Create(item, x, top, z, width, height, length, rotation));
                 totalWeight += item.Weight;
@@ -947,8 +947,8 @@ internal static class WallBuilderPlacement
                     placements, x, y, z, width, height, length, item.UnloadingOrder,
                     input.UnloadPathVisibilityOnly)) continue;
                 if (PlacementValidator.ViolatesStackCount(placements, x, y, z, width, length)) continue;
-                if (PlacementValidator.ViolatesStackWeight(placements, x, y, z, width, length, item.Weight)) continue;
-                if (PlacementValidator.ViolatesFragility(placements, x, y, z, width, length, input.FragilityContactOnly))
+                if (PlacementValidator.ViolatesStackWeight(placements, x, y, z, width, length, item.Weight, input.FragilityLoadBearing)) continue;
+                if (PlacementValidator.ViolatesFragility(placements, x, y, z, width, length, input.FragilityContactOnly, input.FragilityLoadBearing is not null))
                 {
                     blockedByFragility = true;
                     continue;
@@ -959,7 +959,7 @@ internal static class WallBuilderPlacement
                 // (OPT-15). Kisitsiz kutuda maliyeti sifirdir.
                 if (PlacementValidator.ViolatesLoadAbove(placements, x, y, z, width, height, length,
                     item.IsStackable, item.FragilityType, item.MaxStackCount, item.MaxWeightOnTop,
-                    input.FragilityContactOnly)) continue;
+                    input.FragilityContactOnly, input.FragilityLoadBearing)) continue;
 
                 // Bosluklar arasinda en sıkı oturan kazanir (best-fit): once alcak
                 // katman — yercekimi tercihi korunur — sonra bosluktan artan hacim.

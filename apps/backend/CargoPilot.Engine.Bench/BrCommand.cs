@@ -116,6 +116,7 @@ public static class BrCommand
                     FragilityContactOnly = options.FragilityContactOnly,
                     UnloadPathVisibilityOnly = options.UnloadPathVisibilityOnly,
                     FragileLast = options.FragileLast,
+                    FragilityLoadBearing = options.FragilityLoadBearing,
                     // Bayrak verilmezse URETIM VARSAYILANI korunur (1,05).
                     // Onceden burada kosulsuz options.DepthSlack yaziliyordu ve
                     // varsayilani null'di: kiyas kosusu derinlik butcesi OLMADAN

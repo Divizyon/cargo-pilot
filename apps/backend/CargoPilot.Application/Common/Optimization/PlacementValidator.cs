@@ -292,11 +292,13 @@ internal static class PlacementValidator
         List<PlacedBox> placed,
         decimal x, decimal y, decimal z,
         decimal width, decimal length,
-        decimal newWeight)
+        decimal newWeight,
+        decimal? fragilityLoadBearing = null)
     {
         foreach (var b in placed)
         {
-            if (b.MaxWeightOnTop <= 0m) continue;
+            var limit = TopLimit(b.FragilityType, b.MaxWeightOnTop, b.Width, b.Length, fragilityLoadBearing);
+            if (limit <= 0m) continue;
             if (b.Y + b.Height > y) continue;
 
             var ox = Math.Max(0m, Math.Min(x + width, b.X + b.Width) - Math.Max(x, b.X));
@@ -310,7 +312,7 @@ internal static class PlacementValidator
                     Math.Max(0m, Math.Min(c.Z + c.Length, b.Z + b.Length) - Math.Max(c.Z, b.Z)) > 0m)
                 .Sum(c => c.Weight);
 
-            if (weightAbove + newWeight > b.MaxWeightOnTop) return true;
+            if (weightAbove + newWeight > limit) return true;
         }
         return false;
     }
@@ -329,6 +331,34 @@ internal static class PlacementValidator
     // Kırılganlığın eklediği şey kategorik durumdur — üste hiçbir şey konamaz
 
     /// <summary>
+    /// Bir kutunun üstünde taşıyabileceği azami yük (kg).
+    ///
+    /// Kırılgan olmayan kutuda bu doğrudan <c>MaxWeightOnTop</c>'tur.
+    ///
+    /// Kırılgan kutuda iki yorum var. Varsayılan KATEGORİK'tir: sınır sıfırdır
+    /// ve üstüne hiçbir şey konamaz — o kural ayrıca <see cref="ViolatesFragility"/>
+    /// tarafından uygulanır. <paramref name="fragilityLoadBearing"/> verilirse
+    /// yorum DERECELİ olur: kırılganlık bir taşıma dayanımına (kg/m²) çevrilir ve
+    /// sınır ayak iziyle ÖLÇEKLENİR — büyük bir palet küçük bir koliden fazla
+    /// taşır, fizik de böyledir (Bischoff 2003/2006, Krebs-Ehmke 2021 <c>lbs</c>).
+    ///
+    /// Bu bir POLİTİKA seçimidir, fizik kanunu değil: dereceli yorum kırılgan
+    /// kutunun üstüne gerçekten yük binmesine izin verir. Alan ölçüm içindir;
+    /// üretim yolları doldurmaz ve karar müşteriye aittir (`DR-16` deseni).
+    /// </summary>
+    internal static decimal TopLimit(
+        FragilityType fragility, decimal maxWeightOnTop,
+        decimal width, decimal length, decimal? fragilityLoadBearing)
+    {
+        if (fragility != FragilityType.Fragile) return maxWeightOnTop;
+        if (fragilityLoadBearing is not { } perSquareMetre) return maxWeightOnTop;
+
+        return perSquareMetre * width * length / SquareCentimetresPerSquareMetre;
+    }
+
+    private const decimal SquareCentimetresPerSquareMetre = 10_000m;
+
+    /// <summary>
     /// Aday pozisyonun altında kalan kutulardan biri kırılgan mı?
     ///
     /// <paramref name="contactOnly"/> <c>false</c> (varsayılan, bugünkü davranış)
@@ -344,8 +374,14 @@ internal static class PlacementValidator
         List<PlacedBox> placed,
         decimal x, decimal y, decimal z,
         decimal width, decimal length,
-        bool contactOnly = false)
+        bool contactOnly = false,
+        bool graded = false)
     {
+        // Dereceli kipte kirilganlik KATEGORIK bir kapi olmaktan cikar; kurali
+        // agirlik kapisi (ViolatesStackWeight) tasir. Burada ikinci bir kez
+        // uygulanirsa dereceli yorum hicbir zaman devreye giremezdi.
+        if (graded) return false;
+
         foreach (var b in placed)
         {
             // En ucuz eleme önce: araçta kırılgan kutu yoksa döngü kutu başına
@@ -396,7 +432,8 @@ internal static class PlacementValidator
         decimal x, decimal y, decimal z,
         decimal width, decimal height, decimal length,
         bool isStackable, FragilityType fragilityType, int maxStackCount, decimal maxWeightOnTop,
-        bool fragilityContactOnly = false)
+        bool fragilityContactOnly = false,
+        decimal? fragilityLoadBearing = null)
     {
         // Kısıtsız kutuda hiçbir kural üst yükle ilgilenmez: maliyet sıfır.
         if (isStackable
@@ -425,10 +462,14 @@ internal static class PlacementValidator
         }
 
         if (!isStackable && restsDirectlyOn) return true;
-        if (fragilityType == FragilityType.Fragile
+        // Kategorik yorum yalnizca DERECELI kip kapaliyken uygulanir; acikken
+        // kirilganligin karsiligi asagidaki agirlik sinirdir.
+        if (fragilityType == FragilityType.Fragile && fragilityLoadBearing is null
             && (fragilityContactOnly ? restsDirectlyOn : countAbove > 0)) return true;
         if (maxStackCount > 0 && countAbove > maxStackCount) return true;
-        if (maxWeightOnTop > 0m && weightAbove > maxWeightOnTop) return true;
+
+        var limit = TopLimit(fragilityType, maxWeightOnTop, width, length, fragilityLoadBearing);
+        if (limit > 0m && weightAbove > limit) return true;
 
         return false;
     }

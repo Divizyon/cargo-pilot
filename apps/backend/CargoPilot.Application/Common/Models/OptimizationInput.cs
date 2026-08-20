@@ -70,6 +70,19 @@ namespace CargoPilot.Application.Common.Models;
 /// Kirilgan kutu yoksa anahtar sabittir ve siralama bugunkuyle BIREBIR aynidir.
 /// Alan OLCUM icindir (DR-16 deseni); uretim yollari doldurmaz.
 /// </param>
+/// <param name="FragilityLoadBearing">
+/// Kirilganligin DERECELI yorumu: kutunun birim alan basina tasiyabilecegi yuk
+/// (kg/m2). Verilmezse (varsayilan) yorum KATEGORIKTIR — kirilganin ustune
+/// hicbir sey konamaz.
+///
+/// Deger verilirse kategorik kapi kalkar ve kirilganlik bir agirlik sinirina
+/// cevrilir: sinir ayak iziyle olceklenir, yani buyuk bir palet kucuk bir
+/// koliden fazla tasir (Bischoff 2003/2006, Krebs-Ehmke 2021 `lbs`).
+///
+/// Bu bir POLITIKA degisikligidir, modelleme duzeltmesi degil: kirilgan kutunun
+/// ustune GERCEKTEN yuk binmesine izin verir. Alan OLCUM icindir, karar
+/// musteriye aittir (DR-16 deseni); uretim yollari doldurmaz.
+/// </param>
 /// <param name="DepthSlack">
 /// Yukun toplanacagi HEDEF DERINLIK payi. Hedef derinlik su sekilde bulunur:
 ///
@@ -125,6 +138,7 @@ public sealed record OptimizationInput(
     bool FragilityContactOnly = false,
     bool UnloadPathVisibilityOnly = false,
     bool FragileLast = true,
+    decimal? FragilityLoadBearing = null,
     decimal? DepthSlack = 1.05m,
     (double Volume, double Waste, double Contact, double BoxCount)? VcsWeights = null)
 {

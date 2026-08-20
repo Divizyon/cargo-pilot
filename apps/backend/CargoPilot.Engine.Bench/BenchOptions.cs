@@ -37,7 +37,8 @@ public sealed record BenchOptions(
     bool FragilityContactOnly,
     bool UnloadPathVisibilityOnly,
     bool RealWeight,
-    bool FragileLast)
+    bool FragileLast,
+    decimal? FragilityLoadBearing)
 {
     public const int ExitOk = 0;
     public const int ExitFailed = 1;
@@ -56,6 +57,7 @@ public sealed record BenchOptions(
         var visibilityOnly = false;
         var realWeight = false;
         var fragileLast = true;
+        decimal? fragilityLbs = null;
         var seedFrom = 1;
         var seedTo = 1;
         var count = 30;
@@ -139,6 +141,9 @@ public sealed record BenchOptions(
                 case "--vcs":
                     vcsWeights = ParseVcs(value, arg);
                     break;
+                case "--fragility-lbs":
+                    fragilityLbs = ParseDecimal(value, arg);
+                    break;
                 case "--no-fragile-last":
                     fragileLast = false;
                     break;
@@ -214,7 +219,8 @@ public sealed record BenchOptions(
             fragilityContactOnly,
             visibilityOnly,
             realWeight,
-            fragileLast);
+            fragileLast,
+            fragilityLbs);
     }
 
     public static int PrintUsage()
@@ -259,6 +265,7 @@ public sealed record BenchOptions(
               --lifo-visibility-only    LIFO yorumu: erisilebilirlik yerine GORUNURLUK (iyimser ust sinir).
               --real-weight    suit kipinde arac agirlik tavani GERCEK kapasite olur (24-25 t).
               --no-fragile-last  kirilgan siralamasini KAPATIR (F9-1 oncesi davranis; olcum icin).
+              --fragility-lbs N  kirilganligi DERECELI yapar: kutu kg/m2 cinsinden N kadar tasir.
                                Veri degismez, yalniz kisit alanlari doldurulur;
                                boylece kisitli/kisitsiz kosu birebir kiyaslanir.
               --depth-slack S  yuku ideal derinligin S katina toplar (or. 1,15).

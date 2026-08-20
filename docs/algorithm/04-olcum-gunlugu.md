@@ -3839,3 +3839,59 @@ dışarıda kalıyordu — doluluk **%25**. Yeni planda üçü de yerleşiyor (*
 
 İkincisi `K-1`'in tip düzeyinde atama hatasının aynısıydı: **dağılım, dağılım gibi görünen bir
 indeks eşlemesiyle üretilirse ölçtüğün şey dağılım olmaz.**
+
+---
+
+## 21 Ağustos 2026 — `F9-2`: kırılganlığın dereceli yorumu ölçüldü *(karar bekliyor)*
+
+Araştırmanın **Öncelik 1(ii)**'si. `1(i)` — geometrik gevşetme — iki ayrı korpusta kapanmıştı
+(+0,18…+0,39). Açık kalan yarım buydu: kırılganlığı **kategorik "0 kg"** olmaktan çıkarıp
+**dereceli taşıma dayanımına** çevirmek.
+
+### Ne değişti
+
+`PlacementValidator.TopLimit` eklendi: bir kutunun üstünde taşıyabileceği azami yük.
+Kırılgan olmayan kutuda bu doğrudan `MaxWeightOnTop`. Kırılgan kutuda iki yorum var:
+
+- **Kategorik (varsayılan, bugünkü):** sınır sıfır, üstüne hiçbir şey konamaz.
+- **Dereceli:** kırılganlık bir taşıma dayanımına (kg/m²) çevrilir ve sınır **ayak iziyle
+  ölçeklenir** — büyük bir palet küçük bir koliden fazla taşır (Bischoff 2003/2006,
+  Krebs-Ehmke 2021 `lbs`).
+
+Dereceli kipte kategorik kapı kalkar ve kuralı ağırlık kapısı (`ViolatesStackWeight`) taşır.
+Ölçüm düğmesi: `OptimizationInput.FragilityLoadBearing` · `--fragility-lbs N`. **Varsayılan
+kapalı; üretim davranışı değişmedi** — iki kapı da bayt bayt aynı geçti, 182/36/227 yeşil.
+
+### Sonuçlar
+
+**Static, `KIR20` (kategorik taban %80,01 · kısıtsız %86,32):**
+
+| kg/m² | 50 | 100 | 200 | 400 | 800 |
+|---|---|---|---|---|---|
+| Doluluk | %80,41 | %81,37 | %83,21 | %85,45 | %86,40 |
+| Kazanç | +0,40 | +1,36 | +3,20 | +5,44 | +6,39 |
+
+800 kg/m²'de doluluk kısıtsız tabanı (%86,32) **geçiyor** — o noktada kırılganlık fiilen bedava.
+
+**Beam (üretim), `KIR20` (kategorik taban %84,36 · kısıtsız %90,06):**
+
+| kg/m² | kategorik | 100 | 200 | 400 |
+|---|---|---|---|---|
+| Doluluk | %84,36 | %85,33 | %86,82 | **%89,18** |
+| Kazanç | — | +0,97 | +2,46 | +4,82 |
+| Kırılganlığın maliyeti | −5,70 | −4,73 | −3,24 | **−0,88** |
+
+`KIR33`'te de aynı yön: 200 kg/m² ile %75,68 → **%80,50** (+4,82).
+
+### Karar bekliyor — bu bir POLİTİKA değişikliğidir
+
+Eğri monoton ve sürprizsiz: **kazanç, kırılgan ürünün üstüne ne kadar yük binmesine razı
+olunduğuyla doğru orantılı.** Teknik bir tercih değil, bir iş kuralı.
+
+Somut karşılığı: 120×80 cm'lik bir palet (0,96 m²) için 100 kg/m² ≈ **96 kg**, 200 kg/m² ≈
+**192 kg**, 400 kg/m² ≈ **384 kg** üstüne yük demek.
+
+Araştırmanın eşiği *"yeni model doluluğu ≥%85'e çıkarırsa Öncelik 1 doğrulanmış sayılır"*;
+üretim yolunda bu **100 kg/m²** gibi ölçülü bir değerde bile karşılanıyor (%85,33).
+
+`DR-16` deseni: sayı üretildi, varsayılan değişmedi, karar müşteriye ait.

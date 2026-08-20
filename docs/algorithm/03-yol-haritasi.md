@@ -522,6 +522,15 @@ Araştırmanın **Öncelik 2**'si. Krebs-Ehmke DBLF sıralaması: *"1. fragility
 - **Eşik:** araştırmanın kendi eşiği — yeni model doluluğu **≥ %85**'e çıkarırsa Öncelik 1
   doğrulanmış sayılır.
 
+> ⏸ **ÖLÇÜLDÜ — KARAR BEKLİYOR.** Alt adım (i) uygulandı: `--fragility-lbs N` ile kırılganlık
+> kg/m² cinsinden bir taşıma dayanımına çevriliyor, sınır ayak iziyle ölçekleniyor.
+> Üretim yolunda `KIR20`: kategorik %84,36 → 100 kg/m² **%85,33** → 200 **%86,82** → 400
+> **%89,18** (maliyet −5,70 → −0,88). Eşik 100 kg/m² gibi ölçülü bir değerde bile karşılanıyor.
+>
+> **Varsayılan DEĞİŞMEDİ.** Eğri monoton: kazanç, kırılganın üstüne ne kadar yük binmesine razı
+> olunduğuyla doğru orantılı — teknik bir tercih değil, iş kuralı. Alt adım (ii) (destek zinciri
+> yük dağıtımı) yalnız (i) kabul edilirse yapılacak. Ayrıntı ölçüm günlüğünde `F9-2`.
+
 #### F9-3 — İstif sınırı dağılımı *(korpus, kod değil)*
 
 Araştırma bu kısıtta *"modelleme doğru, kazanç küçük; en yüksek getirili adım korpusu gerçekçi bir
