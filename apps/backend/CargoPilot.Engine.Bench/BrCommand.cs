@@ -45,8 +45,8 @@ public static class BrCommand
 
         if (suite)
         {
-            Console.WriteLine("600 hacim + 600 LIFO · dort cesitlilik kademesi (ayni / az / cok / tamamen farkli)");
-            Console.WriteLine("LIFO kumeleri 2-6 grup · gruplar urun TIPININ ICINDEN bolunur (karisik yuk)");
+            Console.WriteLine("600 hacim + 600 LIFO + 480 kirilganlik + 480 istif · dort cesitlilik kademesi");
+            Console.WriteLine("kisitlar urun TIPININ ICINDEN bolunur: karisik yuk, kismi kirilgan, urune ozgu istif");
             Console.WriteLine("gercek arac olculeri · yuk yari gercek (GR-*) yari rastgele (RS-*) · agirlik baglayici degil");
         }
         else if (real)
@@ -67,7 +67,7 @@ public static class BrCommand
         }
 
         Console.WriteLine();
-        Console.WriteLine("kume  ornek  tip  kutu  hacim%  doluluk%  medyan%  en dusuk%  en yuksek%  yayilma  dilim%  duvar  medyan ms");
+        Console.WriteLine("kume   ornek  tip  kutu  hacim%  doluluk%  medyan%  en dusuk%  en yuksek%  yayilma  dilim%  duvar  medyan ms");
 
         var all = new List<decimal>();
         var setResults = new List<BrBaseline.SetResult>();
@@ -194,7 +194,7 @@ public static class BrCommand
             if (suite) rowLabel = SuiteCorpus.SetLabel(set);
             else if (real) rowLabel = "GR ";
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                $"{rowLabel,-5} {limit,6} {sample.Input.Items.Count,4} {sample.BoxCount,5} " +
+                $"{rowLabel,-6} {limit,6} {sample.Input.Items.Count,4} {sample.BoxCount,5} " +
                 $"{sample.BoxVolumeRatio * 100m,6:F1} {Mean(fills),9:F2} {Percentile(fills, 0.50),8:F2} " +
                 $"{fills.Min(),10:F2} {fills.Max(),11:F2} {meanSpread,8:F3} {meanSlice,7:F1} " +
                 $"{meanWalls,6:F1} {PercentileD(durations, 0.50),10:F0}"));

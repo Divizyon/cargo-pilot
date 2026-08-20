@@ -200,7 +200,7 @@ public sealed record BenchOptions(
             Math.Max(1, durationMinutes), reportPath,
             sequencer, Math.Max(1, searchMs), Math.Max(2, population), Math.Max(1, iterations),
             Math.Max(0, maxScenarios),
-            Math.Clamp(brSet, -1, 200),
+            Math.Clamp(brSet, -1, 999),
             Math.Clamp(brLoadRatio, 0.05m, 1m),
             depthSlack,
             constraints,

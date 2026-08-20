@@ -535,6 +535,16 @@ sınır ürüne özgüdür ve çoğu üründe **yoktur**.
   ölçülmüyor (`DR-38`'in açık kalan yarısı). İkisi de istif ekseninde; aynı korpus çalışmasında
   kapatılır.
 
+> ✅ **ÖLÇÜLDÜ.** Suit'e istif ailesi eklendi (480 senaryo). Üretim yolunda taban `IST2` −11,05;
+> gerçekçi seyrek dağılım `ISTKAR` **−6,19**, yani kaybın **%44'ü** geri geldi. Eşik "yarısından
+> fazlası"ydı, **tutmadı** — `MaxStackCount = 2` katı bir korpus seçimiydi ama kısıt gerçekten
+> pahalı; modelleme doğru.
+>
+> `DR-38`'in yarısı kapandı: `MaxWeightOnTop` **−6,66**, `IsStackable = false` (%20) **−9,27**.
+> İkincisi `DR-70`'i genişletti — ölçüt kırılganlık değil *"üstüne yük alamamak"* oldu:
+> üretimde %80,79 → **%84,93** (+4,14, maliyet −5,13), static'te %64,91 → **%80,00** ve en kötü
+> senaryo %22,77 → **%68,03**. Ayrıntı ölçüm günlüğünde `F9-3`.
+
 #### F9-4 — Ağırlık dengesi: onarım post-pass *(Öncelik 3)*
 
 **Açık borç:** denge üretim yolunda **hiç optimize edilmiyor.** `DR-39` `BalanceScoring`'i silerken

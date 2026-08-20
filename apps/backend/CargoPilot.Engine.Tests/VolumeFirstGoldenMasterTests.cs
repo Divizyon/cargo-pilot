@@ -58,8 +58,14 @@ public sealed class VolumeFirstGoldenMasterTests
     }
 
     /// <summary>
-    /// İstiflenemez kutu zemini kapladığında üstüne bir şey konamaz; kalan kutular
-    /// InsufficientSpace ile dışarıda kalır ve aynı ItemId tek satırda toplanır.
+    /// İstiflenemez kutunun üstüne hiçbir şey konamaz — ama kendisi yığının
+    /// TEPESİNE çıkabilir.
+    ///
+    /// Snapshot `F9-3`'te kaydı ve kayma gerekçelidir: kutu artık zemine değil
+    /// tepeye yerleşiyor, çünkü sıralama "üstüne yük alamayan kutu sona" oldu
+    /// (`DR-70`). Eski planda istiflenemez kutu zemini kapatıyor ve kalan iki
+    /// kutu `InsufficientSpace` ile dışarıda kalıyordu — doluluk %25. Yeni planda
+    /// üçü de yerleşiyor (%75) ve istiflenemezin üstü yine boş.
     /// </summary>
     [Fact]
     public void VolumeFirst_IstiflenemezKutu_UstuneYerlestirilemez()

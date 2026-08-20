@@ -3753,3 +3753,89 @@ ailesi (%70,94) bayrakla **birebir aynı** çıktı.
 kusuru: orada kırılganlık tip düzeyinde, yani "kırılganı sona al" bütün tipleri yeniden diziyor ve
 hacim-azalan mantığı bozuyor. Birim düzeyinde ise aynı tipin kırılgan birimleri yukarı çıkıyor —
 kazanç oradan geliyor.
+
+---
+
+## 21 Ağustos 2026 — `F9-3`: istif ekseni ve `DR-38`'in kapanan yarısı
+
+Suit'e **istif ailesi** eklendi: dört varyant × dört çeşitlilik kademesi × 30 = 480 senaryo.
+İkisi bugüne kadar **hiçbir korpusta ölçülmemişti** (`DR-38`'in açık kalan yarısı).
+
+| Küme | Ne değiştiriyor |
+|---|---|
+| `IST2` | Her ürün `MaxStackCount = 2` — bugünkü `ConstraintCorpus` ayarının aynısı |
+| `ISTKAR` | Sınır ürüne özgü: **yarısı sınırsız**, kalanı çoğunlukla gevşek (4/3/2/1) |
+| `USTAGR` | `MaxWeightOnTop` = kutunun kendi ağırlığının 3 katı |
+| `ISTMEZ` | Birimlerin **%20'si** `IsStackable = false` |
+
+Dağılımların kendisi **varsayımdır** — ampirik dağılım yayınlanmış kaynaklarda yok (araştırmanın
+kendi caveat'i). `ISTKAR` bilinçli olarak araştırmanın iddiasını sınayacak biçimde seçildi:
+*"sınır ürüne özgüdür ve çoğu üründe yoktur."*
+
+### Sonuçlar (taban: `HACIM` static %86,32 · beam %90,06)
+
+| Küme | Static | Maliyet | **Beam** | **Maliyet** |
+|---|---|---|---|---|
+| `IST2` | %74,38 | −11,94 | %79,01 | **−11,05** |
+| `ISTKAR` | %78,83 | −7,49 | %83,87 | **−6,19** |
+| `USTAGR` | %78,61 | −7,71 | %83,40 | **−6,66** |
+| `ISTMEZ` | %64,91 | −21,41 | %80,79 | **−9,27** |
+
+*(`ISTMEZ` satırı aşağıdaki `DR-70` genişletmesinden ÖNCEKİ hâldir; sonrası **−5,13**.
+Diğer üç küme istiflenemez ve kırılgan kutu içermediği için genişletmeden etkilenmiyor —
+ölçüldü, sayılar birebir aynı.)*
+
+İhlal dört kümede de **sıfır**.
+
+**Araştırmanın istif iddiası: yönü doğru, eşiği tutmuyor.** Gerçekçi seyrek dağılım
+üretim yolunda −11,05'in **%44'ünü** geri getiriyor (+4,86); eşik "yarısından fazlası"ydı.
+Yani `MaxStackCount = 2` gerçekten katı bir korpus seçimiydi ve **gerçekçi maliyet −6,19'dur**,
+ama sınır seyrek olsa bile bedel kalıyor — modelleme doğru, kısıt gerçekten pahalı.
+
+**Mekanizma notu:** `ViolatesStackCount` sütundaki HER kutuya bakar, yani bağlayıcı olan en KATI
+kutunun sınırıdır. Bu yüzden "ortalaması daha gevşek" bir dağılım daha gevşek DAVRANMAZ;
+belirleyici olan sınırın ne kadar **seyrek** olduğudur.
+
+### `DR-70` genişletildi: ölçüt kırılganlık değil, ÜSTÜNE YÜK ALAMAMAK
+
+`ISTMEZ`'de static ile beam arasında **12 puanlık** fark vardı (−21,41 vs −9,23) — ölçülen en
+büyük fark. Bu, kaybın büyük kısmının **sıralamadan** geldiğinin işaretiydi: istiflenemez kutu
+"üstüne bir şey konmayacak yere" gitmeli, bu bir sıra problemi.
+
+Hipotez sınandı. `DR-70`'in anahtarı `FragilityType == Fragile` yerine *"üstüne yük alamaz"*
+oldu — kırılgan kutu da `IsStackable = false` kutu da bulunduğu sütunu kapatır, ikisi de yığının
+tepesine aittir:
+
+| `ISTMEZ` | Kapalı | Açık | Kazanç |
+|---|---|---|---|
+| Static | %64,91 · en kötü %22,77 | **%80,00** · en kötü %68,03 | **+15,09** |
+| **Beam (üretim)** | %80,79 · ×1,227 | **%84,93** · ×1,164 | **+4,14** |
+
+Eşik +2 idi, aşıldı. `ISTMEZ`'in üretim maliyeti −9,27 → **−5,13**.
+
+En kötü senaryonun %22,77 → %68,03 çıkması, mekanizmanın ortalamayı değil **kuyruğu**
+düzelttiğini gösteriyor.
+
+**Kabul edildi ve `DR-70`'e dâhil edildi** — ayrı bir bayrak açılmadı: iki durum aynı fiziksel
+gerçeğin iki adı (*"bu kutu üstüne yük alamaz"*), ayrı ele almak aynı mekanizmayı iki kez yazmak
+olurdu.
+
+**Nötrlük yeniden doğrulandı:** istiflenemez ve kırılgan kutu içermeyen ailelerde sayılar birebir
+aynı — `HACIM` %86,32 · `LIFO4` %70,94 · `ISTKAR` %78,83 · `KIR20` %80,01.
+
+### Bir golden snapshot kaydı — gerekçeli (`R-A16`)
+
+`VolumeFirst_IstiflenemezKutu_UstuneYerlestirilemez`: istiflenemez kutu artık zemine değil
+**tepeye** yerleşiyor. Eski planda zemini kapatıyor ve kalan iki kutu `InsufficientSpace` ile
+dışarıda kalıyordu — doluluk **%25**. Yeni planda üçü de yerleşiyor (**%75**) ve istiflenemezin
+üstü yine boş. Kural bozulmadı, plan üç kat iyileşti.
+
+### Düzenekte iki hata yakalandı
+
+| Hata | Nasıl fark edildi |
+|---|---|
+| `--set` değeri **200'e kırpılıyordu**; 201-204'ün dördü de aynı kümeyi koşuyordu | Dört satırın birebir aynı çıkması |
+| Karışık dağılım `type % 5` ile veriliyordu — tek tipli senaryolarda hep en katı değer (1) düşüyordu, yani dağılım değil YANLILIK | `ISTKAR`'ın `IST2`'den kötü çıkması. Düzeltilince −16,84 → −7,49 |
+
+İkincisi `K-1`'in tip düzeyinde atama hatasının aynısıydı: **dağılım, dağılım gibi görünen bir
+indeks eşlemesiyle üretilirse ölçtüğün şey dağılım olmaz.**

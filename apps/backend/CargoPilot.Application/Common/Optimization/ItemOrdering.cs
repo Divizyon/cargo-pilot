@@ -86,8 +86,16 @@ internal static class ItemOrdering
     /// Birincil anahtar. <paramref name="fragileLast"/> kapalıyken sabit sıfırdır
     /// ve <c>OrderBy</c> KARARLI olduğu için sıra bugünküyle bire bir kalır;
     /// golden-master davranışı bu yüzden bozulmaz.
+    ///
+    /// Ölçüt kırılganlık değil <b>ÜSTÜNE YÜK ALAMAMAK</b>: kırılgan kutu da
+    /// <c>IsStackable = false</c> kutu da bulunduğu sütunu kapatır, ikisi de
+    /// yığının tepesine aittir. İkisini ayrı ayrı ele almak aynı mekanizmayı iki
+    /// kez yazmak olurdu (ölçüldü, `F9-3`).
     /// </summary>
     private static IOrderedEnumerable<OptimizationItemInput> Order(
         IEnumerable<OptimizationItemInput> items, bool fragileLast)
-        => items.OrderBy(i => fragileLast && i.FragilityType == FragilityType.Fragile ? 1 : 0);
+        => items.OrderBy(i => fragileLast && CannotBearLoad(i) ? 1 : 0);
+
+    private static bool CannotBearLoad(OptimizationItemInput item)
+        => item.FragilityType == FragilityType.Fragile || !item.IsStackable;
 }

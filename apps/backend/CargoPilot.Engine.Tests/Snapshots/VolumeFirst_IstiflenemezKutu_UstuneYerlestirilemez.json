@@ -45,17 +45,17 @@
     }
   ],
   "Outcome": {
-    "TotalWeight": 50,
-    "FillRate": 0.25,
+    "TotalWeight": 150,
+    "FillRate": 0.75,
     "CenterOfGravityX": 50,
-    "CenterOfGravityY": 50,
+    "CenterOfGravityY": 150,
     "CenterOfGravityZ": 50,
     "WeightBalanceOffsetX": 0,
     "WeightBalanceOffsetZ": 0,
     "Placements": [
       {
         "Order": 0,
-        "ItemId": "00000000-0000-0000-0000-000000000001",
+        "ItemId": "00000000-0000-0000-0000-000000000002",
         "X": 0,
         "Y": 0,
         "Z": 0,
@@ -64,14 +64,32 @@
         "Length": 100,
         "Rotation": "NoRotation",
         "Weight": 50
+      },
+      {
+        "Order": 1,
+        "ItemId": "00000000-0000-0000-0000-000000000002",
+        "X": 0,
+        "Y": 100,
+        "Z": 0,
+        "Width": 100,
+        "Height": 100,
+        "Length": 100,
+        "Rotation": "NoRotation",
+        "Weight": 50
+      },
+      {
+        "Order": 2,
+        "ItemId": "00000000-0000-0000-0000-000000000001",
+        "X": 0,
+        "Y": 200,
+        "Z": 0,
+        "Width": 100,
+        "Height": 100,
+        "Length": 100,
+        "Rotation": "NoRotation",
+        "Weight": 50
       }
     ],
-    "UnplacedItems": [
-      {
-        "ItemId": "00000000-0000-0000-0000-000000000002",
-        "Quantity": 2,
-        "Reason": "InsufficientSpace"
-      }
-    ]
+    "UnplacedItems": []
   }
 }
