@@ -2,13 +2,13 @@
   "Strategy": "WallBuilder",
   "Sequencer": "Static",
   "Orientation": "Strict",
-  "MeanFillPercent": 50.50,
+  "MeanFillPercent": 50.44,
   "Sets": [
     {
       "Set": 1,
       "Instances": 100,
-      "MeanFillPercent": 50.69,
-      "MeanSpreadRatio": 2.041,
+      "MeanFillPercent": 50.64,
+      "MeanSpreadRatio": 2.0405,
       "MeanSliceUtilPercent": 51.87,
       "ZoneViolations": 0,
       "FragilityViolations": 0,
@@ -18,7 +18,7 @@
       "Set": 2,
       "Instances": 100,
       "MeanFillPercent": 52.35,
-      "MeanSpreadRatio": 1.9388,
+      "MeanSpreadRatio": 1.939,
       "MeanSliceUtilPercent": 53.16,
       "ZoneViolations": 0,
       "FragilityViolations": 0,
@@ -27,9 +27,9 @@
     {
       "Set": 3,
       "Instances": 100,
-      "MeanFillPercent": 50.24,
-      "MeanSpreadRatio": 2.0125,
-      "MeanSliceUtilPercent": 50.95,
+      "MeanFillPercent": 50.27,
+      "MeanSpreadRatio": 2.0109,
+      "MeanSliceUtilPercent": 50.99,
       "ZoneViolations": 0,
       "FragilityViolations": 0,
       "StackViolations": 0
@@ -37,9 +37,9 @@
     {
       "Set": 4,
       "Instances": 100,
-      "MeanFillPercent": 50.67,
-      "MeanSpreadRatio": 2,
-      "MeanSliceUtilPercent": 51.33,
+      "MeanFillPercent": 50.63,
+      "MeanSpreadRatio": 2.0023,
+      "MeanSliceUtilPercent": 51.27,
       "ZoneViolations": 0,
       "FragilityViolations": 0,
       "StackViolations": 0
@@ -47,9 +47,9 @@
     {
       "Set": 5,
       "Instances": 100,
-      "MeanFillPercent": 49.77,
-      "MeanSpreadRatio": 2.0369,
-      "MeanSliceUtilPercent": 50.33,
+      "MeanFillPercent": 49.75,
+      "MeanSpreadRatio": 2.0386,
+      "MeanSliceUtilPercent": 50.3,
       "ZoneViolations": 0,
       "FragilityViolations": 0,
       "StackViolations": 0
@@ -57,9 +57,9 @@
     {
       "Set": 6,
       "Instances": 100,
-      "MeanFillPercent": 51.05,
-      "MeanSpreadRatio": 1.9779,
-      "MeanSliceUtilPercent": 51.56,
+      "MeanFillPercent": 50.75,
+      "MeanSpreadRatio": 1.9903,
+      "MeanSliceUtilPercent": 51.29,
       "ZoneViolations": 0,
       "FragilityViolations": 0,
       "StackViolations": 0
@@ -67,8 +67,8 @@
     {
       "Set": 7,
       "Instances": 100,
-      "MeanFillPercent": 48.72,
-      "MeanSpreadRatio": 2.087,
+      "MeanFillPercent": 48.70,
+      "MeanSpreadRatio": 2.0887,
       "MeanSliceUtilPercent": 49.15,
       "ZoneViolations": 0,
       "FragilityViolations": 0,

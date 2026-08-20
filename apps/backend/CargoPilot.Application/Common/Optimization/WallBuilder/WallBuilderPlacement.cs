@@ -194,6 +194,23 @@ internal static class WallBuilderPlacement
             // kaldigini bilmeden "bu bosluk bir blok alir mi" sorusu sorulamaz.
             var remaining = RemainingUnits(instances, consumed, index, item.ItemId);
 
+            // ERISILEBILIRLIK CEZASI icin baglam: bu kutudan sonra yerlestirilecek
+            // DAHA ERKEN inecek birim var mi? Varsa aday, onlarin kapiya giden
+            // koridorunu kilitleyebilir ve bunu skorda odemeli. Yoksa ceza
+            // anlamsizdir — arkasindan gelecek kimse yok.
+            var blocksLater = false;
+            if (item.UnloadingOrder is { } currentOrder)
+            {
+                for (var ahead = index + 1; ahead < instances.Count; ahead++)
+                {
+                    if (consumed[ahead]) continue;
+                    if (instances[ahead].Item.UnloadingOrder is not { } o || o >= currentOrder) continue;
+
+                    blocksLater = true;
+                    break;
+                }
+            }
+
             // Duvarlar acilis sirasiyla taranir ve ILK aday veren duvarda durulur
             // — ama yalnizca o aday BOLGE ICINDEYSE. Bolge disi bir adayda durmak
             // LIFO sozunu deliyordu: bir sonraki duvarda bolge ici aday olsa bile
@@ -209,7 +226,7 @@ internal static class WallBuilderPlacement
                 if (wall.End - wall.Start < itemMinSide) continue;
 
                 var attempt = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
-                    wall.Start, wall.End, zoneStart, zoneEnd, remaining, 0m);
+                    wall.Start, wall.End, zoneStart, zoneEnd, remaining, 0m, blocksLater);
 
                 blockedByFragility |= attempt.BlockedByFragility;
                 if (attempt.Box is null) continue;
@@ -236,7 +253,7 @@ internal static class WallBuilderPlacement
 
                 var frontier = walls.Count > 0 ? walls[^1].End : 0m;
                 var opened = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
-                    frontier, depthBudget, zoneStart, zoneEnd, remaining, decoder.WallDepthPreference);
+                    frontier, depthBudget, zoneStart, zoneEnd, remaining, decoder.WallDepthPreference, blocksLater);
 
                 blockedByFragility |= opened.BlockedByFragility;
 
@@ -262,7 +279,7 @@ internal static class WallBuilderPlacement
                 if (bestInZone) return;
 
                 var anywhere = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
-                    0m, depthBudget, zoneStart, zoneEnd, remaining, 0m);
+                    0m, depthBudget, zoneStart, zoneEnd, remaining, 0m, blocksLater);
 
                 blockedByFragility |= anywhere.BlockedByFragility;
 
@@ -419,7 +436,7 @@ internal static class WallBuilderPlacement
                 }
 
                 var attempt = TryPlace(input, ledger, placements, sequenced, fillFromMaxX,
-                    0m, depthBudget, zoneStart, zoneEnd, remaining: 1, 0m);
+                    0m, depthBudget, zoneStart, zoneEnd, remaining: 1, 0m, blocksLater: false);
 
                 if (attempt.Box is not { } box) continue;
 
@@ -917,7 +934,8 @@ internal static class WallBuilderPlacement
         decimal? zoneStart,
         decimal? zoneEnd,
         int remaining,
-        decimal depthPreference)
+        decimal depthPreference,
+        bool blocksLater)
     {
         var item = sequenced.Item;
         var supportThreshold = PlacementValidator.ThresholdOf(input);
@@ -1071,7 +1089,29 @@ internal static class WallBuilderPlacement
                 var wallContact =
                     (x <= 0m || x + width >= input.VehicleWidth ? height * length : 0m)
                     + (z <= 0m ? width * height : 0m);
-                var vcs = BlockValue.Score(
+                // ERISILEBILIRLIK CEZASI (LIFO). Sert kapi neyin GECERLI oldugunu
+                // soyler; hangi gecerli adayin secilecegini soylemez. Bir aday,
+                // ayak izi kadar bir koridoru kapiya kadar kilitler ve o koridor
+                // daha erken inecek kutulara kapanir.
+                //
+                // Ceza kilitlenen koridorun arac hacmine oranidir: ayni derinlikte
+                // duran iki adaydan kesiti kucuk olani, ayni kesitteki iki adaydan
+                // kapiya daha yakin duranı yeglenir.
+                //
+                // Yalnizca arkadan daha erken inecek birim gelecekse uygulanir;
+                // son grupta kilitlenecek kimse yoktur.
+                var corridor = 1d;
+                if (blocksLater)
+                {
+                    var locked = width * height * Math.Max(0m, input.VehicleLength - (z + length));
+                    var capacity = input.VehicleWidth * input.VehicleHeight * input.VehicleLength;
+                    if (capacity > 0m)
+                    {
+                        corridor = Math.Max(1e-9d, 1d - (double)(locked / capacity));
+                    }
+                }
+
+                var vcs = corridor * BlockValue.Score(
                     placedVolume: width * height * length * block,
                     spaceVolume: space.Width * space.Height * space.Length,
                     unusableVolume: BlockValue.UnusableResidual(

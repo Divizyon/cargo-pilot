@@ -3449,3 +3449,65 @@ Bedeli gerçek yükte ciddi. Karar operasyonel: **grupsuz ürün sahada nasıl d
 4,92 puan olan katı yorum gerekçesiz. Kural değiştirilmedi.
 
 179/36 test yeşil; kısıtlı kapı geçti.
+
+---
+
+## 20 Ağustos 2026 — LIFO araştırması geldi: **erişilebilirlik cezası** kabul
+
+Dış araştırma ([brifingin altında](notlar/2026-08-20-lifo-brifing.md)) üç şey söyledi ve üçü de
+işe yaradı.
+
+### 1. Kuralımız literatür standardından **daha sert**
+
+Bonet Filella, Trivella & Corman (EJOR 308, 2023) boşaltma kısıtını dörde ayırıyor: *above*,
+*visibility*, *reachability*, *separation*. Standart 3L-CVRP LIFO'su **above + visibility**.
+Bizim `M2` = above, `M3` = visibility + reachability'nin katı birleşimi.
+
+Kaybımız (−5,68 gerçek / −8,03 BR) literatür aralığında ama **üst bantta**: Bonet Filella sert
+kısıtın yumuşaktan **%12'ye kadar** kötü olduğunu ölçmüş; Martínez vd. (2015) 1→50 müşteride
+BR1'de %13, BR7'de ~%30 düşüş bildiriyor.
+
+### 2. Araştırma bir noktada bizi yanlış okudu — düzeltildi
+
+Rapor `M3`'ün iki yönlülüğünü *"hem yükleme hem boşaltma"* diye okuyup gevşetilmesini önerdi
+(Öneri 5). Öyle değil: tek bir fiziksel kural var — **geç inen kutu, erken inenin önünde
+duramaz** — ve iki kontrol o kuralı adayın iki farklı rolünde görüyor (engellenen / engelleyen).
+İkincisi çıkarılırsa kural **eksik** kalır; ölçüldü, 145 ihlal bırakıyordu. Öneri 5 uygulanmadı.
+
+### 3. Öneri 1 uygulandı: erişilebilirlik cezası — **kabul**
+
+Sert kapı aday eleme olarak **korundu**; değişen tek şey geçerli adaylar arasındaki tercih. Aday,
+ayak izi kadar bir koridoru kapıya kadar kilitler ve o koridor daha erken inecek kutulara kapanır.
+Ceza kilitlenen koridorun araç hacmine oranıdır ve **yalnız arkadan daha erken inecek birim
+gelecekse** uygulanır.
+
+| | Önce | **Sonra** | Kayıp |
+|---|---|---|---|
+| Gerçek korpus, LIFO | %80,92 | **%81,99** | −5,68 → **−4,61** |
+| BR1-BR7, LIFO | %76,45 | **%78,44** | −8,03 → **−6,04** |
+| Yayılma (gerçek) | ×1,236 | ×1,218 | |
+| Boşaltma yolu ihlali | 0 | **0** | değişmedi |
+
+Araştırmanın hedefi "−4/−5 seviyesine çekmek"ti; gerçek korpusta **−4,61** ile tutturuldu.
+
+Ceza şekli **duyarsız**: doğrusal ve karekök sürümler aynı sonucu verdi (%50,44 / %50,46).
+`DR-53`'ün VCS üstellerinde bulduğu duyarsızlığın aynısı. Basit olan tutuldu.
+
+### Kısıtlı referans tazelendi — sebebiyle
+
+`--constraints all` koşusu %50,50 → **%50,44** (−0,06). BR6 tek başına −0,30. Bu bir gerileme ve
+kapı onu yakaladı; referans **bilerek** tazelendi çünkü değişiklik hedeflediği kısıtta net kazanç
+veriyor (+1,07 / +1,99) ve `all` korpusunda etkisi düz. `all` korpusunda LIFO'nun payı küçük —
+kırılganlık tek başına 32 puan götürüyor.
+
+### Sırada ne var
+
+Araştırmanın Öneri 2'si **stack-first mimarisi**: kutuları önce dikey yığınlara grupla, yığınları
+2B yerleştir. ROADEF 2022 kazananlarının üçü de bunu kullanmış ve LIFO orada yapısal olarak
+neredeyse bedava geliyor. Hedef −2/−3. Ama duvar örücünün kısıtsız %86,60'ı güçlü bir taban;
+araştırma da "tam geçiş değil, hibrit/prototip" diyor.
+
+Araştırmanın kendi eşiği: *"Öneri 1 sonrası kayıp ≤ −4 ise stack-first'e tam yatırım yapmayın."*
+Gerçek korpusta **−4,61**, yani eşiğin hemen üstünde.
+
+179/36 test yeşil; kısıtsız kapı %84,26 ile değişmeden geçti.
