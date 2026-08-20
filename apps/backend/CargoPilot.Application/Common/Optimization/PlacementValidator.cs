@@ -1,4 +1,4 @@
-﻿using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Common.Optimization;
@@ -173,7 +173,8 @@ internal static class PlacementValidator
         List<PlacedBox> placed,
         decimal x, decimal y, decimal z,
         decimal width, decimal height, decimal length,
-        int? order)
+        int? order,
+        bool visibilityOnly = false)
     {
         if (order is not { } mine) return false;
 
@@ -194,16 +195,37 @@ internal static class PlacementValidator
             // önce konmuş bir kutunun yolunu kesiyordu.
             if (other > mine)
             {
-                if (box.Z + box.Length > doorSide) return true;
-            }
-            else if (doorSide > box.Z + box.Length)
-            {
+                if (box.Z + box.Length <= doorSide) continue;
+                if (visibilityOnly && !Covers(box.X, box.Y, box.Width, box.Height, x, y, width, height)) continue;
+
                 return true;
             }
+
+            if (doorSide <= box.Z + box.Length) continue;
+            if (visibilityOnly && !Covers(x, y, width, height, box.X, box.Y, box.Width, box.Height)) continue;
+
+            return true;
         }
 
         return false;
     }
+
+    /// <summary>
+    /// Engelleyen kutunun yüzü, engellenen kutunun yüzünü TAMAMEN kapatıyor mu?
+    ///
+    /// Yalnızca <c>visibilityOnly</c> ölçüm kipinde kullanılır. Bugünkü kural
+    /// ERİŞİLEBİLİRLİK'tir: koridorda herhangi bir kesişme kutuyu düz çekişle
+    /// çıkarılamaz yapar. Literatürdeki daha gevşek yorum GÖRÜNÜRLÜK'tür —
+    /// yüzün bir kısmı açıksa operatör kutuyu kaydırarak/çevirerek alabilir.
+    ///
+    /// Bu yüklem gerçek görünürlüğün İYİMSER bir yaklaşımıdır: iki kutunun
+    /// birlikte kapattığı yüzü açık sayar. Yani ölçtüğü şey gevşetmenin ÜST
+    /// SINIRI — küçük çıkarsa gerçek gevşetme daha da küçüktür ve konu kapanır.
+    /// </summary>
+    private static bool Covers(
+        decimal bx, decimal by, decimal bw, decimal bh,
+        decimal x, decimal y, decimal w, decimal h)
+        => bx <= x && bx + bw >= x + w && by <= y && by + bh >= y + h;
 
     // ── Stack ─────────────────────────────────────────────────────────────────
     //
@@ -306,18 +328,30 @@ internal static class PlacementValidator
     // sınır zaten MaxWeightOnTop alanıdır ve ViolatesStackWeight uygular.
     // Kırılganlığın eklediği şey kategorik durumdur — üste hiçbir şey konamaz
 
-    /// <summary>Aday pozisyonun altında kalan kutulardan biri kırılgan mı?</summary>
+    /// <summary>
+    /// Aday pozisyonun altında kalan kutulardan biri kırılgan mı?
+    ///
+    /// <paramref name="contactOnly"/> <c>false</c> (varsayılan, bugünkü davranış)
+    /// ise kırılgan kutunun ayak izi gölgesinde HİÇBİR yükseklikte kutu olamaz —
+    /// sütun geneli yorum. <c>true</c> ise yalnızca kırılganın ÜZERİNE OTURAN
+    /// kutu yasaklanır; komşu yığınların taşıdığı bir köprü kırılgana
+    /// dokunmadığı için serbest kalır.
+    ///
+    /// İkisi arasındaki seçim bir POLİTİKA'dır, fizik kanunu değil — destek
+    /// eşiğinde (`DR-16`) kurulan desenin aynısı.
+    /// </summary>
     internal static bool ViolatesFragility(
         List<PlacedBox> placed,
         decimal x, decimal y, decimal z,
-        decimal width, decimal length)
+        decimal width, decimal length,
+        bool contactOnly = false)
     {
         foreach (var b in placed)
         {
             // En ucuz eleme önce: araçta kırılgan kutu yoksa döngü kutu başına
             // tek enum karşılaştırmasına iner
             if (b.FragilityType != FragilityType.Fragile) continue;
-            if (b.Y + b.Height > y) continue;
+            if (contactOnly ? b.Y + b.Height != y : b.Y + b.Height > y) continue;
 
             var ox = Math.Max(0m, Math.Min(x + width, b.X + b.Width) - Math.Max(x, b.X));
             var oz = Math.Max(0m, Math.Min(z + length, b.Z + b.Length) - Math.Max(z, b.Z));
@@ -361,7 +395,8 @@ internal static class PlacementValidator
         List<PlacedBox> others,
         decimal x, decimal y, decimal z,
         decimal width, decimal height, decimal length,
-        bool isStackable, FragilityType fragilityType, int maxStackCount, decimal maxWeightOnTop)
+        bool isStackable, FragilityType fragilityType, int maxStackCount, decimal maxWeightOnTop,
+        bool fragilityContactOnly = false)
     {
         // Kısıtsız kutuda hiçbir kural üst yükle ilgilenmez: maliyet sıfır.
         if (isStackable
@@ -390,7 +425,8 @@ internal static class PlacementValidator
         }
 
         if (!isStackable && restsDirectlyOn) return true;
-        if (fragilityType == FragilityType.Fragile && countAbove > 0) return true;
+        if (fragilityType == FragilityType.Fragile
+            && (fragilityContactOnly ? restsDirectlyOn : countAbove > 0)) return true;
         if (maxStackCount > 0 && countAbove > maxStackCount) return true;
         if (maxWeightOnTop > 0m && weightAbove > maxWeightOnTop) return true;
 

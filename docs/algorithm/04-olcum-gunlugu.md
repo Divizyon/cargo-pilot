@@ -3575,3 +3575,78 @@ Yani compactness terimi de stack-first'e tam yatırım da **gerekçesiz** kaldı
 çıkarılabilirlik kuralıyla ölçüldü: `--depth-slack 1,15`, gerçek korpus, %25 yük, **ihlal 0**.
 Kazanç ise yok: yayılma ×1,351 → ×1,343, doluluk +0,01. Kapı (`if (lifo) return null`) yerinde
 bırakıldı; değişiklik bedava değil, karşılığı da yok.
+
+---
+
+## 20 Ağustos 2026 (akşam) — `L-8`: Öneri 4 ölçüldü · `K-1`: kırılganlık ilk kez ele alındı
+
+İki ölçüm düğmesi eklendi. İkisi de `DR-16`'nın `SupportThreshold` için kurduğu deseni izliyor:
+**değiştirmek için değil ölçmek için**, varsayılanları bugünkü davranış, üretim yolları
+doldurmuyor.
+
+| Düğme | Ne yapıyor |
+|---|---|
+| `OptimizationInput.FragilityContactOnly` · `--fragility-contact-only` | Kırılganlık yorumu: sütun geneli → doğrudan temas |
+| `OptimizationInput.UnloadPathVisibilityOnly` · `--lifo-visibility-only` | LIFO yorumu: erişilebilirlik → görünürlük (iyimser) |
+| `--fragile-every N` | Korpusta kırılgan tip payı |
+
+Varsayılanlar kapalı olduğu için her iki kapı da değişmeden geçti (%84,26 · %50,50), 179/36/227
+test yeşil.
+
+### `L-8` — Öneri 4: reachability → visibility
+
+Kural gevşetilip yalnızca yüzü **tamamen kapatan** kutu engel sayıldı. Uygulama iyimser (iki
+kutunun birlikte kapattığı yüzü açık sayar), yani ölçülen şey gevşetmenin **üst sınırı**.
+
+| Gerçek korpus | Doluluk | Yayılma | Katı kurala göre ihlal |
+|---|---|---|---|
+| Static · erişilebilirlik | %81,94 | ×1,219 | 0 |
+| Static · görünürlük | %83,93 | ×1,187 | 2.036 |
+| **Beam · erişilebilirlik** | **%88,11** | ×1,123 | **0** |
+| **Beam · görünürlük** | **%90,22** | ×1,106 | **14.619** |
+
+Üretimde **+2,11 puan** (LIFO maliyeti −3,79 → −1,69). Bedeli: beam 100 senaryoda 25.200 kutu
+yerleştiriyor, bunların **≈%58'i** düz çekişle çıkarılamaz hâle geliyor.
+
+**Karar iş biriminindir ve sayı artık hazır.** Kabul edilmezse Öneri 4 kapanır. Kabul edilirse
+iyimser yaklaşım yetmez: gerçek görünürlük (birleşim kapsaması) uygulanmalı, yoksa kural
+*"hiçbir TEK kutu beni tamamen kapatmasın"* gibi savunulamaz bir şeye döner.
+
+### `K-1` — kırılganlık: maliyet uçurum, yorum masum
+
+Kırılganlık bugüne kadar hiç çalışılmamıştı. İlk ölçüm, üretim yolunda:
+
+| Gerçek korpus, beam | Doluluk | Yayılma | Maliyet |
+|---|---|---|---|
+| Kısıtsız | %91,91 | ×1,086 | — |
+| LIFO | %88,11 | ×1,123 | −3,79 |
+| İstif ≤ 2 | %78,22 | ×1,289 | −13,69 |
+| **Kırılganlık (~%33 tip)** | **%70,10** | ×1,424 | **−21,81** |
+| Hepsi | %61,86 | ×1,637 | −30,05 |
+
+**Kırılgan payı taraması (static)** — eğri düz değil, uçurum:
+
+| Her N'inci tip | 2 | 3 | 4 | 6 | 10 | 20 |
+|---|---|---|---|---|---|---|
+| Doluluk | %33,98 | %46,36 | %43,10 | **%48,65** | **%48,65** | **%48,65** |
+
+N ≥ 6'da düzleşiyor çünkü senaryo başına 2-6 tip var: seyreltsen de **ilk tip hep kırılgan
+kalıyor**. Yani %48,65 *"araçta bir tane kırılgan tip var"* demek — ve o bile **−37,95 puan**.
+Eğrinin monoton olmaması (N=4 < N=3) aynı şeyi söylüyor: kaç tipin değil, **hangi tipin** kırılgan
+olduğu belirleyici.
+
+**Yorum ölçüldü ve suçlu çıkmadı.** Sütun geneli yerine doğrudan temas:
+
+| | Sütun geneli | Doğrudan temas | Fark |
+|---|---|---|---|
+| Her 3. tip (static) | %46,36 | %46,54 | **+0,18** |
+| Tek kırılgan tip (static) | %48,65 | %48,78 | **+0,13** |
+| **Her 3. tip (BEAM, üretim)** | **%70,10** | **%70,49** | **+0,39** |
+
+Bu bir üst sınır değil **tam ölçüm**: doğrudan temas, kırılganlığın literatürdeki olağan tanımı.
+Kırılganın üstünden köprü kurmak için komşu yığınların tam o yükseklikte %60 destek vermesi
+gerekiyor ve gerçek yükte bu neredeyse hiç denk gelmiyor. Sütun mühürü **katı yorumdan değil
+geometriden** doğuyor.
+
+> Sonuç: kırılganlığın −21,81 puanı fizik. Kazanç aranacaksa yerleştirme şemasında veya
+> sıralamada aranmalı; ikisi de hiç denenmedi.

@@ -227,8 +227,36 @@ Repolar:
 Eşikleri tetikleyen `−5,68`/`×1,236` sayıları **static** yola aitti; Öneri 1'in kendisi de o yolda
 ölçülüp yanlış kabul edilmişti. Ceza geri alınınca üretim yolunda her iki eşik de karşılandı.
 
-**Yani geriye kalan tek açık öneri:** Öneri 4 (reachability gevşetmesi) — iş birimi kararı; ve
-Öneri 3 (onarım geç-geçişi) — araştırmanın kendisi "yalnız 1-2 yetersizse" diyor, yetersiz değil.
+### Öneri 4 ölçüldü — karar iş biriminin, sayı hazır
+
+`--lifo-visibility-only` bayrağıyla, kural ERİŞİLEBİLİRLİK yerine GÖRÜNÜRLÜK'e gevşetildi:
+yalnızca yüzü **tamamen kapatan** bir kutu engel sayılıyor. Uygulama İYİMSER — iki kutunun
+birlikte kapattığı yüzü açık sayıyor — yani ölçülen şey gevşetmenin **üst sınırı**.
+
+| Gerçek korpus | Doluluk | Yayılma | Katı kurala göre ihlal |
+|---|---|---|---|
+| Static · erişilebilirlik | %81,94 | ×1,219 | 0 |
+| Static · görünürlük | %83,93 | ×1,187 | **2.036** |
+| **Beam · erişilebilirlik (bugün)** | **%88,11** | ×1,123 | **0** |
+| **Beam · görünürlük** | **%90,22** | ×1,106 | **14.619** |
+
+**Kazanç üretimde +2,11 puan** — LIFO maliyeti −3,79 → −1,69. Gerçek görünürlük uygulaması
+(birleşim kapsaması) bundan **daha az** kazandırır; bu bir tavan.
+
+**Bedeli:** beam 100 senaryoda 25.200 kutu yerleştiriyor ve bunların **14.619'u** (≈%58) düz
+çekişle çıkarılamaz hâle geliyor — operatörün kaydırması ya da çevirmesi gerekiyor. Static'te oran
+çok daha düşük (%9) çünkü static zaten seyrek paketliyor; beam boşluğu bulunca sonuna kadar
+kullanıyor.
+
+> **İş birimine soru:** *"2,11 puan doluluk karşılığında, boşaltmada kutuların yarıdan fazlasının
+> düz çekilemeyip kaydırılması/çevrilmesi kabul edilebilir mi?"*
+>
+> Kabul edilmezse Öneri 4 kapanır ve LIFO tarafında yapılacak iş kalmaz. Kabul edilirse
+> **iyimser yaklaşım yeterli değildir**: gerçek görünürlük (birleşim kapsaması) uygulanmalı,
+> aksi hâlde kural "hiçbir tek kutu beni tamamen kapatmasın" gibi savunulamaz bir şeye döner.
+
+**Öneri 3** (onarım geç-geçişi) açık ama araştırmanın kendi şartı sağlanmıyor: *"yalnız 1-2
+yetersizse"* deniyor, yetersiz değil.
 
 ## Caveats
 - Christensen & Rousøe ve Bischoff & Ratcliff'in mutlak doluluk yüzdeleri paywall arkasındadır; kayıp puanları ikincil kaynaklardan ve yönlü ifadelerden çıkarılmıştır (tabloda "bulunamadı" işaretli).

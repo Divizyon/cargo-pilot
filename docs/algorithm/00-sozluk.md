@@ -67,7 +67,7 @@ sırayla bambaşka doluluk verir — kalan açığın büyük kısmı bu katmand
 | **Ölü hava** | Yığının **üstünde** kalan boşluk. Kaybımızın tamamına yakını burada (%8,6-13). |
 | **İç boşluk** | Kutuların **arasında** kalan boşluk. Bizde %0,1-0,9 — yığın masif. |
 | **Engebe** | Yığının üst yüzeyinin dalgalılığı (yükseklik standart sapması, cm). Düz yüzey = üstüne daha çok kutu. |
-| **Destek eşiği** | Bir kutunun altındaki dolu alan yüzdesi; kuralımız **en az %80** (`R-A02`). `DR-16` ile %2'lik adımlarla tarandı: ölçülen en düşük destek zaten %81,5-97,7, yani **eşik pratikte hiç bağlamıyor**; düşürmek kazandırmadı, kural korundu. |
+| **Destek eşiği** | Bir kutunun altındaki dolu alan yüzdesi; kuralımız **en az %60** (`R-A02`). `DR-16` ilk taramada "eşik pratikte hiç bağlamıyor" demişti; o teşhis `G-5`'te (aday üretimi düzeltildikten sonra) çürüdü — kalan tıkacın **tamamı** destek kapısındaydı. Sayılar müşteriye sunuldu ve **%60 seçildi** (19 Ağu 2026): doluluk %83,91 → %84,48, ortalama destek %97,2, azami taşma 13 → 29 cm. |
 | **Denge sapması** | Ağırlık merkezinin araç ortasından kaçması (%). |
 | **Gürültü bandı** | Aynı yapılandırmanın tekrarlı koşularındaki oynama; ölçüldü: **±0,01 puan**. Dolayısıyla 0,1 puandan büyük fark gerçektir. |
 | **Regresyon kapısı** | Ölçümü referansla kıyaslayıp düşüşte duran CI işi (`engine-bench.yml`). |

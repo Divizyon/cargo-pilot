@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Engine.Bench;
@@ -32,7 +32,10 @@ public sealed record BenchOptions(
     decimal? SupportThreshold,
     int Stall,
     string? ViewerPath,
-    string Corpus)
+    string Corpus,
+    int FragileEvery,
+    bool FragilityContactOnly,
+    bool UnloadPathVisibilityOnly)
 {
     public const int ExitOk = 0;
     public const int ExitFailed = 1;
@@ -46,6 +49,9 @@ public sealed record BenchOptions(
 
         string? viewerPath = null;
         var corpus = "br";
+        var fragileEvery = ConstraintCorpus.FragileEvery;
+        var fragilityContactOnly = false;
+        var visibilityOnly = false;
         var seedFrom = 1;
         var seedTo = 1;
         var count = 30;
@@ -129,6 +135,15 @@ public sealed record BenchOptions(
                 case "--vcs":
                     vcsWeights = ParseVcs(value, arg);
                     break;
+                case "--lifo-visibility-only":
+                    visibilityOnly = true;
+                    break;
+                case "--fragility-contact-only":
+                    fragilityContactOnly = true;
+                    break;
+                case "--fragile-every":
+                    fragileEvery = ParseInt(value, arg);
+                    break;
                 case "--constraints":
                     constraints = ConstraintCorpus.Parse(value);
                     break;
@@ -183,7 +198,10 @@ public sealed record BenchOptions(
             supportThreshold,
             Math.Max(1, stall),
             viewerPath,
-            corpus);
+            corpus,
+            Math.Max(1, fragileEvery),
+            fragilityContactOnly,
+            visibilityOnly);
     }
 
     public static int PrintUsage()
@@ -223,6 +241,9 @@ public sealed record BenchOptions(
               --vcs A,B,C,D    VCS ustelleri: hacim,kayip,temas,kutu (or. 1,2,0.5,1).
                                Verilmezse dordu de 1 (kalibre edilmemis taban).
               --constraints K  br kipinde kisit ekler: none | lifo | fragile | stack | all.
+              --fragile-every N  her N'inci tip kirilgan olur (varsayilan 3, yani ~%33).
+              --fragility-contact-only  kirilganlik yorumu: sutun geneli yerine DOGRUDAN TEMAS.
+              --lifo-visibility-only    LIFO yorumu: erisilebilirlik yerine GORUNURLUK (iyimser ust sinir).
                                Veri degismez, yalniz kisit alanlari doldurulur;
                                boylece kisitli/kisitsiz kosu birebir kiyaslanir.
               --depth-slack S  yuku ideal derinligin S katina toplar (or. 1,15).

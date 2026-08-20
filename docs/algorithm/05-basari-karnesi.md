@@ -8,7 +8,7 @@ durur.
 Terimler için [00-sozluk.md](00-sozluk.md). Bir sayıyı buraya yazmadan önce hangi **yerleştirici ·
 sıralayıcı · korpus · yönelim** ile ölçüldüğü belirtilmelidir; yoksa sayı kıyaslanamaz.
 
-**Son güncelleme:** 19 Ağustos 2026 (paralel dal değerlendirme, `DR-64`) · dal `feat/algoritma-arama-katmani`
+**Son güncelleme:** 20 Ağustos 2026 (kısıtların maliyeti ilk kez üretim yolunda ölçüldü) · dal `feat/algoritma-arama-katmani`
 
 ---
 
@@ -40,6 +40,29 @@ oldu; tek resmî sayı var, eski `strict`/`free` ikiliği kaldırıldı.
 Literatür kıyası **eşit süreli değildir** — onlar örnek başına dakikalar harcıyor, biz 2 saniye.
 Araştırma yanıtı 2 saniyelik bütçede gerçekçi hedefi **%90-92** olarak veriyor ve bunun bir
 **varsayım** olduğunu söylüyor; yayımlanmış küçük bütçe eğrisi yok.
+
+## Kısıtların maliyeti
+
+Gerçek korpus (ROADEF/EURO 2022 dağılımı, 100 senaryo, gerçek araç ölçüleri), **üretim yolu
+(duvar örücü + beam)**. Static sayılar kapı içindir, karar için değil (`DR-69`).
+
+| Kısıt | Static | **Beam (üretim)** | Maliyet | Yayılma |
+|---|---|---|---|---|
+| Yok | %86,60 | **%91,91** | — | ×1,086 |
+| LIFO (3 grup) | %81,94 | %88,11 | **−3,79** | ×1,123 |
+| İstif ≤ 2 | %71,52 | %78,22 | **−13,69** | ×1,289 |
+| Kırılganlık (tiplerin ~%33'ü) | %46,36 | %70,10 | **−21,81** | ×1,424 |
+| Hepsi | %52,71 | %61,86 | **−30,05** | ×1,637 |
+
+İhlal her yapılandırmada **sıfır** (boşaltma yolu · kırılganlık · istif), bağımsız doğrulayıcıyla.
+
+**Kırılganlık maliyeti kademeli değil, uçurum:** korpusta tek bir kırılgan ürün tipi bile static'te
+−37,95 puan götürüyor. Kuralın katı yorumu (sütun geneli) suçlu değil — doğrudan-temas yorumu
+üretimde yalnız **+0,39** kazandırıyor (`K-1`).
+
+**Ölçülmeyenler:** araç ağırlık tavanı (korpuslarda 1.000.000 kg), `MaxWeightOnTop`,
+`IsStackable=false`, ağırlık dengesi. Sonuncusu üretim yolunda **hiç optimize edilmiyor**
+(`BeamSequencer` denge terimi taşımıyor; `DR-39`'un gerekçesi `DR-56` ile sessizce geçersizleşti).
 
 ## Kümeye göre
 

@@ -1,4 +1,4 @@
-﻿using CargoPilot.Domain.Enums;
+using CargoPilot.Domain.Enums;
 
 namespace CargoPilot.Application.Common.Models;
 
@@ -23,11 +23,11 @@ namespace CargoPilot.Application.Common.Models;
 /// Kutu sirasini ureten katman. Varsayilan <see cref="SequencerKind.Static"/> ve
 /// bu BILINCLIDIR: motoru dogrudan cagiran her yol (golden snapshot'lar,
 /// degismez testleri, doluluk kapisi) saf hesap olan statik yolu alir ve ciktisi
-/// makineden bagimsiz bayt kararli kalir. Uretim yolu GRASP'i
+/// makineden bagimsiz bayt kararli kalir. Uretim yolu sequencer'i
 /// <see cref="Optimization.SequencerSelection"/> uzerinden alir — orada
-/// belirtilmemis sequencer GRASP'a cozulur. GRASP'in butcesi duvar saati oldugu
-/// icin buraya varsayilan olarak konursa snapshot testleri makineye bagli
-/// hale gelirdi.
+/// belirtilmemis sequencer BEAM'e cozulur (DR-56). Beam'in butcesi duvar saati
+/// oldugu icin buraya varsayilan olarak konursa snapshot testleri makineye
+/// bagli hale gelirdi.
 /// </param>
 /// <param name="SearchBudget">
 /// Aramanin iterasyon/populasyon/sure butcesi. Verilmezse
@@ -35,9 +35,30 @@ namespace CargoPilot.Application.Common.Models;
 /// kullanilmaz.
 /// </param>
 /// <param name="SupportThreshold">
-/// Asgari zemin destek orani. Verilmezse <c>0.80</c> gecerlidir — bugunku
-/// davranis. Alan bir POLITIKA degeridir, fizik kanunu degil (DR-16); bugun
-/// yalnizca olcum duzenegi doldurur, uretim yollari doldurmaz.
+/// Asgari zemin destek orani. Verilmezse
+/// <see cref="Optimization.PlacementValidator.SupportThreshold"/> gecerlidir —
+/// bugunku davranis. Alan bir POLITIKA degeridir, fizik kanunu degil (DR-16);
+/// bugun yalnizca olcum duzenegi doldurur, uretim yollari doldurmaz.
+/// </param>
+/// <param name="FragilityContactOnly">
+/// Kirilganlik yorumu. Varsayilan <c>false</c> = bugunku davranis: kirilgan
+/// kutunun ayak izi golgesinde HICBIR yukseklikte kutu olamaz (sutun geneli).
+/// <c>true</c> ise yalnizca kirilgan kutunun UZERINE OTURAN kutu yasaklanir;
+/// komsu yiginlarin tasidigi bir koprü kirilgana dokunmadigi icin serbest kalir.
+///
+/// Alan bir POLITIKA degeridir, fizik kanunu degil — destek esiginde (DR-16)
+/// kurulan desenin aynisi. Sutun geneli yorum hic olculmedi; parametreleme
+/// DEGISTIRMEK icin degil OLCMEK icin. Uretim yollari doldurmaz.
+/// </param>
+/// <param name="UnloadPathVisibilityOnly">
+/// LIFO cikarilabilirlik yorumu. Varsayilan <c>false</c> = bugunku davranis:
+/// ERISILEBILIRLIK — koridorda herhangi bir kesisme kutuyu cikarilamaz yapar.
+/// <c>true</c> ise yalnizca yuzu TAMAMEN kapatan bir kutu engel sayilir
+/// (GORUNURLUK, arastirmanin Oneri 4'u).
+///
+/// Yaklasim IYIMSERDIR: iki kutunun birlikte kapattigi yuzu acik sayar, yani
+/// olctugu sey gevsetmenin UST SINIRI. Kural degisikligi is birimi onayi
+/// gerektirir; parametreleme OLCMEK icin, uretim yollari doldurmaz.
 /// </param>
 /// <param name="DepthSlack">
 /// Yukun toplanacagi HEDEF DERINLIK payi. Hedef derinlik su sekilde bulunur:
@@ -91,6 +112,8 @@ public sealed record OptimizationInput(
     int Seed = 0,
     SearchBudget? SearchBudget = null,
     decimal? SupportThreshold = null,
+    bool FragilityContactOnly = false,
+    bool UnloadPathVisibilityOnly = false,
     decimal? DepthSlack = 1.05m,
     (double Volume, double Waste, double Contact, double BoxCount)? VcsWeights = null)
 {
@@ -119,8 +142,16 @@ public sealed record OptimizationInput(
 /// davranışı değiştiriyor: <c>ItemOrdering.ApplyCriteriaSort</c> (WeightBalance
 /// ağırlığa, diğerleri hacme göre sıralar), <c>PlacementValidator</c>
 /// (Lifo'da dikey istif kuralı) ve <c>SearchEvaluation.Cost</c> (WeightBalance'ta
-/// denge katsayısı 100 kat). Yani denge optimizasyonu yok olmadı, yerleştirme
-/// düzeyinden arama düzeyine taşındı.
+/// denge katsayısı 100 kat).
+///
+/// **AÇIK BORÇ — denge ÜRETİMDE optimize edilmiyor.** `DR-39` denge terimini
+/// silerken gerekçesi *"GRASP üretim varsayılanı olduğu için denge sıra düzeyinde
+/// optimize edilmeye devam eder"* idi. Sonra `DR-56` varsayılanı BEAM'e çevirdi
+/// ve o gerekçe sessizce geçersizleşti: <c>BeamSequencer</c>
+/// <c>SearchEvaluation.Cost</c>'u hiç çağırmaz, amacı yalnızca
+/// (doluluk, kullanılan uzunluk). Bugün <c>WeightBalance</c> kriterinin üretim
+/// yolundaki TEK etkisi ağırlık-azalan sıralamadır; ağırlık merkezi hesaplanıyor
+/// ama hiçbir yerde amaç değil.
 /// </summary>
 public sealed record OptimizationModules(
     bool UseLifo,

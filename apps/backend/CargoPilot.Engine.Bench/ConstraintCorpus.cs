@@ -43,8 +43,13 @@ public static class ConstraintCorpus
         All = Lifo | Fragile | StackLimit,
     }
 
-    /// <summary>Kirilgan isaretlenen tip orani (her ucuncu tip).</summary>
-    private const int FragileEvery = 3;
+    /// <summary>
+    /// Kirilgan isaretlenen tip orani (varsayilan: her ucuncu tip, yani tiplerin
+    /// ~%33'u). Parametrelesme DEGISTIRMEK icin degil OLCMEK icin: kirilganligin
+    /// dolulukta ne kadar goturdugu bu paya siki sikiya bagli ve tek bir noktadan
+    /// alinan maliyet, egrinin nerede durdugunu soylemiyor.
+    /// </summary>
+    public const int FragileEvery = 3;
 
     /// <summary>Istif siniri uygulandiginda bir kutunun ustundeki azami kutu sayisi.</summary>
     private const int MaxStack = 2;
@@ -59,11 +64,12 @@ public static class ConstraintCorpus
     /// Kisitlari ornege yazar. Tip SIRASINA gore dagitilir, rastgelelik yoktur:
     /// ayni ornek her kosuda ayni kisitlari alir (R-C02).
     /// </summary>
-    public static OptimizationInput Apply(OptimizationInput input, Kind kind)
+    public static OptimizationInput Apply(OptimizationInput input, Kind kind, int fragileEvery = FragileEvery)
     {
         ArgumentNullException.ThrowIfNull(input);
 
         if (kind == Kind.None) return input;
+        if (fragileEvery < 1) fragileEvery = FragileEvery;
 
         var items = new List<OptimizationItemInput>(input.Items.Count);
 
@@ -82,7 +88,7 @@ public static class ConstraintCorpus
 
             // Kirilgan kutunun ustune yuk binemez; istif sinirini ayrica
             // yazmak anlamsiz olurdu, sert kapi zaten sifirda tutuyor.
-            var fragile = kind.HasFlag(Kind.Fragile) && index % FragileEvery == 0;
+            var fragile = kind.HasFlag(Kind.Fragile) && index % fragileEvery == 0;
 
             var stackCount = kind.HasFlag(Kind.StackLimit) && !fragile
                 ? MaxStack

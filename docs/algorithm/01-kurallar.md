@@ -142,7 +142,7 @@ sert kapılar **hiçbir koşulda kopyalanmaz**, `PlacementValidator` tek kaynak 
 | --- | --- | --- |
 | 1 | Araç sınırları | `ex/ey/ez + boyut` iç ölçüyü aşamaz; `ex < 0` elenir |
 | 2 | `HasOverlap` | AABB kesin eşitsizlik — **temas çakışma değildir** |
-| 3 | `HasSupport` | `y == 0` destekli; aksi hâlde taban alanının **≥ %80'i** alttaki kutuların üst yüzeyinde |
+| 3 | `HasSupport` | `y == 0` destekli; aksi hâlde taban alanının **≥ %60'ı** alttaki kutuların üst yüzeyinde (`SupportThreshold`) |
 | 4 | `ViolatesStackability` | Alttaki `IsStackable=false` ise ret; LIFO'da geç inecek, erken inecek olanın üstüne konamaz |
 | 5 | `ViolatesStackCount` | Altta kalan **her** kutunun `MaxStackCount`'u; `<=0` sınırsız; aday için `+1` |
 | 6 | `ViolatesStackWeight` | Altta kalan **her** kutunun `MaxWeightOnTop`'u; sütun geneli toplam |
@@ -200,8 +200,10 @@ Bölge terimi iki kademeli seçim sayesinde sert kısıt gibi davranır; katsay�
 
 **Fizik (kapatılamaz):**
 `R-A01` Kutular çakışamaz (temas çakışma değildir).
-`R-A02` Havada kutu olmaz — taban alanının ≥ %80'i destekli. *(Eşiğin kendisi literatürde mutlak
-değildir; bkz. `DR-16` — değiştirilmesi müşteri kararına bağlıdır. Kural bugün yürürlüktedir.)*
+`R-A02` Havada kutu olmaz — taban alanının **≥ %60'ı** destekli. *(Eşik bir fizik kanunu değil
+POLİTİKA'dır; `DR-16` bunu kaydetti ve "müşteri kararı sayı olmadan verilemez" dedi. Sayılar
+19 Ağu 2026'da sunuldu ve **%80 → %60 seçildi** — bkz. ölçüm günlüğü `G-5`. Değer
+`PlacementValidator.SupportThreshold`'da tek noktada durur.)*
 `R-A03` `IsStackable=false` üstüne kutu konamaz.
 `R-A04` `MaxStackCount` ve `MaxWeightOnTop` **sütun geneli**.
 `R-A05` Kırılgan ürünün üstüne hiçbir yük konmaz.
@@ -356,7 +358,7 @@ uyar").
 Öneri şuydu: boşluk üretilirken tabanın yalnız **desteklenen** kısmı alınsın, kısmen havada kalan
 taban düşülsün. Üç varyant ölçüldü (tam destek / %80 eşik / boşluktan bağımsız birleşik zemin),
 üçü de taban çizginin altında kaldı: %75,99 → %73,85 / %74,00 / %73,65.
-**Havada duran taban bir kusur değil, mekanizmadır:** %80 destek kuralının komşu yığın üzerine
+**Havada duran taban bir kusur değil, mekanizmadır:** destek kuralının komşu yığın üzerine
 **köprü** kurmasına izin verdiği tek aday kaynağıdır. Kırpma köprüyü siliyor, boşluk sayısı
 72 → 25'e iniyor ve üst yüzey engebesi 56,6 → 62,6 cm'ye **çıkıyor** — duvar örücü sessizce
 kule örücüye dönüşüyor. "%72,7 sığıyor ama desteksiz" rakamı defterin değil **yüzey engebesinin**
@@ -397,7 +399,7 @@ döner (`DR-35`, kısıtsız hâli ölçüldü ve kaybetti). Yedi kapı ve sekiz
 
 `R-C10` **Aday nokta seçimi.** Boşluk listesi içinde köşeye (uzak-alt-başlangıç köşesi) Chebyshev mesafesi en küçük olan önce; eşitlikte `y` küçük, sonra `z` küçük, sonra `x` (aynalı modda ters), sonra boşluk yaratılış sırası. Bu sıra determinizmin parçasıdır.
 `R-C11` **Boşluk güncelleme.** Yerleşim sonrası kesişen boşluklar silinir, yerine ≤6 yeni prizmatik boşluk üretilir; kalan kutuların en küçük boyutuna sığmayan boşluk `rejected`; `rejected` boşlukların komşuyla birleştirilmesi (amalgamation) **ÖLÇÜLDÜ VE KAPATILDI (`DR-34`)**: defterdeki boşlukların %0,0'ı maksimal değil — hepsi altı yönde de bir kutuya ya da araç duvarına dayanıyor, dolayısıyla birleştirilecek bir şey yok.
-`R-C12` **Sert kapılar.** Her aday `PlacementValidator` 7 kapısından geçer (`R-C01`). Wall-Builder kendi "destek" tanımı yazmaz; `%80` kuralı oradadır.
+`R-C12` **Sert kapılar.** Her aday `PlacementValidator` 7 kapısından geçer (`R-C01`). Wall-Builder kendi "destek" tanımı yazmaz; eşik (`SupportThreshold`, bugün `%60`) oradadır.
 `R-C13` **Multi-drop = çıkarılabilirlik.** Bir kutu, kendi iniş sırası geldiğinde hâlâ araçta olan hiçbir kutuyu oynatmadan kapıya çıkabilmelidir. Gruplar uzayda **iç içe geçebilir**; bant/bölge kavramı yoktur. Kural iki yönlüdür ve `PlacementValidator.ViolatesUnloadPath`'te tek noktada durur. *Bu kural bant modelinin yerini aldı (`DR-67`): bant, operasyonel gereksinimi hiç ifade etmiyordu — bandın içinde kalan bir kutu da başka bir kutunun arkasında sıkışmış olabilir. Ölçüldü: bant modeli 5.148 kutuyu çıkarılamaz hâlde bırakıyordu.* Reddedilenler: eşit bölme, hacme orantılı bölme, dinamik `zWall`.
 `R-C13a` **Yol tanımı.** Yol, kutunun ayak izinin (`x`, `y` kesiti) kapıya doğru (`+z`) süpürdüğü koridordur. Bir kutu bu koridoru **kısmen** kesse bile engeldir; tam kaplama aranmaz. Yandan geçen kutu (ayak izi kesişmeyen) engel değildir. Teşhis tarafı bu tanımı **bağımsız olarak** uygular — kuralı üretim kodundan çağırmak, kural bozulduğunda dedektörü de bozar ve bir kez yaşanmıştır (`L-3`).
 
@@ -440,9 +442,9 @@ yutuyor. Kaynak: Gonçalves & Resende 2012 mp-BRKGA (doi:10.1016/j.cor.2011.03.0
 | Taşıma dayanımı | ağır kutuya küçük key eğilimi (tohum) | yalnız `MaxWeightOnTop` uygun boşluk | kapı 5-6 |
 | Kırılganlık | — | üstüne yerleşim denenmez | kapı 7 |
 | Yönelim | yönelim anahtarı (`R-C15`) | boşluğa sığma kontrolü döndürülmüş ebatla | kapı 1 + `AllowedRotations` |
-| Ağırlık dengesi | fitness `BalanceDev` | — (takas geçişi yeni sistemde **yok**; arama bunu yapar) | kapı 7 (araç ağırlık) |
+| Ağırlık dengesi | ⚠ **üretimde hiçbir yerde** — `SearchEvaluation.Cost`'taki denge terimini yalnız GRASP/GWCA okur, üretim varsayılanı **beam** (`DR-56`) onu çağırmaz. `WeightBalance` kriterinin tek etkisi ağırlık-azalan sıralama | — (takas geçişi `DR-39` ile silindi) | kapı 7 (araç ağırlık tavanı) |
 | Kontaminasyon | — | — | `ContaminationFilter` (motor öncesi) |
-| Stabilite/düzlük | fitness `AvgWallFlushness` | şerit/duvar disiplini | kapı 3 (%80 destek) |
+| Stabilite/düzlük | fitness `AvgWallFlushness` | şerit/duvar disiplini | kapı 3 (%60 destek) |
 
 ## C7. API ve model değişiklikleri
 

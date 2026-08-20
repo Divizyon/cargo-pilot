@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Globalization;
 using CargoPilot.Application.Common.Optimization.WallBuilder;
 using CargoPilot.Application.Common.Models;
@@ -82,7 +82,7 @@ public static class BrCommand
             for (var i = 0; i < limit; i++)
             {
                 var instance = instances[i];
-                var constrained = ConstraintCorpus.Apply(instance.Input, options.Constraints);
+                var constrained = ConstraintCorpus.Apply(instance.Input, options.Constraints, options.FragileEvery);
                 var scaled = !real && options.BrLoadRatio < 1m
                     ? constrained with { Items = Scale(constrained.Items, options.BrLoadRatio) }
                     : constrained;
@@ -91,6 +91,8 @@ public static class BrCommand
                     Sequencer = options.Sequencer,
                     SearchBudget = new SearchBudget(options.Iterations, options.Population, options.SearchMs, options.Stall),
                     SupportThreshold = options.SupportThreshold,
+                    FragilityContactOnly = options.FragilityContactOnly,
+                    UnloadPathVisibilityOnly = options.UnloadPathVisibilityOnly,
                     // Bayrak verilmezse URETIM VARSAYILANI korunur (1,05).
                     // Onceden burada kosulsuz options.DepthSlack yaziliyordu ve
                     // varsayilani null'di: kiyas kosusu derinlik butcesi OLMADAN
