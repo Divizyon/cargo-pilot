@@ -296,3 +296,35 @@ ayrışım (segregation) kısıtı böyle mi çözülüyor, yoksa mesafe/bölge 
    geçişi mi, kısıt mı? Doluluğa bedeli ne?
 6. Ağırlık kapasitesi bağlayıcı olduğunda kutu seçimi (knapsack) nasıl yapılıyor?
 7. Ayrışım (segregation) kısıtı: ön eleme mi, yerleşim kuralı mı?
+
+---
+
+## 9. Araştırma yanıtı geldi
+
+Tam metin: [arastirma/2026-08-20-yanit-kirilganlik-istif-agirlik.md](../arastirma/2026-08-20-yanit-kirilganlik-istif-agirlik.md)
+
+Yanıtın merkezî iddiası **bizim ölçümümüzle çelişiyor** ve bu çelişki çözülmeden ilerlenmemeli:
+
+> Araştırma: *"kayıp büyük ölçüde MODEL kaynaklı… doğrudan-temasa geçiş kaybın çoğunu geri
+> kazandırır"* (Öncelik 1).
+>
+> Bizim ölçümümüz (§2.2, `K-1`): doğrudan-temas yorumu üretimde **+0,39 puan** kazandırıyor.
+
+Araştırma bu ölçümü görmeden yazıldı; kendi de "kesin puan **varsayım**" diyor ve literatür
+maliyetlerinin VRP amaç fonksiyonunda (araç sayısı/mesafe) raporlandığını, bizim doluluk
+yüzdemize doğrudan çevrilemeyeceğini kaydediyor. Yine de yanıtta **ölçmediğimiz** üç somut şey var:
+
+| Yanıtın önerisi | Bizde durum |
+|---|---|
+| **Fragile-on-top sıralaması** (Krebs-Ehmke DBLF: kırılgan-olmayan önce) | ⬜ Denenmedi — §2.4'ün "sıralama" yönü. Maliyeti düşük, ilk denenecek |
+| **Dereceli LBS** (kategorik 0 kg yerine kg/alan taşıma dayanımı) | ⬜ Denenmedi. Bizde `MaxWeightOnTop` zaten dereceli ama kırılganlıkla birleşik değil |
+| **CoG onarım post-pass** (leksikografik terim DEĞİL) | ⬜ Denenmedi — §4.3'ün açık borcu için doğrudan reçete |
+| Kırılgan payı %5/%10/%20/%33 eğrisi | ⚠ Kısmen — korpus tip düzeyinde atadığı için %5 ifade edilemiyor (§1) |
+| Gerçekçi ağırlık tavanı + aks limiti korpusu | ⬜ Denenmedi (§4.1) |
+| Ayrışımı Eley 2003 tarzı bölgeli çözmek | ⬜ Denenmedi (§5) |
+
+Ayrıca yanıt **bir sayımızı doğruluyor:** kırılgan payımız (%33) literatür normunun içinde —
+Krebs-Ehmke 600 instance'lık setinde *"approx. 30% are fragile"*. Yani korpus bu eksende
+gerçekçi; §1'in "pay keyfî" uyarısı yalnızca **dağılım biçimi** için geçerli (tip düzeyinde
+atama).
+

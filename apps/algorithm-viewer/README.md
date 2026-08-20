@@ -34,15 +34,30 @@ Sonra `index.html` → dosyayı sürükle.
 | **Kesit dilimi** | Kaydırıcı bir düzlem seçer; o düzlemin **tam** kesiti çizilir |
 | **Boşluklar** | 2B'de kap önce boşluk rengiyle boyanır, kutular üzerine çizilir — kesit kipinde kırmızı kalan **her piksel gerçekten boş hacimdir**. 3B'de kullanılmayan uzunluk saydam kırmızı bir dilim olarak görünür |
 | **Yükleme animasyonu** | Kutular **yerleştirme sırasıyla** belirir — algoritmanın aracı gerçekte nasıl doldurduğu |
-| **Senaryo listesi** | 700 senaryo; doluluğa veya yayılmaya göre sıralanır. En kötü on senaryoyu bulmak iki tıklama |
+| **Test aileleri** | Sol üstte sekme şeridi: **Tümü · hacim · lifo**. Aileler veriden türer (`scenario.suite`), koda gömülü liste yok — yarın kırılganlık ailesi eklendiğinde şerit kendiliğinden büyür. Tek aileli eski dosyalarda şerit hiç görünmez |
+| **Senaryo listesi** | Doluluğa veya yayılmaya göre sıralanır; her satırın altında etiketi (*"çok farklı · 8 tip · 4 grup"*). Arama hem kimlikte hem etikette çalışır |
 | **Git** | `#317` yaz, oraya atlar |
 
-Kısayollar: <kbd>←</kbd> <kbd>→</kbd> senaryo değiştirir, <kbd>boşluk</kbd> animasyonu oynatır.
+Kısayollar: <kbd>←</kbd> <kbd>→</kbd> senaryo değiştirir (**listede görünen** sırada — sıralama ve
+aile filtresi hesaba katılır), <kbd>boşluk</kbd> animasyonu oynatır.
+
+## Suit ne içeriyor
+
+`--corpus suite` iki eksende tarar ve ikisi de tek dosyaya girer:
+
+| | Kademe | Senaryo |
+|---|---|---|
+| **hacim** | aynı yük (1 tip) · az farklı (3) · çok farklı (8) · tamamen farklı (20) | 4 × 150 = **600** |
+| **lifo** | aynı dört kademe × **2, 3, 4, 5, 6 boşaltma grubu** | 5 × 4 × 30 = **600** |
+
+Araç ölçüleri gerçek ROADEF/EURO 2022 tablosundan; yük yarı gerçek (`GR-*`) yarı rastgele (`RS-*`).
+LIFO gruplarının kutuları ürün **tipinin içinden** bölünür — gerçek multi-drop'ta bir boşaltma
+noktası karışık yük alır.
 
 ## Ölçümü yavaşlatmaz
 
 `--viewer` verilmezse tek bir ek işlem yapılmaz — senaryo listesi hiç oluşturulmaz. Verilirse
-maliyet yalnızca JSON yazımıdır (700 senaryo ≈ 3,8 MB).
+maliyet yalnızca JSON yazımıdır (700 senaryo ≈ 3,8 MB; 1200'lük suit ≈ 11 MB).
 
 ## Koordinat sözleşmesi
 

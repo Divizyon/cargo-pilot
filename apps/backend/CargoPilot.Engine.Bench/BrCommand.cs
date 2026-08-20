@@ -21,16 +21,33 @@ public static class BrCommand
         ArgumentNullException.ThrowIfNull(options);
 
         var real = options.Corpus == "gercek";
+        var suite = options.Corpus == "suite";
+
+        // Suit kendi kisitini TASIR (LIFO kumelerinde grup + inis sirasi
+        // korpusun icinde), bu yuzden ConstraintCorpus uzerine yazmaz.
+        // Yazsaydi grup atamasi tip duzeyine dusurulurdu ve olculen sey
+        // suitin kurdugu senaryo olmazdi.
 
         int[] sets;
-        if (real) sets = [0];
+        if (suite) sets = [.. SuiteCorpus.Sets];
+        else if (real) sets = [0];
         else if (options.BrSet >= 0) sets = [options.BrSet];
         else sets = [1, 2, 3, 4, 5, 6, 7];
 
-        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"{(real ? "GERCEK DAGILIM" : "BR")} · sequencer {options.Sequencer} · yonelim strict · yuk orani {options.BrLoadRatio:0.##}"));
+        var corpusName = "BR";
+        if (suite) corpusName = "SUIT";
+        else if (real) corpusName = "GERCEK DAGILIM";
 
-        if (real)
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"{corpusName} · sequencer {options.Sequencer} · yonelim strict · yuk orani {options.BrLoadRatio:0.##}"));
+
+        if (suite)
+        {
+            Console.WriteLine("600 hacim + 600 LIFO · dort cesitlilik kademesi (ayni / az / cok / tamamen farkli)");
+            Console.WriteLine("LIFO kumeleri 2-6 grup · gruplar urun TIPININ ICINDEN bolunur (karisik yuk)");
+            Console.WriteLine("gercek arac olculeri · yuk yari gercek (GR-*) yari rastgele (RS-*) · agirlik baglayici degil");
+        }
+        else if (real)
         {
             Console.WriteLine("ROADEF/EURO 2022 (Renault) dagilimindan uretildi — gercek INSTANCE degil, gercek SEKIL");
             Console.WriteLine("gercek arac olculeri · yuk yari gercek (GR-*) yari rastgele (RS-*) · agirlik baglayici degil");
@@ -70,9 +87,10 @@ public static class BrCommand
             // Gercek korpusta yuk orani uretim asamasinda uygulanir, yani
             // asagidaki olcekleme atlanir. BR'de ise hazir veriden kirpilir.
             var wanted = options.MaxScenarios > 0 ? options.MaxScenarios : 100;
-            var instances = real
-                ? GercekCorpus.Load(wanted, options.BrLoadRatio, seed: 20260820)
-                : BrCorpus.Load(set);
+            IReadOnlyList<BrCorpus.BrInstance> instances;
+            if (suite) instances = SuiteCorpus.Load(set, options.BrLoadRatio, seed: 20260820);
+            else if (real) instances = GercekCorpus.Load(wanted, options.BrLoadRatio, seed: 20260820);
+            else instances = BrCorpus.Load(set);
             var limit = options.MaxScenarios > 0 ? Math.Min(options.MaxScenarios, instances.Count) : instances.Count;
 
             var fills = new List<decimal>(limit);
@@ -82,8 +100,10 @@ public static class BrCommand
             for (var i = 0; i < limit; i++)
             {
                 var instance = instances[i];
-                var constrained = ConstraintCorpus.Apply(instance.Input, options.Constraints, options.FragileEvery);
-                var scaled = !real && options.BrLoadRatio < 1m
+                var constrained = suite
+                    ? instance.Input
+                    : ConstraintCorpus.Apply(instance.Input, options.Constraints, options.FragileEvery);
+                var scaled = !real && !suite && options.BrLoadRatio < 1m
                     ? constrained with { Items = Scale(constrained.Items, options.BrLoadRatio) }
                     : constrained;
                 var input = scaled with
@@ -112,12 +132,12 @@ public static class BrCommand
                 // dogrusaldir ve kismi yuk rejiminin tek kalite olcusudur.
                 spreads.Add(SpreadDiagnostics.Analyze(input, result));
 
-                scenarios?.Add(PlanExport.From(instance.Id, set, input, result));
+                scenarios?.Add(PlanExport.From(instance.Id, set, instance.Suite, instance.Label, input, result));
 
                 // Kisit varsa ihlal HER ornekte sayilir, yalniz --verbose'da
                 // degil: ihlal bir kalite olcusu degil hata sayacidir ve kapiya
                 // girer. Kisitsiz kosuda hesap hic yapilmaz.
-                if (options.Constraints != ConstraintCorpus.Kind.None && !options.Verbose)
+                if ((options.Constraints != ConstraintCorpus.Kind.None || suite) && !options.Verbose)
                 {
                     constraints.Add(ConstraintDiagnostics.Analyze(input, result));
                 }
@@ -151,7 +171,7 @@ public static class BrCommand
             var meanSlice = spreads.Count == 0 ? 0d : spreads.Average(s => s.SliceUtilPercent);
             var meanWalls = spreads.Count == 0 ? 0d : spreads.Average(s => s.WallCount);
 
-            var noConstraints = options.Constraints == ConstraintCorpus.Kind.None;
+            var noConstraints = options.Constraints == ConstraintCorpus.Kind.None && !suite;
 
             all.AddRange(fills);
             setResults.Add(new BrBaseline.SetResult(
@@ -167,16 +187,23 @@ public static class BrCommand
             if (!options.Verbose) constraints.Clear();
 
             var sample = instances[0];
+            var rowLabel = "BR" + set;
+            if (suite) rowLabel = SuiteCorpus.SetLabel(set);
+            else if (real) rowLabel = "GR ";
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                $"{(real ? "GR " : "BR" + set),-5} {limit,6} {sample.Input.Items.Count,4} {sample.BoxCount,5} " +
+                $"{rowLabel,-5} {limit,6} {sample.Input.Items.Count,4} {sample.BoxCount,5} " +
                 $"{sample.BoxVolumeRatio * 100m,6:F1} {Mean(fills),9:F2} {Percentile(fills, 0.50),8:F2} " +
                 $"{fills.Min(),10:F2} {fills.Max(),11:F2} {meanSpread,8:F3} {meanSlice,7:F1} " +
                 $"{meanWalls,6:F1} {PercentileD(durations, 0.50),10:F0}"));
         }
 
+        var summaryName = "BR1-BR7";
+        if (suite) summaryName = "SUIT";
+        else if (real) summaryName = "GERCEK";
+
         Console.WriteLine();
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"{(real ? "GERCEK" : "BR1-BR7")} ortalamasi: %{Mean(all):F2}  ({all.Count} ornek)" +
+            $"{summaryName} ortalamasi: %{Mean(all):F2}  ({all.Count} ornek)" +
             $"  ·  yayilma x{setResults.Average(r => r.MeanSpreadRatio ?? 1d):F3}" +
             $"  ·  dilim %{setResults.Average(r => r.MeanSliceUtilPercent ?? 0d):F1}"));
 

@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using CargoPilot.Application.Common.Models;
@@ -40,6 +40,8 @@ public static class PlanExport
     public sealed record Scenario(
         string Id,
         int Set,
+        string? Suite,
+        string? Label,
         double FillPercent,
         double SpreadRatio,
         double SliceUtilPercent,
@@ -58,7 +60,7 @@ public static class PlanExport
         IReadOnlyList<Scenario> Scenarios);
 
     /// <summary>Tek senaryoyu disa aktarilabilir bicime cevirir.</summary>
-    public static Scenario From(string id, int set, OptimizationInput input, OptimizationResult result)
+    public static Scenario From(string id, int set, string? suite, string? label, OptimizationInput input, OptimizationResult result)
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(result);
@@ -81,6 +83,8 @@ public static class PlanExport
         return new Scenario(
             Id: id,
             Set: set,
+            Suite: suite,
+            Label: label,
             FillPercent: Math.Round((double)result.FillRate * 100d, 2),
             SpreadRatio: Math.Round(spread.SpreadRatio, 4),
             SliceUtilPercent: Math.Round(spread.SliceUtilPercent, 2),

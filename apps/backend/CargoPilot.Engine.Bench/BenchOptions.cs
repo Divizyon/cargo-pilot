@@ -161,6 +161,7 @@ public sealed record BenchOptions(
                     {
                         "br" => "br",
                         "gercek" or "real" => "gercek",
+                        "suite" or "suit" => "suite",
                         _ => throw new ArgumentException($"{arg} br | gercek bekliyor."),
                     };
                     break;
@@ -249,7 +250,7 @@ public sealed record BenchOptions(
               --depth-slack S  yuku ideal derinligin S katina toplar (or. 1,15).
                                Verilmezse URETIM VARSAYILANI kullanilir (1,05).
               --support N      asgari destek orani (varsayilan 0.80). YALNIZ OLCUM icin
-              --corpus K       br | gercek (varsayilan br). "gercek", ROADEF/EURO 2022
+              --corpus K       br | gercek | suite (varsayilan br). "gercek", ROADEF/EURO 2022
                                (Renault) DAGILIMINDAN uretilmis korpustur: 13,5 m
                                dorse, paletli ambalaj, arac basina ~4 tip ve GERCEK
                                agirlik limiti. Gercek instance degil, gercek SEKIL.

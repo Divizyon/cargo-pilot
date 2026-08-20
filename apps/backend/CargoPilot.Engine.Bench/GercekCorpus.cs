@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 
@@ -148,6 +148,37 @@ public static class GercekCorpus
     }
 
     /// <summary>
+    /// Gercek dagilimdan bir arac olcusu (cm). Suite korpusu da bunu kullanir:
+    /// arac olculeri BUTUN kosularda gercek tablodan gelsin diye tek kapi.
+    /// </summary>
+    internal static (decimal Width, decimal Height, decimal Length) Vehicle(Lcg rng)
+    {
+        var trucks = _trucks ??= ReadTrucks();
+        var truck = Pick(trucks, t => t.Share, trucks.Sum(t => t.Share), rng);
+
+        return (truck.Width, truck.Height, truck.Length);
+    }
+
+    /// <summary>
+    /// Bir kutu olcusu. <paramref name="real"/> ise ROADEF ambalaj tablosundan
+    /// orneklenir (paletli, devrilmez), degilse serbest olculu uretilir.
+    /// Yari yariya kullanim cagirana aittir.
+    /// </summary>
+    internal static (decimal Width, decimal Height, decimal Length, decimal Weight) Box(Lcg rng, bool real)
+    {
+        if (!real)
+        {
+            var r = Random(rng);
+            return (r.W, r.H, r.L, r.Weight);
+        }
+
+        var packages = _packages ??= ReadPackages();
+        var p = Pick(packages, x => x.Share, packages.Sum(x => x.Share), rng);
+
+        return (p.W, p.H, p.L, p.Weight);
+    }
+
+    /// <summary>
     /// Serbest olculu kutu. Kenarlar 20-130 cm arasinda; gercek ambalajlarin
     /// alt sinirindan biraz asagi, ust sinirindan biraz yukari, yani paletli
     /// yukun DISINDA kalan her seyi (kasa, boru, kucuk koli) temsil eder.
@@ -240,7 +271,7 @@ public static class GercekCorpus
     /// Dogrusal eslesik ureteç. Istatistiksel kalite aranmiyor; aranan sey ayni
     /// tohumun ayni korpusu vermesi (R-C02).
     /// </summary>
-    private sealed class Lcg(uint seed)
+    internal sealed class Lcg(uint seed)
     {
         private uint _state = seed == 0 ? 1u : seed;
 

@@ -58,6 +58,23 @@ select:hover,input:hover{border-color:var(--muted)}
 .row .ix{color:var(--muted);font-size:12px}
 .row .id{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .row .pc{text-align:right;font-size:12px;font-weight:500}
+.row .sub2{grid-column:2;color:var(--muted);font-size:11px;margin-top:-2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Sekme seridi: suit koşusu birden fazla test ailesi taşıdığında görünür.
+   Aileler veriden türer (scenario.suite), kod içine gömülü liste yoktur —
+   yarın kırılganlık ailesi eklendiğinde burada değişiklik gerekmesin. */
+#tabs{display:none;gap:4px;padding:10px 16px;border-bottom:1px solid var(--line);
+  flex-wrap:wrap}
+#tabs.on{display:flex}
+.tab{
+  background:var(--panel);border:1px solid var(--line);border-radius:999px;
+  color:var(--muted);font-size:12px;padding:4px 11px;cursor:pointer;
+  transition:color var(--dur),border-color var(--dur),background var(--dur)
+}
+.tab:hover{border-color:var(--muted);color:var(--fg)}
+.tab[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:#0B1220;font-weight:600}
+.tab .n{opacity:.7;margin-left:5px;font-variant-numeric:tabular-nums}
 
 /* ── ana alan ──────────────────────────────────────────────────────────── */
 main{display:flex;flex-direction:column;min-width:0;min-height:0}
@@ -149,6 +166,7 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;paddi
       <h1>Algoritma Görünümü</h1>
       <div class="sub mono" id="meta">—</div>
     </header>
+    <div id="tabs" role="tablist" aria-label="Test aileleri"></div>
     <div class="field">
       <label for="sort">Sırala</label>
       <select id="sort">
@@ -161,14 +179,14 @@ kbd{background:var(--panel);border:1px solid var(--line);border-radius:4px;paddi
     <div class="field">
       <label for="jump">Git</label>
       <input id="jump" type="number" min="1" step="1" placeholder="317">
-      <input id="find" type="search" placeholder="br7-014" aria-label="Kimliğe göre ara">
+      <input id="find" type="search" placeholder="lifo-g4 · çok farklı" aria-label="Kimliğe göre ara">
     </div>
     <div id="list" role="listbox" aria-label="Senaryolar"></div>
   </aside>
 
   <main>
     <div class="bar">
-      <div class="stat"><b class="mono" id="s-id">—</b><span>senaryo</span></div>
+      <div class="stat"><b class="mono" id="s-id">—</b><span id="s-label">senaryo</span></div>
       <div class="stat"><b class="mono" id="s-fill">—</b><span>doluluk</span></div>
       <div class="stat"><b class="mono" id="s-spread">—</b><span>yayılma</span></div>
       <div class="stat"><b class="mono" id="s-slice">—</b><span>dilim doluluğu</span></div>
@@ -228,7 +246,7 @@ const PALETTE = ['#38BDF8','#A78BFA','#34D399','#FBBF24','#F472B6','#22D3EE',
 const GAP = getComputedStyle(document.body).getPropertyValue('--gap').trim() || '#7F1D1D';
 
 const state = { bundle:null, order:[], cur:0, slice:1, sliceMode:false,
-                gaps:true, playing:false, step:0, raf:0 };
+                gaps:true, playing:false, step:0, raf:0, suite:'*' };
 
 const $ = (id) => document.getElementById(id);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -247,6 +265,7 @@ function load(text){
   $('meta').textContent =
     `${data.sequencer} · yük ${data.loadRatio} · kısıt ${data.constraints} · ort %${data.meanFillPercent}`;
   $('jump').max = data.scenarios.length;
+  buildTabs();
   buildViews();
   sort();
   select(0);
@@ -271,6 +290,61 @@ document.querySelector('.btn').addEventListener('keydown', ev => {
   if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); $('file').click(); }
 });
 
+/* ── test aileleri (sekmeler) ──────────────────────────────────────────────
+   Aileler VERIDEN turer: her senaryonun `suite` alani bir aile adidir. Tek
+   aile varsa serit hic gorunmez, yani eski koşu dosyalari aynen calisir.
+   Yarin kirilganlik ailesi eklendiginde burada tek satir bile degismez. */
+function buildTabs(){
+  const s = state.bundle.scenarios;
+  const count = new Map();
+  for (const sc of s){
+    if (!sc.suite) continue;
+    count.set(sc.suite, (count.get(sc.suite) || 0) + 1);
+  }
+
+  const tabs = $('tabs');
+  state.suite = '*';
+
+  if (count.size < 2){ tabs.classList.remove('on'); tabs.replaceChildren(); return; }
+
+  const frag = document.createDocumentFragment();
+  const add = (key, name, n) => {
+    const b = document.createElement('button');
+    b.className = 'tab';
+    b.type = 'button';
+    b.role = 'tab';
+    b.dataset.suite = key;
+    b.setAttribute('aria-selected', key === state.suite);
+    b.innerHTML = '<span class="nm"></span><span class="n"></span>';
+    b.querySelector('.nm').textContent = name;
+    b.querySelector('.n').textContent = n;
+    b.addEventListener('click', () => pickSuite(key));
+    frag.appendChild(b);
+  };
+
+  add('*', 'Tümü', s.length);
+  for (const [key, n] of [...count].sort((a,b) => a[0].localeCompare(b[0]))) add(key, key, n);
+
+  tabs.replaceChildren(frag);
+  tabs.classList.add('on');
+}
+
+function pickSuite(key){
+  state.suite = key;
+  for (const b of $('tabs').children) b.setAttribute('aria-selected', b.dataset.suite === key);
+  renderList();
+
+  // Secili senaryo artik listede yoksa ailenin ilkine gec; yoksa kullanici
+  // bos bir listeye bakip sag tarafta baska bir aileyi gorurdu.
+  const s = state.bundle.scenarios;
+  if (!inSuite(s[state.cur])){
+    const first = state.order.find(i => inSuite(s[i]));
+    if (first !== undefined) select(first);
+  }
+}
+
+function inSuite(sc){ return state.suite === '*' || !sc.suite || sc.suite === state.suite; }
+
 /* ── senaryo listesi ───────────────────────────────────────────────────── */
 function sort(){
   const s = state.bundle.scenarios;
@@ -289,7 +363,8 @@ function renderList(){
   const frag = document.createDocumentFragment();
 
   for (const i of state.order){
-    if (q && !s[i].id.toLowerCase().includes(q)) continue;
+    if (!inSuite(s[i])) continue;
+    if (q && !(s[i].id + ' ' + (s[i].label || '')).toLowerCase().includes(q)) continue;
     const row = document.createElement('div');
     row.className = 'row';
     row.setAttribute('role','option');
@@ -299,8 +374,10 @@ function renderList(){
     row.innerHTML =
       `<span class="ix mono">#${i+1}</span>` +
       `<span class="id mono"></span>` +
-      `<span class="pc mono">%${s[i].fillPercent.toFixed(1)}</span>`;
+      `<span class="pc mono">%${s[i].fillPercent.toFixed(1)}</span>` +
+      (s[i].label ? `<span class="sub2"></span>` : '');
     row.querySelector('.id').textContent = s[i].id;
+    if (s[i].label) row.querySelector('.sub2').textContent = s[i].label;
     row.addEventListener('click', () => select(i));
     row.addEventListener('keydown', ev => {
       if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(i); }
@@ -318,10 +395,22 @@ $('jump').addEventListener('change', ev => {
   if (n >= 0 && n < state.bundle.scenarios.length) select(n);
 });
 
+/* Listede gorunen sirada bir adim. Aile filtresi ve siralama burada
+   hesaba katilir; ham indeks uzerinde ilerlemek kullaniciyi gorunmeyen
+   senaryolara goturuyordu. */
+function step(dir){
+  const s = state.bundle.scenarios;
+  const shown = state.order.filter(i => inSuite(s[i]));
+  const at = shown.indexOf(state.cur);
+  const next = at < 0 ? 0 : at + dir;
+  if (next >= 0 && next < shown.length) select(shown[next]);
+}
+
 function select(i){
   state.cur = i;
   const sc = state.bundle.scenarios[i];
   $('s-id').textContent = sc.id;
+  $('s-label').textContent = sc.label || 'senaryo';
   $('s-fill').textContent = '%' + sc.fillPercent.toFixed(1);
   $('s-spread').textContent = '×' + sc.spreadRatio.toFixed(3);
   $('s-slice').textContent = '%' + sc.sliceUtilPercent.toFixed(1);
@@ -649,8 +738,10 @@ document.addEventListener('click', ev => {
 
 addEventListener('keydown', ev => {
   if (!state.bundle || /input|select/i.test(ev.target.tagName)) return;
-  if (ev.key === 'ArrowRight' && state.cur < state.bundle.scenarios.length - 1) select(state.cur + 1);
-  if (ev.key === 'ArrowLeft'  && state.cur > 0) select(state.cur - 1);
+  // Oklar LISTEDE gezer, ham dizide degil: sıralama ve aile filtresi
+  // uygulandiktan sonra "sonraki" ekranda goruneni demek.
+  if (ev.key === 'ArrowRight') step(+1);
+  if (ev.key === 'ArrowLeft')  step(-1);
   if (ev.key === ' '){ ev.preventDefault(); $('t-play').click(); }
 });
 </script>

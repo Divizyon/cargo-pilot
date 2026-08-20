@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using CargoPilot.Application.Common.Models;
 using CargoPilot.Domain.Enums;
 
@@ -25,7 +25,17 @@ namespace CargoPilot.Engine.Bench;
 /// </summary>
 public static class BrCorpus
 {
-    public sealed record BrInstance(string Id, OptimizationInput Input, int BoxCount, decimal BoxVolumeRatio);
+    /// <summary>
+    /// Bir kiyas ornegi. <c>Suite</c> ve <c>Label</c> yalniz suit korpusunda
+    /// dolar; gorunum sekmelerini ve satir etiketini onlar besler.
+    /// </summary>
+    public sealed record BrInstance(
+        string Id,
+        OptimizationInput Input,
+        int BoxCount,
+        decimal BoxVolumeRatio,
+        string? Suite = null,
+        string? Label = null);
 
     public static IReadOnlyList<BrInstance> Load(int set)
     {
