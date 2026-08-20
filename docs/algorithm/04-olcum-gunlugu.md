@@ -3445,6 +3445,7 @@ Bedeli gerçek yükte ciddi. Karar operasyonel: **grupsuz ürün sahada nasıl d
 - *En son iner* — son durakta iner, hiçbir şeyin önünü kapatmamalı → −4,92 puan
 - *Her durakta iner* — ara bir yorum; modellenmesi ayrı iş
 
-Ölçüm hazır; karar verilmeden kural değiştirilmedi.
+**Karar verildi: serbest** (`DR-68`). Atanmamış ürünün önü kapatması sahada sorun değil; bedeli
+4,92 puan olan katı yorum gerekçesiz. Kural değiştirilmedi.
 
 179/36 test yeşil; kısıtlı kapı geçti.
