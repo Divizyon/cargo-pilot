@@ -3511,3 +3511,67 @@ Araştırmanın kendi eşiği: *"Öneri 1 sonrası kayıp ≤ −4 ise stack-fir
 Gerçek korpusta **−4,61**, yani eşiğin hemen üstünde.
 
 179/36 test yeşil; kısıtsız kapı %84,26 ile değişmeden geçti.
+
+> ## ⚠ YUKARIDAKİ BÖLÜM YANLIŞTIR — Öneri 1 geri alındı (20 Ağu, aynı gün)
+>
+> Yukarıdaki `%80,92` tabanı **hiç var olmadı** ve ceza üretim yolunda **kayıp** getiriyordu.
+> Ayrıntısı bir sonraki başlıkta; bölüm silinmedi çünkü hatanın kendisi kayıt değeri taşıyor.
+
+## L-7 · Erişilebilirlik cezası GERİ ALINDI — taban hiç var olmamıştı
+
+Yayılma eşiği (`×1,18`) için compactness terimi araştırılırken cezanın işareti sorgulandı ve üç
+biçim yan yana ölçüldü: **kapalı**, **ön koridor** (uygulanan biçim), **arka koridor** (ters
+işaret). Ayrı bir ikili değil, tek ikilide çevre değişkeniyle — yani üç sayı aynı derlemeden.
+
+| Gerçek korpus, LIFO | kapalı | ön (uygulanan) | arka |
+|---|---|---|---|
+| **Static** | %81,94 · ×1,219 | %81,99 · ×1,218 | %81,97 · ×1,218 |
+| **Beam (üretim)** | **%88,11 · ×1,123** | %86,45 · ×1,145 | %86,96 · ×1,138 |
+
+Static yolda üç biçim **ayırt edilemez** (±0,05 gürültü). Üretim yolunda ceza **1,66 puan
+kaybettiriyor** ve yayılmayı da kötüleştiriyor. BR korpusu aynı yönü doğruladı (beam, 105 örnek:
+%87,91 kapalı → %87,37 açık). İhlal her üç biçimde de **0**.
+
+### Taban doğrulaması — ölçüm düzeneği yine yanlış şeyi ölçmüş
+
+`%80,92` sayısı hiçbir koşuda tekrarlanmadı. Öneri 1'den **bir önceki commit** (`e23350f3`) ayrı
+bir çalışma ağacına çıkarılıp sıfırdan derlendi:
+
+| | Ö1 öncesi ağaç | bugünkü kod, ceza kapalı |
+|---|---|---|
+| Static | %81,94 · ×1,219 | %81,94 · ×1,219 |
+| Beam | %88,11 · ×1,123 | %88,09 · ×1,123 |
+
+Birebir. Yani Öneri 1'in gerçek etkisi **static'te +0,05 (gürültü), beam'de −1,66**. Kayda geçen
+`−5,68 → −4,61` iyileşmesi olmadı.
+
+**Hata nerede:** ceza kabul edilirken yalnız **static** yol ölçülmüştü (kapı orada) ve oradaki
++0,05 gürültüsü bir kazanç sanıldı; taban sayısı da bayat bir ikiliden gelmişti. Aynı aile:
+`DR-66`'nın kör kapısı, `ConstraintCorpus`'un boş `GroupId`'si, `--load-ratio`'nun bağlamaması.
+**Ders: kısıt kararları ÜRETİM yolunda (beam) ölçülmeli; static yol kapı içindir, karar için değil.**
+
+### Geri alma sonrası durum — üretim yolu
+
+| Gerçek korpus, beam | doluluk | yayılma | dilim | ihlal |
+|---|---|---|---|---|
+| Kısıtsız | %91,90 | ×1,086 | %92,2 | — |
+| **LIFO** | **%88,11** | **×1,123** | %89,3 | **0** |
+| LIFO, %25 yük | %24,61 | ×1,306 | %78,8 | 0 |
+
+**LIFO'nun üretim maliyeti −3,79 puan.** Kısıtlı `all` kapısı %50,44 → **%50,50** (BR6 +0,30);
+referans tazelendi. Kısıtsız kapı %84,26 ile değişmedi.
+
+### İki araştırma eşiği de artık karşılanıyor
+
+- *"Öneri 1 sonrası kayıp ≤ −4 ise stack-first'e tam yatırım yapmayın"* → **−3,79**, eşiğin altında.
+- *"Yayılma ×1,18 altına inmezse beam skoruna compactness terimi ekleyin"* → üretim yolunda
+  **×1,123**, eşiğin altında. Eşiği tetikleyen `×1,236`/`×1,218` sayıları **static** yola aitti.
+
+Yani compactness terimi de stack-first'e tam yatırım da **gerekçesiz** kaldı.
+
+### Yan bulgu — `DepthSlack` LIFO'da artık güvenli, ama yararsız
+
+`DR-57`/`L-4`'ün ret gerekçesi (*"yarım yükte ihlal 0 → 1.774"*) **bant modeline** aitti. Bugünkü
+çıkarılabilirlik kuralıyla ölçüldü: `--depth-slack 1,15`, gerçek korpus, %25 yük, **ihlal 0**.
+Kazanç ise yok: yayılma ×1,351 → ×1,343, doluluk +0,01. Kapı (`if (lifo) return null`) yerinde
+bırakıldı; değişiklik bedava değil, karşılığı da yok.

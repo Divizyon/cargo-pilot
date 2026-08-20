@@ -25,17 +25,28 @@ Boşaltma sırası atanmamış ürün **serbesttir** — ne kısıtlanır ne kı
 
 ## 2. Bugünkü sayılar
 
-Gerçek korpus (ROADEF dağılımı, 100 senaryo) ve BR1-BR7:
+> **20 Ağu akşamı güncellendi.** Aşağıdaki tablonun ilk hâli **static** yolun sayılarını taşıyordu
+> ve sistemin durumu diye okunuyordu. Kararlar üretim yolunda (beam) verilir; ikisi ayrı ayrı
+> yazıldı (`DR-69`).
+
+**Üretim yolu — beam, gerçek korpus (ROADEF dağılımı, 100 senaryo):**
 
 | | Kısıtsız | LIFO | Maliyet |
 |---|---|---|---|
-| Gerçek korpus | %86,60 | **%80,92** | −5,68 |
-| BR1-BR7 (175 örnek) | %84,48 | **%76,45** | −8,03 |
+| Doluluk | %91,90 | **%88,11** | **−3,79** |
+| Yayılma | ×1,086 | **×1,123** | |
+| %25 yük | %24,61 · ×1,161 | %24,61 · ×1,306 | ~0 |
 
-Boşaltma yolu ihlali: **sıfır**, her rejimde. Gecelik kapı `br --constraints all` ile koruyor
-(referans `referans/br-wallbuilder-static-kisitli.json`, doluluk %50,50, üç sayaç sıfır).
+**Kapı yolu — static (deterministik, karar için değil):**
 
-Yayılma LIFO'yla bozuluyor: gerçek korpus ×1,151 → ×1,236.
+| | Kısıtsız | LIFO | Maliyet |
+|---|---|---|---|
+| Gerçek korpus | %86,60 | %81,94 | −4,66 |
+| BR1-BR7 | %84,48 | %76,45 | −8,03 |
+
+Boşaltma yolu ihlali: **sıfır**, her rejimde ve her sequencer'da. Gecelik kapı
+`br --constraints all` ile koruyor (referans `referans/br-wallbuilder-static-kisitli.json`,
+doluluk %50,50, üç sayaç sıfır).
 
 ## 3. Denenmiş ve reddedilmiş olanlar — tekrar önerilmesin
 
@@ -204,6 +215,20 @@ Repolar:
 - Öneri 1 sonrası kayıp **≤ −4 puan** ise stack-first'e tam yatırım YAPMAYIN (risk/ödül düşük); prototiple sınırlı kalın.
 - Kayıp **> −5 puan** kalırsa stack-first'e (Öneri 2) tam yatırım gerekçelenir.
 - Yayılma (kullanılan uzunluk/ideal) **×1,236 → hedef ×1,18** altına inmezse, beam skoruna ayrı bir "yük-öne-toplama/compactness" terimi ekleyin (load compactness with sequential unloading).
+
+### Eşiklerin bugünkü durumu (20 Ağu akşamı, `DR-69` sonrası)
+
+| Araştırmanın eşiği | Bugün | Sonuç |
+|---|---|---|
+| Kayıp ≤ −4 → stack-first'e **tam yatırım yapma** | **−3,79** (beam) | ✅ eşiğin altında → tam yatırım **gerekçesiz** |
+| Kayıp > −5 → stack-first **gerekçelenir** | −3,79 | ❌ tetiklenmiyor |
+| Yayılma < ×1,18 değilse **compactness terimi ekle** | **×1,123** (beam) | ✅ eşiğin altında → terim **gerekçesiz** |
+
+Eşikleri tetikleyen `−5,68`/`×1,236` sayıları **static** yola aitti; Öneri 1'in kendisi de o yolda
+ölçülüp yanlış kabul edilmişti. Ceza geri alınınca üretim yolunda her iki eşik de karşılandı.
+
+**Yani geriye kalan tek açık öneri:** Öneri 4 (reachability gevşetmesi) — iş birimi kararı; ve
+Öneri 3 (onarım geç-geçişi) — araştırmanın kendisi "yalnız 1-2 yetersizse" diyor, yetersiz değil.
 
 ## Caveats
 - Christensen & Rousøe ve Bischoff & Ratcliff'in mutlak doluluk yüzdeleri paywall arkasındadır; kayıp puanları ikincil kaynaklardan ve yönlü ifadelerden çıkarılmıştır (tabloda "bulunamadı" işaretli).
