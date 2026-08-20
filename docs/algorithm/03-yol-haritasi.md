@@ -100,6 +100,11 @@ skoruyla düşmüyor ve engebe kayıp hacmin tamamının durduğu yer. Kule kurm
 engebe ise doğrudan darboğaz. BR8-BR15 ölçümü kararı değil, **kule yüksekliği politikasını**
 belirleyecek.
 
+### F9 açıldı (20 Ağustos 2026)
+
+LIFO kapandı (`DR-69`). Kalan kaybın tamamı kırılganlık (−21,81), istif (−13,69) ve ağırlıkta;
+faz planı ve sırası [F9](#f9--kırılganlık-istif-ve-ağırlık-20-ağustos-2026da-açıldı) bölümünde.
+
 ### Bekleyen politika kararı
 
 ~~**Destek eşiği (Öneri 6).**~~ **ÖLÇÜLDÜ VE KAPATILDI (`DR-16`).** %80'den %60'a kadar iki
@@ -430,6 +435,157 @@ saniyede tam destekli gerçekçi referans **~%93**; bugünkü %87,73 ile arası 
 **Süre:** F7-0 yarım gün · F7-1 yarım gün · F7-2…F7-6 açık uçlu (kaynakta 2-4 hafta)
 
 ---
+
+---
+
+### F9 — Kırılganlık, istif ve ağırlık *(20 Ağustos 2026'da açıldı)*
+
+**Kaynak:** [arastirma/2026-08-20-yanit-kirilganlik-istif-agirlik.md](arastirma/2026-08-20-yanit-kirilganlik-istif-agirlik.md)
+· ölçüm günlüğü `K-1`
+
+#### Neden: kalan kaybın tamamı burada
+
+LIFO kapandı (`DR-69`, üretim maliyeti −3,79). Sırada duran üç kısıt, üretim yolunda ölçüldü:
+
+| Kısıt | Beam | Maliyet |
+|---|---|---|
+| Kısıtsız | %91,91 | — |
+| LIFO | %88,11 | −3,79 |
+| İstif ≤ 2 | %78,22 | **−13,69** |
+| **Kırılganlık** | **%70,10** | **−21,81** |
+
+#### Araştırmayla çelişkimiz — ve fazın buradan başlaması
+
+Araştırmanın **Öncelik 1**'i iki yarımdan oluşuyor ve ikisi aynı şey değil:
+
+| Yarım | Ne öneriyor | Bizde durum |
+|---|---|---|
+| **1(i)** geometrik | Sütun geneli → doğrudan temas; köprüleme serbest | ✅ **ÖLÇÜLDÜ, kapandı.** Üretimde **+0,39 puan** (`K-1`). Köprü kurmak için komşu yığınların tam o yükseklikte %60 destek vermesi gerekiyor, gerçek yükte denk gelmiyor |
+| **1(ii)** kategorik→dereceli | Kırılgan = 0 kg yerine kırılgan = **düşük taşıma dayanımı** (lbs) | ⬜ **Denenmedi.** Bambaşka bir mekanizma: kırılganın üstüne *hafif* bir kutu konabilir |
+
+Yani araştırmanın *"kaybın çoğunu geri kazandırır"* iddiası **geometrik yarım için çürüdü**;
+dereceli yarım için hâlâ açık. Faz oradan ve daha ucuz olan **Öncelik 2**'den başlar.
+
+**Kritik ayrım:** 1(i) bir *modelleme* düzeltmesiydi — kırılgana dokunmayan yükü serbest bırakmak.
+1(ii) bir *iş kuralı değişikliğidir* — kırılgan kutunun üstüne gerçekten yük binmesine izin vermek.
+`DR-16`'nın destek eşiğinde yaptığı gibi: **önce sayı üretilir, sonra müşteriye sorulur.**
+
+#### F9-0 — Ölçüm düzeneği borcu *(önkoşul, motor kodu değişmez)*
+
+Araştırmanın üç sorusu bugün **ölçülemez**; düzenek düzeltilmeden ilerlemek `DR-69`'un tekrarı olur.
+
+| Borç | Bugünkü hâli | Yapılacak |
+|---|---|---|
+| Kırılgan payı ürün **TİPİ** düzeyinde | Bir tipin bütün birimleri birden kırılgan; "%5 kırılgan" ifade edilemiyor, eğri N ≥ 6'da düzleşiyor | Payı **birim** düzeyine indir; %5 / %10 / %20 / %33 eğrisi |
+| Ağırlık tavanı 1.000.000 kg | `R-A07` hiçbir koşuda bağlamıyor, Öncelik 4 ölçülemez | Gerçekçi senaryo: ~24-26 t brüt (aks: orta ~12 t, arka ~31,5 t) |
+| `MaxWeightOnTop` / `IsStackable=false` hiçbir korpusta yok | `DR-38`'in açık kalan yarısı | Suit'e alanı olan bir aile |
+| Suit'te kırılganlık ailesi yok | Görüntüleyicide gözle bakılamıyor | `SuiteCorpus`'a `kirilganlik` ailesi — sekme şeridi zaten veriden türüyor |
+
+**Kapı:** düzenek değişikliği doluluğu değiştirmemeli; mevcut iki kapı bayt bayt aynı kalır.
+
+#### F9-1 — Fragile-on-top sıralaması *(en ucuz, hiç denenmedi)*
+
+Araştırmanın **Öncelik 2**'si. Krebs-Ehmke DBLF sıralaması: *"1. fragility flag (non-fragile first)
+2. volume 3. length 4. width"*.
+
+- **Mekanizma:** `ItemOrdering.ApplyCriteriaSort` bugün yalnız hacim-azalan. Kırılganı sona almak,
+  yerleştirme sırayla yukarı doğru ilerlediği için kırılganı **yığının tepesine** taşır ve
+  mühürlediği hacmi ölü olmaktan çıkarır.
+- **Maliyet:** tek koşul. Arama bütçesine etkisi sıfır.
+- **Risk:** hacim-azalan ilkesiyle çatışır — büyük kutu geç kalırsa yer bulamayabilir. Bu yüzden
+  **iki biçim de** ölçülür: kırılganlık birincil anahtar vs hacim birincil + kırılganlık eşitlik
+  bozucu.
+- **Eşik:** üretim yolunda **+2 puandan az** kazandırırsa mekanizma kapanır, F9-2'ye geçilir.
+
+#### F9-2 — Dereceli taşıma dayanımı *(Öncelik 1'in açık yarısı)*
+
+- **Mekanizma:** `FragilityType.Fragile` → kategorik "0 kg" yerine bir **taşıma dayanımı**
+  (kg/alan). Bizde dereceli eksen zaten var (`MaxWeightOnTop`, `ViolatesStackWeight`); eksik olan
+  kırılganlığın o eksene **bağlanması**.
+- **İki alt adım:**
+  1. **Eşleme** — kırılgan kutuya küçük ama sıfır olmayan bir taşıma dayanımı ver, kategorik kapıyı
+     kaldır. Ölçüm düğmesiyle, varsayılan kapalı.
+  2. **Yük dağıtım modeli** — bugün ayak izi gölgesi; literatürdeki *complete selection* yükü yalnız
+     **doğrudan destek zinciri** boyunca dağıtır. `K-1` köprülemenin ~0 kazandırdığını gösterdi, o
+     yüzden bu adım **yalnızca 1 kazandırırsa** yapılır.
+- **Bu bir iş kuralı değişikliğidir.** Sayı üretilir, `DR-16` deseniyle müşteriye sorulur:
+  *"kırılgan ürünün üstüne N kg'a kadar yük binmesi kabul edilebilir mi?"*
+- **Eşik:** araştırmanın kendi eşiği — yeni model doluluğu **≥ %85**'e çıkarırsa Öncelik 1
+  doğrulanmış sayılır.
+
+#### F9-3 — İstif sınırı dağılımı *(korpus, kod değil)*
+
+Araştırma bu kısıtta *"modelleme doğru, kazanç küçük; en yüksek getirili adım korpusu gerçekçi bir
+dağılımla yeniden parametrelemek"* diyor. Bugün **her ürün** `MaxStackCount = 2` alıyor; gerçekte
+sınır ürüne özgüdür ve çoğu üründe **yoktur**.
+
+- Senaryolar: tümü=2 (bugünkü) · karışık {1, 2, 3, 4, sınırsız} · kısıtsız.
+- **Eşik:** karışık dağılımda −13,69'un yarısından fazlası geri gelirse yeniden parametreleme
+  kalıcılaşır ve `−13,69` bir korpus artefaktı olarak kayda geçer.
+
+#### F9-4 — Ağırlık dengesi: onarım post-pass *(Öncelik 3)*
+
+**Açık borç:** denge üretim yolunda **hiç optimize edilmiyor.** `DR-39` `BalanceScoring`'i silerken
+gerekçesi *"GRASP üretim varsayılanı olduğu için denge sıra düzeyinde optimize edilmeye devam
+eder"* idi; `DR-56` varsayılanı beam'e çevirince o gerekçe sessizce geçersizleşti. Bugün
+`WeightBalance` kriterinin üretimdeki tek etkisi ağırlık-azalan sıralamadır.
+
+- **Mekanizma:** beam amacına üçüncü leksikografik terim **eklenmez** (dallanmayı büyütür, doluluğu
+  tehdit eder). Silinen takas geçişi **yerleştirme sonrası onarım** olarak geri gelir.
+- **Literatür dayanağı:** Ramos, Silva & Oliveira (2018) CoG'u sert kısıt yapıp doluluğu
+  bozmadığını ölçmüş.
+- **Eşik:** post-pass doluluğu **0,5 puandan fazla** düşürürse zarf gevşetilir.
+
+#### F9-5 — Ağırlık-farkında kutu seçimi *(Öncelik 4, F9-0'a bağımlı)*
+
+Bugün ağırlık tavanı **sıra düzeyinde** uygulanıyor: kalan kapasiteye sığmayan kutu düşer. Hangi
+kutunun düşeceğini yerleştirme sırası belirliyor; "kalan kapasiteye en çok hacmi sığdır" diye bir
+seçim yok.
+
+- **Tetikleyici:** F9-0'ın gerçekçi tavan senaryosunda araçlar hacimden **önce ağırlıkla** dolarsa
+  bu adım derhal devreye alınır; dolmuyorsa ertelenir.
+- **Mekanizma:** hacim-değerli, ağırlık-kapasiteli knapsack ön-seçimi.
+
+#### F9-6 — Ayrışım *(Öncelik 5, iş kuralı kararı)*
+
+`ContaminationFilter` bugün bir **ön elemedir**: en yüksek hacimli grup geçer, çakışan diğerleri
+tamamen düşer. Literatürde (Eley 2003) bunun karşılığı yok; uyumsuz gruplar aynı araçta ayrı
+bölgelere konur.
+
+- Önce **maliyeti ölçülür** (bugün hiç bilinmiyor), sonra müşteriye sorulur.
+
+#### Sıra ve gerekçe
+
+| # | Adım | Neden burada |
+|---|---|---|
+| 1 | **F9-0** düzenek | Önkoşul: ölçülemeyeni ölçülebilir yapar |
+| 2 | **F9-1** sıralama | En ucuz, hiç denenmedi, kural değiştirmiyor |
+| 3 | **F9-3** istif korpusu | Kod değil korpus; −13,69'un ne kadarının artefakt olduğunu söyler |
+| 4 | **F9-2** dereceli LBS | İş kuralı kararı gerektirir; sayı önce üretilir |
+| 5 | **F9-4** CoG onarımı | Doluluktan bağımsız açık borç |
+| 6 | **F9-5** ağırlık seçimi | Yalnız F9-0 tavanı bağlarsa |
+| 7 | **F9-6** ayrışım | En son; önce maliyeti ölçülür |
+
+F9-1 ve F9-3 önce çünkü ikisi de **kural değiştirmiyor** — biri sıralama, diğeri korpus. İkisi
+bittiğinde kırılganlığın ve istifin gerçek maliyeti bilinir ve F9-2'nin iş kuralı sorusu doğru
+sayılarla sorulur.
+
+#### Riskler
+
+| Risk | Etki | Karşılık |
+|---|---|---|
+| Araştırmanın sayıları **VRP amaç fonksiyonunda** (araç sayısı, mesafe) | Bizim doluluk yüzdemize çevrilemez; beklenti şişer | Her adımın kendi eşiği var; literatür yön gösterir, hedef koymaz |
+| Kırılganlığı gevşetmek gerçek hasara yol açabilir | Müşteri zararı | F9-2 **varsayılanı değiştirmez**; ölçüm düğmesi üretir, karar müşterinin |
+| Düzenek değişikliği ölçüleni değiştirir | `DR-69`'un tekrarı | F9-0 kapısı: iki kapı da bayt bayt aynı kalmalı |
+| Sıralama değişikliği hacmi bozar | Kırılgan olmayan yükte gerileme | F9-1 kısıtsız korpusta da ölçülür; gerileme varsa yalnız kırılgan yük içeren planda açılır |
+| Adımlar static'te ölçülür | `DR-69` | **Kararlar beam'de verilir**; static yalnız kapı |
+
+#### Ne yapılmayacak
+
+- **Layer building** — `DR-12`, müşteri kararı. Araştırma da önermiyor.
+- **Beam amacına üçüncü leksikografik terim** — araştırma açıkça karşı çıkıyor, dallanmayı büyütür.
+- **Kırılganlık varsayılanını ölçmeden değiştirmek** — `DR-16` deseni: politika değeri, müşteri kararı.
+
 
 ## 2. Loop Test Harness Tasarımı
 
