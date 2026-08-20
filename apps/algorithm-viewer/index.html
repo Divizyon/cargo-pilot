@@ -312,7 +312,7 @@ function buildTabs(){
     const b = document.createElement('button');
     b.className = 'tab';
     b.type = 'button';
-    b.role = 'tab';
+    b.setAttribute('role', 'tab');
     b.dataset.suite = key;
     b.setAttribute('aria-selected', key === state.suite);
     b.innerHTML = '<span class="nm"></span><span class="n"></span>';
