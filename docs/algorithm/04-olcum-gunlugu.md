@@ -3397,3 +3397,54 @@ denetlenenden bağımsız olmak zorunda.
 İki durum arasındaki fark tek cümleyle: **aynı şeyi görmeli, aynı şeye inanmamalı.**
 
 177/36 test yeşil.
+
+---
+
+## 20 Ağustos 2026 — `L-6` ve borç kapandı; **açık bir ürün sorusu çıktı**
+
+### Kuralın bağladığı birim senaryo yazıldı *(borç kapandı)*
+
+Kütükte "kuralın gerçekten bağladığı bir birim senaryo yok" diye borç durmuştu. Geometriyi
+tesadüfe bırakmamak için kutular **elle** yerleştirildi (`RunIncremental`):
+
+Araç 100 × 100 × 300. Geç inecek grup (sıra 2) `z = 100..200` ve `200..300` dilimlerini tam kesitle
+kapatır; geriye uzak yüzde `z = 0..100` cebi kalır. Erken inecek grubun (sıra 1) kutusu oraya
+geometrik olarak sığar ama sahada çıkarılamaz — önünde iki kutu vardır ve ikisi de sonra inecektir.
+
+- LIFO açık → kutu **reddedilir**
+- LIFO kapalı → kutu **cebe yerleşir**
+
+İkinci test şart: birincisi tek başına "hiç yerleşmedi" ile de geçerdi.
+
+### Korpusa grupsuz ürün eklendi (`L-6`)
+
+Her dördüncü tip artık gruba atanmıyor. Gerçek sevkiyatta yükün bir kısmı bir boşaltma noktasına
+bağlı değildir; korpusun tamamı grupluyken "gruplu ve grupsuz bir arada" hâli hiç sınanmıyordu.
+
+Kısıtlı referans tazelendi: %51,21 → **%50,50**, üç ihlal sayacı da **sıfır**.
+
+### ⚠ Açık soru: "grupsuz" ne demek?
+
+Bugünkü kural grupsuz kutuyu **yok sayıyor** — ne kısıtlanıyor ne de kısıtlıyor. Ölçüldü:
+
+> **7.785 vakada grupsuz bir kutu, gruplu bir kutunun tam önünde duruyor.**
+
+Yani o grup inerken, kimseye atanmamış bir kutuyu kenara çekmek gerekecek. Bu, kuralın kapattığını
+sandığımız deliğin grupsuz taraftan açık kalması demek.
+
+Katı yorum ölçüldü — grupsuz kutu **en son iner** sayılırsa (yani hiçbir şeyin önünü kapatamaz):
+
+| | Bugün *(yok say)* | Katı *(en son iner)* |
+|---|---|---|
+| BR1-BR7, `all` kısıt | %50,50 | %49,42 **(−1,08)** |
+| Gerçek korpus, LIFO | %80,92 | %76,00 **(−4,92)** |
+
+Bedeli gerçek yükte ciddi. Karar operasyonel: **grupsuz ürün sahada nasıl davranıyor?**
+
+- *Serbest* — atanmamış, istenildiğinde kenara çekilebilir → bugünkü davranış doğru
+- *En son iner* — son durakta iner, hiçbir şeyin önünü kapatmamalı → −4,92 puan
+- *Her durakta iner* — ara bir yorum; modellenmesi ayrı iş
+
+Ölçüm hazır; karar verilmeden kural değiştirilmedi.
+
+179/36 test yeşil; kısıtlı kapı geçti.

@@ -1,4 +1,5 @@
 ﻿using CargoPilot.Application.Common.Models;
+using CargoPilot.Application.Common.Optimization;
 using CargoPilot.Domain.Enums;
 using CargoPilot.Engine.Tests.Golden;
 
@@ -198,6 +199,81 @@ public sealed class LifoBolgeKisitiTests
             loadingType: LoadingType.Rear,
             clusterGroups: true,
             fillFromMaxX: fillFromMaxX);
+
+    /// <summary>
+    /// Kuralın BAĞLADIĞI senaryo — kütükteki borç buydu.
+    ///
+    /// Kutular elle yerleştirilir, böylece geometri tesadüfe bırakılmaz: geç
+    /// inecek grup (sıra 2) aracın kapı tarafındaki iki dilimini tamamen
+    /// kapatır ve geriye yalnızca UZAK YÜZDE bir cep kalır.
+    ///
+    /// Erken inecek grubun (sıra 1) kutusu o cebe geometrik olarak sığar ama
+    /// oraya konursa sahada çıkarılamaz: önünde iki kutu vardır ve ikisi de
+    /// daha sonra inecektir. Kural bu adayı reddetmelidir.
+    ///
+    /// LIFO kapalıyken aynı kutu cebe yerleşir; farkın kaynağı yalnızca kuraldır.
+    /// </summary>
+    [Fact]
+    public void Lifo_OnuKapaliCep_ErkenInecekKutuyuAlmaz()
+    {
+        var (input, fixedPlacements) = OnuKapaliCepSenaryosu(LoadingPlanOptimizationCriteria.Lifo);
+
+        var result = new OptimizationEngine().RunIncremental(input, fixedPlacements);
+        var pocket = result.Placements.Where(p => p.ItemId == EngineScenario.ItemId(2)).ToList();
+
+        Assert.True(pocket.Count == 0,
+            $"Önü kapalı cebe erken inecek kutu konuldu: {string.Join(", ", pocket.Select(p => $"({p.X},{p.Y},{p.Z})"))}");
+
+        PhysicalInvariants.AssertAll(nameof(Lifo_OnuKapaliCep_ErkenInecekKutuyuAlmaz), input, result);
+    }
+
+    /// <summary>
+    /// Aynı geometri, LIFO kapalı: kutu cebe yerleşir. Kuralın gözlenebilir bir
+    /// etkisi olduğunu kilitler — üstteki test tek başına "hiç yerleşmedi" ile
+    /// de geçerdi.
+    /// </summary>
+    [Fact]
+    public void LifoKapali_OnuKapaliCep_KutuyuAlir()
+    {
+        var (input, fixedPlacements) = OnuKapaliCepSenaryosu(LoadingPlanOptimizationCriteria.VolumeFirst);
+
+        var result = new OptimizationEngine().RunIncremental(input, fixedPlacements);
+
+        Assert.Contains(result.Placements, p => p.ItemId == EngineScenario.ItemId(2));
+    }
+
+    /// <summary>
+    /// Araç 100 × 100 × 300. Sıra 2'nin iki kutusu z = 100..200 ve 200..300'ü
+    /// tam kesitle kapatır; geriye z = 0..100 cebi kalır. Sıra 1'in kutusu tam
+    /// o cebe sığar.
+    /// </summary>
+    private static (OptimizationInput Input, List<FixedPlacement> Fixed) OnuKapaliCepSenaryosu(
+        LoadingPlanOptimizationCriteria criteria)
+    {
+        var items = new List<OptimizationItemInput>
+        {
+            EngineScenario.Item(1, width: 100m, height: 100m, length: 100m, weight: 10m, quantity: 2,
+                allowedRotations: AllowedRotations.Fixed, groupIndex: 2, unloadingOrder: 2),
+            EngineScenario.Item(2, width: 100m, height: 100m, length: 100m, weight: 10m, quantity: 1,
+                allowedRotations: AllowedRotations.Fixed, groupIndex: 1, unloadingOrder: 1),
+        };
+
+        var input = EngineScenario.Input(
+            items,
+            criteria,
+            vehicleWidth: 100m,
+            vehicleHeight: 100m,
+            vehicleLength: 300m,
+            vehicleMaxWeight: 10_000m);
+
+        var fixedPlacements = new List<FixedPlacement>
+        {
+            new(EngineScenario.ItemId(1), X: 0m, Y: 0m, Z: 100m, Rotation: LoadingPlanPlacementRotation.NoRotation),
+            new(EngineScenario.ItemId(1), X: 0m, Y: 0m, Z: 200m, Rotation: LoadingPlanPlacementRotation.NoRotation),
+        };
+
+        return (input, fixedPlacements);
+    }
 
     /// <summary>
     /// LIFO'nun uzaysal kuralı BANT değil ÇIKARILABİLİRLİKTİR: her kutu, kendi

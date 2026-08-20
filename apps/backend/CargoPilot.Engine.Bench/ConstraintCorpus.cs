@@ -52,6 +52,9 @@ public static class ConstraintCorpus
     /// <summary>Bosaltma grubu sayisi.</summary>
     private const int LifoGroups = 3;
 
+    /// <summary>Her kacinci tip grupsuz birakilir.</summary>
+    private const int UngroupedEvery = 4;
+
     /// <summary>
     /// Kisitlari ornege yazar. Tip SIRASINA gore dagitilir, rastgelelik yoktur:
     /// ayni ornek her kosuda ayni kisitlari alir (R-C02).
@@ -68,7 +71,12 @@ public static class ConstraintCorpus
         {
             var item = input.Items[index];
 
-            var unloading = kind.HasFlag(Kind.Lifo)
+            // Her dorduncu tip GRUPSUZ kalir. Gercek sevkiyatta yukun bir kismi
+            // bir bosaltma noktasina bagli degildir; korpusun tamami grupluyken
+            // "gruplu ve grupsuz bir arada" hali hic sinanmiyordu.
+            var ungrouped = index % UngroupedEvery == UngroupedEvery - 1;
+
+            var unloading = kind.HasFlag(Kind.Lifo) && !ungrouped
                 ? (int?)(index % LifoGroups)
                 : item.UnloadingOrder;
 
@@ -87,7 +95,7 @@ public static class ConstraintCorpus
             // maliyeti" yalnizca siralama kriterinin ve dikey istif kuralinin
             // maliyetiydi, bolge kisitinin degil. Ihlal sayisinin sifir cikmasi
             // da bir guvence degil, bolgelerin hic var olmamasiydi.
-            var group = kind.HasFlag(Kind.Lifo)
+            var group = kind.HasFlag(Kind.Lifo) && unloading.HasValue
                 ? BenchCatalog.StableId($"lifo-group-{unloading}")
                 : item.GroupId;
 
