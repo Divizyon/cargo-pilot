@@ -3944,3 +3944,77 @@ bölge plumbing'inin dersi). Kapılar ve testler değişmedi.
 > `F9-2`'nin dereceli seçeneği (kırılganın üstüne yük binmesi) **uygulanmadı**; müşteri yerleşim
 > yolunu seçti. Ölçüm düğmesi (`--fragility-lbs`) duruyor: karar ileride yeniden açılırsa sayı
 > yeniden üretilmek zorunda kalmasın.
+
+---
+
+## 21 Ağustos 2026 — `F9-4`: denge İLK KEZ ölçüldü · öncül düzeltildi · `F9-5` tetiklendi
+
+`F9-4` "silinen `BalanceScoring`'i onarım geçişi olarak geri getir" diye planlanmıştı. Onarım
+yazmadan önce iki şeyi ölçmek gerekiyordu: **bugünkü denge ne durumda** ve **sapma nereden
+geliyor**. İkisi de bilinmiyordu — `br` denge sapmasını hiç raporlamamıştı.
+
+### Bugünkü denge (static)
+
+| Küme | Ağırlık merkezi X | Z | En kötü |
+|---|---|---|---|
+| `HACIM` | %5,42 | %5,76 | %36,40 |
+| `LIFO4` | %11,84 | %9,21 | %31,50 |
+| `KIR20` | %7,82 | %7,18 | %32,90 |
+| `ISTMEZ` | %8,71 | %7,25 | %24,80 |
+| BR1-BR7 | %6,29 | %3,61 | %17,90 |
+
+Ortalama iyi (%5-12), **kuyruk kötü** (%25-36). LIFO dengeyi bozuyor (%5,42 → %11,84) — gruplar
+`z` sırasına zorlandığı için ağırlık kayıyor.
+
+### Teşhis: sapma AĞIRLIKTAN mı GEOMETRİDEN mi?
+
+Aynı sapma **hacim merkeziyle** de ölçüldü (her kutu eşit yoğunlukta sayılır). İkisi örtüşürse
+sorumlu yük dağılımı değil **yerleşim biçimidir** ve ağırlık takası yapan bir onarım geçişi
+hiçbir şey yapamaz.
+
+| Küme | X ağırlık | X hacim | **fark** | Z ağırlık | Z hacim | **fark** |
+|---|---|---|---|---|---|---|
+| `HACIM` | %5,42 | %5,40 | **0,02** | %5,76 | %2,26 | 3,50 |
+| `LIFO4` | %11,84 | %11,61 | **0,23** | %9,21 | %10,07 | −0,86 |
+| `KIR20` | %7,82 | %7,60 | **0,22** | %7,18 | %5,91 | 1,27 |
+| `ISTMEZ` | %8,71 | %8,66 | **0,05** | %7,25 | %5,44 | 1,81 |
+| BR1-BR7 | %6,29 | %6,29 | **0,00** | %3,61 | %3,61 | **0,00** |
+
+> **X ekseninde sapma tamamen GEOMETRİKTİR.** Fark her kümede 0,02-0,23 puan, BR'de tam sıfır.
+> Yani yan denge, kutuların ne kadar ağır olduğuyla değil NEREDE olduğuyla ilgili.
+>
+> Z ekseninde ağırlığın payı var ama küçük: 9,2 puanlık sapmanın en fazla 3,5'i.
+
+### Öncül düzeltildi: onarım geçişi yazılmadı
+
+Planlanan mekanizma, kutuları **takas ederek** ağırlık merkezini ortalamaktı. Ölçüm bunun
+tavanını gösteriyor: X'te kazanılacak **hiçbir şey yok**, Z'de en fazla 3,5 puan. Üstelik
+korpusta ağırlık büyük ölçüde hacimle bağlı (`GercekCorpus` yoğunluğu ~229 kg/m³), yani aynı
+ölçüdeki iki kutunun ağırlığı çoğu zaman aynı — takas edecek bir şey bile yok.
+
+**Gerçek kaldıraç geometrik simetridir**, ve o bir onarım değil bir yerleştirme değişikliğidir;
+duvar örücünün "bir köşeden doldur" disiplinine doğrudan aykırıdır. `DR-12` (katman inşası yasak)
+ile birlikte düşünüldüğünde bu ayrı ve büyük bir iştir.
+
+Yazılmayan kod için harcanan zaman: iki ölçüm. `DR-69`'un dersi burada da geçerli — **mekanizma
+kurmadan önce mekanizmanın tavanını ölç.**
+
+### `F9-5` TETİKLENDİ: gerçek ağırlık tavanı bağlıyor
+
+`--real-weight` ile ROADEF tablosundaki gerçek kapasite (24-25 t) bağlandı. `R-A07`'nin doluluk
+maliyeti **ilk kez** ölçüldü:
+
+| Küme | Ağırlık serbest | **Gerçek tavan** | Fark | En kötü denge |
+|---|---|---|---|---|
+| `HACIM` | %86,32 | **%82,90** | **−3,42** | %36,40 → **%64,60** |
+| `LIFO4` | %70,94 | %68,97 | −1,97 | %31,50 → **%73,30** |
+
+Yol haritasının tetiği şuydu: *"gerçekçi tavan senaryosunda araçlar hacimden önce ağırlıkla
+dolarsa `F9-5` derhal devreye alınır."* Doluluk 3,42 puan düşüyor — **tetik çekildi.**
+
+Ve denge kuyruğu neredeyse ikiye katlanıyor (%36 → %65, %32 → %73). Sebebi anlaşılır: tavan
+bağladığında hangi kutunun düşeceğini **yerleştirme sırası** belirliyor ve geriye asimetrik bir
+yük kalıyor. Yani ağırlık-farkında kutu seçimi (`F9-5`) hem dolulukta hem dengede aynı anda
+çalışacak tek mekanizma.
+
+**Sıra değişti:** `F9-4` (onarım geçişi) yazılmadı ve şimdilik kapandı; `F9-5` öne alındı.

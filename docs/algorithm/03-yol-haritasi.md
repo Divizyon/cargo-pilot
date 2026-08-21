@@ -578,6 +578,18 @@ eder"* idi; `DR-56` varsayılanı beam'e çevirince o gerekçe sessizce geçersi
   bozmadığını ölçmüş.
 - **Eşik:** post-pass doluluğu **0,5 puandan fazla** düşürürse zarf gevşetilir.
 
+> ⛔ **ÖNCÜL DÜZELTİLDİ — onarım geçişi YAZILMADI.** Önce iki şey ölçüldü: bugünkü denge
+> (ortalama %5-12, **kuyruk %25-36**) ve sapmanın kaynağı. Aynı sapma hacim merkeziyle de
+> ölçüldü: **X ekseninde fark 0,02-0,23 puan, BR'de tam sıfır** — yani yan denge tamamen
+> GEOMETRİK. Z'de ağırlığın payı var ama 9,2 puanlık sapmanın en fazla 3,5'i.
+>
+> Takas tabanlı bir onarımın tavanı budur: X'te kazanılacak hiçbir şey yok. Üstelik korpusta
+> ağırlık büyük ölçüde hacimle bağlı, yani takas edecek çift bile yok. Gerçek kaldıraç
+> **geometrik simetri** ve o bir onarım değil bir yerleştirme değişikliği — duvar örücünün
+> "bir köşeden doldur" disiplinine aykırı, ayrı ve büyük bir iş.
+>
+> Ayrıntı ölçüm günlüğünde `F9-4`.
+
 #### F9-5 — Ağırlık-farkında kutu seçimi *(Öncelik 4, F9-0'a bağımlı)*
 
 Bugün ağırlık tavanı **sıra düzeyinde** uygulanıyor: kalan kapasiteye sığmayan kutu düşer. Hangi
@@ -587,6 +599,17 @@ seçim yok.
 - **Tetikleyici:** F9-0'ın gerçekçi tavan senaryosunda araçlar hacimden **önce ağırlıkla** dolarsa
   bu adım derhal devreye alınır; dolmuyorsa ertelenir.
 - **Mekanizma:** hacim-değerli, ağırlık-kapasiteli knapsack ön-seçimi.
+
+> 🔴 **TETİK ÇEKİLDİ.** `--real-weight` (24-25 t) ile `HACIM` %86,32 → **%82,90 (−3,42)**,
+> `LIFO4` %70,94 → %68,97. `R-A07`'nin doluluk maliyeti ilk kez ölçüldü ve tavan gerçekten
+> bağlıyor.
+>
+> Yan bulgu: denge **kuyruğu neredeyse ikiye katlanıyor** (%36 → %65, %32 → %73). Sebebi, tavan
+> bağladığında hangi kutunun düşeceğini yerleştirme sırasının belirlemesi ve geriye asimetrik bir
+> yük kalması. Yani ağırlık-farkında seçim, doluluk ve dengede **aynı anda** çalışacak tek
+> mekanizma — `F9-4`'ün onarım geçişinin yapamadığı şey.
+>
+> **Sıra değişti: `F9-5` öne alındı, `F9-4` kapandı.**
 
 #### F9-6 — Ayrışım *(Öncelik 5, iş kuralı kararı)*
 
@@ -604,8 +627,8 @@ bölgelere konur.
 | 2 | **F9-1** sıralama | En ucuz, hiç denenmedi, kural değiştirmiyor |
 | 3 | **F9-3** istif korpusu | Kod değil korpus; −13,69'un ne kadarının artefakt olduğunu söyler |
 | 4 | **F9-2** dereceli LBS | İş kuralı kararı gerektirir; sayı önce üretilir |
-| 5 | **F9-4** CoG onarımı | Doluluktan bağımsız açık borç |
-| 6 | **F9-5** ağırlık seçimi | Yalnız F9-0 tavanı bağlarsa |
+| 5 | ~~**F9-4** CoG onarımı~~ | ⛔ **Kapandı** — sapma geometrik, takasın tavanı sıfıra yakın |
+| 6 | **F9-5** ağırlık seçimi | 🔴 **Tetik çekildi** (−3,42) — sıraya öne alındı |
 | 7 | **F9-6** ayrışım | En son; önce maliyeti ölçülür |
 
 F9-1 ve F9-3 önce çünkü ikisi de **kural değiştirmiyor** — biri sıralama, diğeri korpus. İkisi

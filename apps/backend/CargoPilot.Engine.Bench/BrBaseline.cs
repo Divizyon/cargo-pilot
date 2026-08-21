@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -50,7 +50,10 @@ public static class BrBaseline
         double? MeanSliceUtilPercent = null,
         int? ZoneViolations = null,
         int? FragilityViolations = null,
-        int? StackViolations = null);
+        int? StackViolations = null,
+        double? MeanBalanceX = null,
+        double? MeanBalanceZ = null,
+        double? WorstBalance = null);
 
     public sealed record Report(
         string Strategy,

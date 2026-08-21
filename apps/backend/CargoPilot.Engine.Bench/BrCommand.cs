@@ -71,6 +71,8 @@ public static class BrCommand
 
         var all = new List<decimal>();
         var setResults = new List<BrBaseline.SetResult>();
+        var volumeSummary = (X: 0d, Z: 0d);
+        var volumeSets = 0;
 
         // Gorunum yalnizca istendiginde toplanir; kapali kosuda liste bos kalir
         // ve tek bir ek islem yapilmaz.
@@ -96,6 +98,10 @@ public static class BrCommand
             var limit = options.MaxScenarios > 0 ? Math.Min(options.MaxScenarios, instances.Count) : instances.Count;
 
             var fills = new List<decimal>(limit);
+            var balanceX = new List<double>(limit);
+            var balanceZ = new List<double>(limit);
+            var volumeX = new List<double>(limit);
+            var volumeZ = new List<double>(limit);
             var durations = new List<double>(limit);
             var spreads = new List<SpreadDiagnostics.Report>(limit);
 
@@ -135,6 +141,20 @@ public static class BrCommand
                 // Yayilma HER kosuda olculur: maliyeti yerlesim sayisinda
                 // dogrusaldir ve kismi yuk rejiminin tek kalite olcusudur.
                 spreads.Add(SpreadDiagnostics.Analyze(input, result));
+
+                // Denge sapmasi HER kosuda toplanir: hesabi zaten
+                // PlanResultBuilder yapiyor, burada yalnizca okunuyor. Bugune
+                // kadar hicbir kiyas kosusu bunu raporlamamisti — yani
+                // "planlarimizin dengesi nasil" sorusunun sayisal cevabi yoktu.
+                balanceX.Add((double)(result.WeightBalanceOffsetX ?? 0m));
+                balanceZ.Add((double)(result.WeightBalanceOffsetZ ?? 0m));
+
+                // TESHIS: sapma AGIRLIKTAN mi GEOMETRIDEN mi geliyor? Ayni
+                // sapma hacim merkeziyle de olculur; ikisi ortusuyorsa yuk
+                // dagilimi degil YERLESIM BICIMI sorumludur ve agirlik takasi
+                // yapan bir onarim gecisi hicbir sey yapamaz.
+                volumeX.Add(CentroidOffset(input.VehicleWidth, result, p => p.X + (p.Width / 2m)));
+                volumeZ.Add(CentroidOffset(input.VehicleLength, result, p => p.Z + (p.Length / 2m)));
 
                 scenarios?.Add(PlanExport.From(instance.Id, set, instance.Suite, instance.Label, input, result));
 
@@ -186,7 +206,16 @@ public static class BrCommand
                 Math.Round(meanSlice, 2),
                 noConstraints ? null : constraints.Sum(c => c.ZoneViolations),
                 noConstraints ? null : constraints.Sum(c => c.FragilityViolations),
-                noConstraints ? null : constraints.Sum(c => c.StackViolations)));
+                noConstraints ? null : constraints.Sum(c => c.StackViolations),
+                Math.Round(balanceX.Count == 0 ? 0d : balanceX.Average(), 2),
+                Math.Round(balanceZ.Count == 0 ? 0d : balanceZ.Average(), 2),
+                Math.Round(balanceX.Count == 0 ? 0d : balanceX.Zip(balanceZ, Math.Max).Max(), 2)));
+
+            if (volumeX.Count > 0)
+            {
+                volumeSummary = (volumeSummary.X + volumeX.Average(), volumeSummary.Z + volumeZ.Average());
+                volumeSets++;
+            }
 
             if (!options.Verbose) constraints.Clear();
 
@@ -205,11 +234,25 @@ public static class BrCommand
         if (suite) summaryName = "SUIT";
         else if (real) summaryName = "GERCEK";
 
+        if (volumeSets > 0) volumeSummary = (volumeSummary.X / volumeSets, volumeSummary.Z / volumeSets);
+
         Console.WriteLine();
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"{summaryName} ortalamasi: %{Mean(all):F2}  ({all.Count} ornek)" +
             $"  ·  yayilma x{setResults.Average(r => r.MeanSpreadRatio ?? 1d):F3}" +
             $"  ·  dilim %{setResults.Average(r => r.MeanSliceUtilPercent ?? 0d):F1}"));
+
+        // Denge AYRI bir satirda: doluluk ve yayilma yerin nasil kullanildigini
+        // olcer, denge ise agirligin nereye dustugunu. Ikisi ayni sutunda
+        // okunursa biri digerinin yerine gecer.
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"denge sapmasi: X %{setResults.Average(r => r.MeanBalanceX ?? 0d):F2}" +
+            $"  ·  Z %{setResults.Average(r => r.MeanBalanceZ ?? 0d):F2}" +
+            $"  ·  en kotu %{setResults.Max(r => r.WorstBalance ?? 0d):F2}"));
+
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"hacim merkezi: X %{volumeSummary.X:F2}  ·  Z %{volumeSummary.Z:F2}" +
+            $"   (agirlik merkeziyle ortusuyorsa sapma GEOMETRIDEN geliyor)"));
 
         var report = new BrBaseline.Report(
             "WallBuilder",
@@ -237,6 +280,26 @@ public static class BrCommand
         Console.WriteLine();
 
         return BrBaseline.Matches(options.BaselinePath, report) ? BenchOptions.ExitOk : BenchOptions.ExitFailed;
+    }
+
+    /// <summary>
+    /// Yerlesimin HACIM merkezinin arac ortasindan kacisi (yuzde). Agirlik
+    /// merkezinin aynisi ama her kutu esit yogunlukta sayilir; ikisinin farki
+    /// sapmanin agirlik dagiliminda mi yoksa yerlesim biciminde mi oldugunu
+    /// soyler.
+    /// </summary>
+    private static double CentroidOffset(
+        decimal span, OptimizationResult result, Func<PlacedItemResult, decimal> centre)
+    {
+        var half = span / 2m;
+        if (half <= 0m || result.Placements.Count == 0) return 0d;
+
+        var volume = result.Placements.Sum(p => p.Width * p.Height * p.Length);
+        if (volume <= 0m) return 0d;
+
+        var weighted = result.Placements.Sum(p => p.Width * p.Height * p.Length * centre(p)) / volume;
+
+        return (double)(Math.Abs(weighted - half) / half * 100m);
     }
 
     /// <summary>
