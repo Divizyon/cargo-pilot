@@ -130,6 +130,12 @@ internal static class WallBuilderPlacement
         // foreach degil; tuketilen birimler atlanir.
         var consumed = state.Consumed;
 
+        // AGIRLIK-FARKINDA SECIM. Tavan bagladiginda hangi kutunun disarida
+        // kalacagini bugun YERLESTIRME SIRASI belirliyor; sira hacim-azalan
+        // oldugu icin buyuk ve agir kutular kapasiteyi once yiyor. Bu secim
+        // onun yerine HACIM/AGIRLIK oranini kullanir.
+        var excluded = WeightAwareExclusion(input, instances, consumed, totalWeight);
+
         for (var index = 0; index < instances.Count; index++)
         {
             if (consumed[index]) continue;
@@ -151,6 +157,14 @@ internal static class WallBuilderPlacement
             var sequenced = instances[index];
             var item = sequenced.Item;
             cancellationToken.ThrowIfCancellationRequested();
+
+            // Secim onden yapildiginda kutu burada elenir; sert kapi yine de
+            // asagida durur (kemer ve askı: secim yanlissa kapasite yine asilmaz).
+            if (excluded is not null && excluded[index])
+            {
+                unplaced.Add(new UnplacedBox(item.ItemId, UnplacedReason.WeightLimitExceeded));
+                continue;
+            }
 
             if (totalWeight + item.Weight > input.VehicleMaxWeight)
             {
@@ -459,6 +473,79 @@ internal static class WallBuilderPlacement
         }
 
         return Run(input, instances, DecoderKeys.Neutral, state, cancellationToken).Result;
+    }
+
+    /// <summary>
+    /// Agirlik tavani bagladiginda hangi birimlerin disarida kalacagi.
+    ///
+    /// Bugunku davranis sira duzeyindedir: kalan kapasiteye sigmayan ilk kutu
+    /// duser. Sira hacim-azalan oldugu icin buyuk ve AGIR kutular kapasiteyi
+    /// once yiyor ve geriye hem az hacim hem asimetrik bir yuk kaliyor
+    /// (olculdu: gercek tavanla doluluk -3,42, en kotu denge sapmasi
+    /// %36 -> %65).
+    ///
+    /// Burada secim bir SIRT CANTASI problemidir: agirlik kapasitesi altinda
+    /// hacmi en cokla. Ac gozlu cozumu birim agirlik basina hacme
+    /// (yogunlugun tersi) gore siralamaktir — kesirli sirt cantasinda optimum,
+    /// 0/1'de iyi bir yaklasim.
+    ///
+    /// TAMAMEN ETKISIZDIR tavan baglamadiginda: toplam agirlik kapasitenin
+    /// altindaysa <c>null</c> doner ve tek bir kutu bile elenmez.
+    ///
+    /// Determinizm (R-C02): esitlikte urun kimligi, sonra indeks bozar.
+    /// </summary>
+    private static bool[]? WeightAwareExclusion(
+        OptimizationInput input,
+        IReadOnlyList<SequencedItem> instances,
+        bool[] consumed,
+        decimal placedWeight)
+    {
+        if (!input.WeightAwareSelection) return null;
+
+        var budget = input.VehicleMaxWeight - placedWeight;
+        if (budget <= 0m) return null;
+
+        var pending = new List<int>(instances.Count);
+        var total = 0m;
+
+        for (var i = 0; i < instances.Count; i++)
+        {
+            if (consumed[i]) continue;
+
+            pending.Add(i);
+            total += instances[i].Item.Weight;
+        }
+
+        // Tavan baglamiyorsa secim yapilacak bir sey yok.
+        if (total <= budget) return null;
+
+        var ranked = pending
+            .OrderByDescending(i => Density(instances[i].Item))
+            .ThenBy(i => instances[i].Item.ItemId)
+            .ThenBy(i => i);
+
+        var excluded = new bool[instances.Count];
+        var taken = 0m;
+
+        foreach (var i in ranked)
+        {
+            var weight = instances[i].Item.Weight;
+            if (taken + weight <= budget) taken += weight;
+            else excluded[i] = true;
+        }
+
+        return excluded;
+    }
+
+    /// <summary>
+    /// Birim agirlik basina hacim. Agirligi sifir olan kutu bedavadir ve her
+    /// zaman once alinir; sirt cantasinda dogru davranis budur.
+    /// </summary>
+    private static decimal Density(OptimizationItemInput item)
+    {
+        var volume = item.Width * item.Height * item.Length;
+
+        return item.Weight <= 0m ? decimal.MaxValue : volume / item.Weight;
     }
 
     /// <summary>Hedef derinligin buyutulme adimi; her basarisizlikta tavan bu kadar acilir.</summary>

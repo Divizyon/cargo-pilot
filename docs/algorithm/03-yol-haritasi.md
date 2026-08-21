@@ -611,6 +611,14 @@ seçim yok.
 >
 > **Sıra değişti: `F9-5` öne alındı, `F9-4` kapandı.**
 
+> ✅ **KABUL EDİLDİ — üretim varsayılanı (`DR-71`).** Sırt çantası seçimi: 14 ailenin 12'si
+> pozitif, ortalama +0,52 (static, gerçek tavan); üretim yolunda +0,11…+0,35. Denge de iyileşiyor.
+> **Tavan bağlamadığında tamamen etkisiz** (ölçüldü). Karar gerekçesi kazancın büyüklüğü değil,
+> eski davranışın gerekçesizliği — hangi kutunun düşeceğini sıralamanın rastlantısı belirliyordu.
+>
+> Yol boyunca bir korpus kusuru düzeltildi (`DR-71a`): rastgele kutuların yoğunluğu sabit 229
+> kg/m³'tü, gerçek dağılım 108-459. Ağırlık ekseninde ölçülebilecek her şeyi körleştiriyordu.
+
 #### F9-6 — Ayrışım *(Öncelik 5, iş kuralı kararı)*
 
 `ContaminationFilter` bugün bir **ön elemedir**: en yüksek hacimli grup geçer, çakışan diğerleri

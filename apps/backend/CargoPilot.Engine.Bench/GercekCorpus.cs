@@ -187,8 +187,14 @@ public static class GercekCorpus
     /// alt sinirindan biraz asagi, ust sinirindan biraz yukari, yani paletli
     /// yukun DISINDA kalan her seyi (kasa, boru, kucuk koli) temsil eder.
     ///
-    /// Yogunluk gercek yukun olculen ortalamasina (229 kg/m3) yakin tutulur;
-    /// agirlik baglayici olmasa da denge olcumleri gercekci kalsin diye.
+    /// YOGUNLUK gercek tablodan ornekleneir, uydurulmaz. Ilk surumde SABIT
+    /// 229 kg/m3 kullaniliyordu — gercek yukun olculen ortalamasi — ve bu
+    /// yukun yarisinda yogunlugu HIC DEGISMEZ yapiyordu. Gercek veri oyle
+    /// demiyor: paya gore %10 dilimi 108, medyan 260, %90 dilimi 459 kg/m3.
+    ///
+    /// Sabit yogunluk agirlik ekseninde olculebilecek her seyi kortlestiriyordu:
+    /// ayni hacimdeki iki kutunun agirligi hep ayni olunca ne agirlik-farkinda
+    /// secimin (F9-5) siralayacagi bir sey kalir ne de denge takasinin.
     /// </summary>
     private static Package Random(Lcg rng)
     {
@@ -198,8 +204,36 @@ public static class GercekCorpus
         var w = Side();
         var h = Side();
 
-        return new Package(l, w, h, Math.Round(l * w * h / 1_000_000m * 229m, 1), 0);
+        return new Package(l, w, h, Math.Round(l * w * h / 1_000_000m * SampleDensity(l, w, h), 1), 0);
     }
+
+    /// <summary>
+    /// Gercek ambalaj tablosundan paya gore ornekleneen yogunluk (kg/m3).
+    /// Uydurma bir dagilim yerine olculmus olani kullanir.
+    ///
+    /// KENDI URETECINI kullanir, cagiranin akisini TUKETMEZ. Ilk surumde ana
+    /// uretecten cekiyordu ve tek bir ek cekim butun akisi kaydiriyordu: agirlik
+    /// baglamayan kumelerin sayilari bile degisti (KIR20 %80,01 -> %80,98), yani
+    /// olculen sey "yogunlugun etkisi" degil "baska bir korpus" oluyordu.
+    /// Tohum kutunun OLCUSUNDEN turer; ayni kutu her zaman ayni yogunlugu alir
+    /// ve determinizm (R-C02) korunur.
+    /// </summary>
+    private static decimal SampleDensity(decimal l, decimal w, decimal h)
+    {
+        var packages = _packages ??= ReadPackages();
+
+        var seed = unchecked((uint)(((int)l * 73856093) ^ ((int)w * 19349663) ^ ((int)h * 83492791)));
+        var rng = new Lcg(seed == 0 ? 1u : seed);
+
+        var package = Pick(packages, p => p.Share, packages.Sum(p => p.Share), rng);
+
+        var volume = package.L * package.W * package.H / 1_000_000m;
+
+        return volume <= 0m || package.Weight <= 0m ? DefaultDensity : package.Weight / volume;
+    }
+
+    /// <summary>Tabloda kullanilamaz bir satira denk gelinirse: olculen ortalama.</summary>
+    private const decimal DefaultDensity = 229m;
 
     private static OptimizationItemInput Build(
         int instance, int type, Package package, int quantity, bool fromReal)

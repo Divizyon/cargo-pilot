@@ -38,7 +38,8 @@ public sealed record BenchOptions(
     bool UnloadPathVisibilityOnly,
     bool RealWeight,
     bool FragileLast,
-    decimal? FragilityLoadBearing)
+    decimal? FragilityLoadBearing,
+    bool WeightAwareSelection)
 {
     public const int ExitOk = 0;
     public const int ExitFailed = 1;
@@ -58,6 +59,7 @@ public sealed record BenchOptions(
         var realWeight = false;
         var fragileLast = true;
         decimal? fragilityLbs = null;
+        var weightAware = true;
         var seedFrom = 1;
         var seedTo = 1;
         var count = 30;
@@ -141,6 +143,9 @@ public sealed record BenchOptions(
                 case "--vcs":
                     vcsWeights = ParseVcs(value, arg);
                     break;
+                case "--no-weight-aware":
+                    weightAware = false;
+                    break;
                 case "--fragility-lbs":
                     fragilityLbs = ParseDecimal(value, arg);
                     break;
@@ -220,7 +225,8 @@ public sealed record BenchOptions(
             visibilityOnly,
             realWeight,
             fragileLast,
-            fragilityLbs);
+            fragilityLbs,
+            weightAware);
     }
 
     public static int PrintUsage()
@@ -266,6 +272,7 @@ public sealed record BenchOptions(
               --real-weight    suit kipinde arac agirlik tavani GERCEK kapasite olur (24-25 t).
               --no-fragile-last  kirilgan siralamasini KAPATIR (F9-1 oncesi davranis; olcum icin).
               --fragility-lbs N  kirilganligi DERECELI yapar: kutu kg/m2 cinsinden N kadar tasir.
+              --no-weight-aware  agirlik secimini KAPATIR (DR-71 oncesi davranis; olcum icin).
                                Veri degismez, yalniz kisit alanlari doldurulur;
                                boylece kisitli/kisitsiz kosu birebir kiyaslanir.
               --depth-slack S  yuku ideal derinligin S katina toplar (or. 1,15).

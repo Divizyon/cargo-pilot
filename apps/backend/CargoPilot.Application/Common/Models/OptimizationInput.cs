@@ -83,6 +83,18 @@ namespace CargoPilot.Application.Common.Models;
 /// ustune GERCEKTEN yuk binmesine izin verir. Alan OLCUM icindir, karar
 /// musteriye aittir (DR-16 deseni); uretim yollari doldurmaz.
 /// </param>
+/// <param name="WeightAwareSelection">
+/// Agirlik tavani bagladiginda kutu secimi SIRT CANTASI olarak yapilir:
+/// birimler birim agirlik basina hacme gore siralanir ve kapasite dolana kadar
+/// alinir (DR-71). Varsayilan ACIKTIR.
+///
+/// <c>false</c> eski davranisi geri getirir: kalan kapasiteye sigmayan ilk kutu
+/// duser, yani secimi yerlestirme sirasinin rastlantisi belirler. Yalnizca
+/// olcum icindir.
+///
+/// TAMAMEN ETKISIZDIR tavan baglamadiginda: toplam agirlik kapasitenin
+/// altindaysa tek bir kutu bile elenmez (olculdu).
+/// </param>
 /// <param name="DepthSlack">
 /// Yukun toplanacagi HEDEF DERINLIK payi. Hedef derinlik su sekilde bulunur:
 ///
@@ -139,6 +151,7 @@ public sealed record OptimizationInput(
     bool UnloadPathVisibilityOnly = false,
     bool FragileLast = true,
     decimal? FragilityLoadBearing = null,
+    bool WeightAwareSelection = true,
     decimal? DepthSlack = 1.05m,
     (double Volume, double Waste, double Contact, double BoxCount)? VcsWeights = null)
 {

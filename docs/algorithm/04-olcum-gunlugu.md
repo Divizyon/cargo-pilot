@@ -4018,3 +4018,79 @@ yük kalıyor. Yani ağırlık-farkında kutu seçimi (`F9-5`) hem dolulukta hem
 çalışacak tek mekanizma.
 
 **Sıra değişti:** `F9-4` (onarım geçişi) yazılmadı ve şimdilik kapandı; `F9-5` öne alındı.
+
+---
+
+## 21 Ağustos 2026 — `F9-5`: ağırlık-farkında kutu seçimi · korpusta yoğunluk düzeltildi
+
+Ağırlık tavanı bağladığında bugün hangi kutunun düşeceğini **yerleştirme sırası** belirliyor:
+sıra hacim-azalan olduğu için büyük ve **ağır** kutular kapasiteyi önce yiyor. Doğrusu bir
+**sırt çantası** problemidir — ağırlık kapasitesi altında hacmi en çokla — ve açgözlü çözümü
+birim ağırlık başına hacme göre sıralamaktır.
+
+`OptimizationInput.WeightAwareSelection` · `--weight-aware`. **Tavan bağlamadığında tamamen
+etkisizdir**: toplam ağırlık kapasitenin altındaysa tek bir kutu bile elenmez (ölçüldü).
+
+### Önce bir korpus kusuru düzeltildi
+
+İlk ölçüm zayıf çıktı (+0,85 / −0,10 / +0,46) ve sebebi şüpheliydi: eğer korpusta ağırlık
+hacimle bağlıysa sırt çantasının **sıralayacağı bir şey yoktur**. Gerçek ambalaj tablosuna
+bakıldı:
+
+| Yoğunluk (kg/m³), paya göre | %10 | medyan | %90 |
+|---|---|---|---|
+| Gerçek ROADEF ambalajları | 108 | 260 | 459 |
+| **Bizim rastgele kutularımız** | — | **229 sabit** | — |
+
+Yükün yarısında yoğunluk **hiç değişmiyordu**. Bu, ağırlık ekseninde ölçülebilecek her şeyi
+körleştiriyordu — hem `F9-5`'i hem `F9-4`'ün takas geçişini. Rastgele kutuların yoğunluğu artık
+uydurma bir dağılımdan değil **gerçek tablodan** örnekleniyor.
+
+**Kritik ayrıntı:** yoğunluk kendi üretecini kullanır, çağıranın akışını tüketmez. İlk sürümde
+ana üreteçten çekiyordu ve **tek bir ek çekim bütün akışı kaydırdı**: ağırlık bağlamayan
+kümelerin sayıları bile değişti (`KIR20` %80,01 → %80,98). Yani ölçülen şey "yoğunluğun etkisi"
+değil "başka bir korpus" oluyordu. Düzeltildikten sonra geometri ekseni **birebir korundu** —
+`HACIM` %86,32 · `KIR20` %80,01 · `ISTKAR` %78,83, üçü de bayt bayt aynı.
+
+Bu, oturumdaki üçüncü aynı aile hata: **ölçüm düzeneğine dokunurken dokunduğun şeyin dışına
+taşmadığını kanıtla.**
+
+### Sonuçlar (static, gerçek tavan 24-25 t)
+
+| Küme | Kapalı | **Açık** | Kazanç | Denge X | Denge Z |
+|---|---|---|---|---|---|
+| `HACIM` | %82,17 | **%83,41** | **+1,24** | %5,76 → %5,37 | %8,80 → %8,66 |
+| `LIFO4` | %68,13 | **%69,05** | **+0,92** | %12,54 → %12,17 | %12,00 → %10,91 |
+| `KIR20` | %76,36 | **%77,00** | **+0,64** | %7,67 → %7,26 | %9,94 → %9,00 |
+
+Üçü de pozitif ve **denge de iyileşiyor** — `KIR20`'de en kötü sapma %64,70 → %60,00.
+Yoğunluk düzeltilmeden önce `LIFO4` negatifti (−0,10); düzeltilince +0,92 oldu.
+
+`R-A07`'nin doluluk maliyeti düzeltilmiş korpusla **−4,15** (%86,32 → %82,17); sırt çantası
+bunun **%30'unu** geri getiriyor.
+
+### Üretim yolu ve karar
+
+| Küme (beam, gerçek tavan) | Kapalı | Açık | Kazanç |
+|---|---|---|---|
+| `LIFO4` | %76,84 | %77,19 | +0,35 |
+| `KIR20` | %80,85 | %80,96 | +0,11 |
+
+Beam yine seçim sezgisinin kazancını yutuyor (static +0,92 → üretim +0,35).
+
+**On dört ailenin tamamı tarandı** (static, gerçek tavan): **12'si pozitif**, ikisi negatif
+(`KIR33` −0,54, `ISTMEZ` −0,37 — üstüne yük alamayan kutunun en yoğun olduğu iki aile),
+ortalama **+0,52**.
+
+> **KABUL EDİLDİ ve üretim varsayılanı yapıldı (`DR-71`).** Gerekçe kazancın büyüklüğü değil,
+> bugünkü davranışın **gerekçesiz** olması: hangi kutunun düşeceğini yerleştirme sırasının
+> rastlantısı belirliyordu. Yerine ilkeli bir kural geliyor (sırt çantası) ve ortalamada hem
+> doluluk hem denge iyileşiyor.
+>
+> Kural değişmedi, kapasite tavanı aynı — değişen tek şey **hangi kutuların** dışarıda kalacağı.
+> Tavan bağlamadığında tek bir kutu bile elenmiyor: suit'in ağırlık bağlamayan kümeleri bayrakla
+> **birebir aynı** (`HACIM` %86,32 · `KIR20` %80,01 · `ISTKAR` %78,83). Kapılar da değişmedi
+> (BR korpuslarında tavan 1.000.000 kg).
+>
+> İki gerileme kayda geçti: mekanizma yoğunluğa bakıyor, kutunun **yerleşebilirliğine** bakmıyor.
+> `--no-weight-aware` ile kapatılabilir.
