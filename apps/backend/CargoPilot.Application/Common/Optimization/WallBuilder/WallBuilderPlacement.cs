@@ -1009,6 +1009,11 @@ internal static class WallBuilderPlacement
                 var wallContact =
                     (x <= 0m || x + width >= input.VehicleWidth ? height * length : 0m)
                     + (z <= 0m ? width * height : 0m);
+                // Not: "ustune yuk alamayan kutuyu skorla YUKARI IT" denendi ve
+                // REDDEDILDI (F9-2b). Mekanizma calisiyor ama etkisi siralamayla
+                // (DR-70) tukeniyor: siralama tek basina +14,77, yukseltme tek
+                // basina +1,06, ikisi birlikte yine +14,77. Tukenmis bir etkiyi
+                // ikinci kez itmenin karsiligi yok.
                 var vcs = BlockValue.Score(
                     placedVolume: width * height * length * block,
                     spaceVolume: space.Width * space.Height * space.Length,

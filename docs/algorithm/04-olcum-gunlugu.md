@@ -3895,3 +3895,52 @@ Araştırmanın eşiği *"yeni model doluluğu ≥%85'e çıkarırsa Öncelik 1 
 üretim yolunda bu **100 kg/m²** gibi ölçülü bir değerde bile karşılanıyor (%85,33).
 
 `DR-16` deseni: sayı üretildi, varsayılan değişmedi, karar müşteriye ait.
+
+---
+
+## 21 Ağustos 2026 — `F9-2b`: "kırılganı yukarı it" · **REDDEDİLDİ (ölçümle)**
+
+Müşteri, `F9-2`'nin dereceli seçeneklerinden birini seçmek yerine başka bir yol önerdi:
+*"kırılganları aracın en üstüne yükleyerek alan kazanabiliriz."* Yani kırılganın üstüne yük
+bindirmek yerine kırılganı yukarı taşımak — kural 0 kg kalır, çözüm yerleşimde olur.
+
+Fikir doğru ve fiziği sağlam: üstüne yük alamayan kutu bulunduğu sütunu kapatır, kapattığı ölü
+hacim kutu ne kadar yüksekteyse o kadar küçüktür.
+
+Bir kısmı zaten `DR-70` ile yapılıyordu (sıralama kutuyu sona alıyor). Eksik görünen şey şuydu:
+sona kalmak yukarı çıkmayı **garanti etmez** — kutu yeni açılan bir duvarın zeminine de düşebilir.
+Bu yüzden aday skoruna, üstüne yük alamayan kutu için yüksekliği ödüllendiren bir terim eklendi
+(sert kapı değil, tercih).
+
+### Ölçüm: terim hiçbir şey katmıyor
+
+| Güç | 0,5 | 1 | 2 | 4 |
+|---|---|---|---|---|
+| `KIR20` | %80,01 | %80,01 | %80,02 | %80,03 |
+| `KIR33` | %72,13 | %72,13 | %72,13 | %72,13 |
+| `ISTMEZ` | %80,00 | %80,00 | %80,00 | %80,00 |
+
+Taban zaten %80,01 / %72,11 / %80,00. Yani kazanç **+0,01 mertebesinde**.
+
+### Sebebi ölçüldü, tahmin edilmedi
+
+Sıralama kapatılıp terim tek başına bırakıldı:
+
+| | `KIR20` | `ISTMEZ` |
+|---|---|---|
+| İkisi de kapalı | %65,24 | %64,91 |
+| **Yalnız yükseltme** | %66,30 (+1,06) | %65,64 (+0,73) |
+| **Yalnız sıralama** (`DR-70`) | **%80,01 (+14,77)** | **%80,00 (+15,09)** |
+| İkisi birden | %80,01 (**+0,00**) | %80,00 (**+0,00**) |
+
+Mekanizma çalışıyor — tek başına +1,06 getiriyor. Ama etkisi **sıralamayla tükeniyor**: `DR-70`
+kutuyu sona aldığı için zemin çoktan dolmuş oluyor ve kutu kendiliğinden tepeye çıkıyor. Skorla
+ayrıca yukarı itmek, tükenmiş bir etkiyi ikinci kez itmek.
+
+**Terim kaldırıldı**, gerekçesi kodda bir yorum olarak duruyor. Ölü düğme bırakılmadı (`DR-67`
+bölge plumbing'inin dersi). Kapılar ve testler değişmedi.
+
+> **Müşterinin fikri kabul edilmiş sayılır** — istediği davranış zaten üretimde, `DR-70` ile.
+> `F9-2`'nin dereceli seçeneği (kırılganın üstüne yük binmesi) **uygulanmadı**; müşteri yerleşim
+> yolunu seçti. Ölçüm düğmesi (`--fragility-lbs`) duruyor: karar ileride yeniden açılırsa sayı
+> yeniden üretilmek zorunda kalmasın.

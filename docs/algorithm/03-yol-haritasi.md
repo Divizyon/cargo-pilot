@@ -528,8 +528,19 @@ Araştırmanın **Öncelik 2**'si. Krebs-Ehmke DBLF sıralaması: *"1. fragility
 > **%89,18** (maliyet −5,70 → −0,88). Eşik 100 kg/m² gibi ölçülü bir değerde bile karşılanıyor.
 >
 > **Varsayılan DEĞİŞMEDİ.** Eğri monoton: kazanç, kırılganın üstüne ne kadar yük binmesine razı
-> olunduğuyla doğru orantılı — teknik bir tercih değil, iş kuralı. Alt adım (ii) (destek zinciri
-> yük dağıtımı) yalnız (i) kabul edilirse yapılacak. Ayrıntı ölçüm günlüğünde `F9-2`.
+> olunduğuyla doğru orantılı — teknik bir tercih değil, iş kuralı. Ayrıntı ölçüm günlüğünde `F9-2`.
+
+> ✅ **MÜŞTERİ KARARI: dereceli yorum UYGULANMADI.** Seçeneklerden biri yerine başka bir yol
+> gösterildi — *"kırılganları aracın en üstüne yükleyerek alan kazanabiliriz"*: kural 0 kg kalsın,
+> çözüm yerleşimde olsun. **İstenen davranış zaten üretimde** (`DR-70` kutuyu sıranın sonuna alıyor
+> ve tepeye çıkarıyor).
+>
+> Skora ayrıca bir "yukarı itme" terimi eklemek denendi ve **reddedildi** (`F9-2b`): tek başına
+> +1,06 getiriyor ama sıralamayla birlikte **+0,00** — etki `DR-70` tarafından zaten tüketilmiş.
+>
+> Alt adım (ii) (destek zinciri yük dağıtımı) **konusuz kaldı**: dereceli yorum uygulanmadığı için
+> yük dağıtım modelinin bir karşılığı yok. `--fragility-lbs` düğmesi duruyor; karar ileride
+> yeniden açılırsa sayı yeniden üretilmek zorunda kalmasın.
 
 #### F9-3 — İstif sınırı dağılımı *(korpus, kod değil)*
 
