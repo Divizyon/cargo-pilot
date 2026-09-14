@@ -10,11 +10,11 @@
 
     <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
 
-    <PackageReference Include="Hangfire.Core" Version="1.8.24" />
-    <PackageReference Include="Hangfire.NetCore" Version="1.8.24" />
-    <PackageReference Include="Hangfire.SqlServer" Version="1.8.24" />
+    <PackageReference Include="Hangfire.Core" Version="1.8.25" />
+    <PackageReference Include="Hangfire.NetCore" Version="1.8.25" />
+    <PackageReference Include="Hangfire.SqlServer" Version="1.8.25" />
 
-    <PackageReference Include="Google.Apis.Auth" Version="1.75.0" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.76.0" />
 
     <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="8.0.30" />
 
